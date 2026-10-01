@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
 import { toE164 } from "@/lib/records";
 
+const SOURCES = ["home_loan", "popup_consultation"];
+
 /**
- * Every enquiry on the website becomes a lead in the shared database (source: Website),
+ * Every enquiry on the website becomes a lead in the shared database (source: Website, or home_loan /
+ * popup_consultation for the home loans form and the consultation pop-up),
  * with a "created" activity row. If CRM_WEBHOOK_URL is set the lead is also forwarded as JSON.
  */
 export async function POST(req: Request) {
@@ -21,20 +24,23 @@ export async function POST(req: Request) {
   const propertyId = Number(body.propertyId) || null;
   const projectId = Number(body.projectId) || null;
   const interest = ["Buy", "Sell", "Rent"].includes(String(body.interest)) ? String(body.interest) : propertyId || projectId ? "Buy" : null;
-  const parts = [body.subject && `Regarding: ${body.subject}`, body.visitDate && `Preferred visit date: ${body.visitDate}`, body.message && String(body.message).trim()].filter(Boolean);
+  const source = SOURCES.includes(String(body.source)) ? String(body.source) : "Website";
+  // Extra labelled answers (loan amount, employment type...) are kept on the lead as note lines.
+  const extra = body.details && typeof body.details === "object" ? Object.entries(body.details as Record<string, unknown>).filter(([k, v]) => k.length <= 40 && v != null && String(v).trim()).slice(0, 10).map(([k, v]) => `${k}: ${String(v).trim().slice(0, 200)}`) : [];
+  const parts = [body.subject && `Regarding: ${body.subject}`, ...extra, body.visitDate && `Preferred visit date: ${body.visitDate}`, body.message && String(body.message).trim()].filter(Boolean);
   const notes = parts.join("\n") || null;
   const locality = body.locality ? String(body.locality) : propertyId ? (await one<{ locality: string }>("SELECT locality FROM properties WHERE id = $1", [propertyId]))?.locality ?? null : null;
 
   try {
     const lead = await one<{ id: number }>(
-      "INSERT INTO leads (name, phone, email, interest, budget, locality, property_id, project_id, source, status, notes, whatsapp_opt_in) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Website','New',$9,true) RETURNING id",
-      [name, phone, body.email ? String(body.email) : null, interest, body.budget ? String(body.budget) : null, locality, propertyId, projectId, notes],
+      "INSERT INTO leads (name, phone, email, interest, budget, locality, property_id, project_id, source, status, notes, whatsapp_opt_in) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'New',$10,true) RETURNING id",
+      [name, phone, body.email ? String(body.email) : null, interest, body.budget ? String(body.budget) : null, locality, propertyId, projectId, source, notes],
     );
-    await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, `Enquiry from website${body.page ? ` (${body.page})` : ""}`]);
+    await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, `${source === "home_loan" ? "Home loan enquiry" : source === "popup_consultation" ? "Free consultation pop-up" : "Enquiry from website"}${body.page ? ` (${body.page})` : ""}`]);
     console.log("[lead]", lead!.id, name, phone);
     const webhook = process.env.CRM_WEBHOOK_URL;
     if (webhook) {
-      fetch(webhook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: lead!.id, name, phone, interest, locality, notes, source: "Website", receivedAt: new Date().toISOString() }) }).catch((e) => console.error("[lead] webhook failed", e));
+      fetch(webhook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: lead!.id, name, phone, interest, locality, notes, source, receivedAt: new Date().toISOString() }) }).catch((e) => console.error("[lead] webhook failed", e));
     }
     return NextResponse.json({ ok: true, id: lead!.id });
   } catch (err) {

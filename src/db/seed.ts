@@ -19,7 +19,7 @@ export async function seed(db: Client) {
   const priya = await ins("INSERT INTO users (name,email,phone,role,status,password_hash,last_login_at) VALUES ($1,$2,$3,'employee','active',$4,$5) RETURNING id", ["Priya Sharma", "priya@manavnarularealtor.com", "+919876500022", hashPassword("Employee@1234"), daysAgo(1, 18)]);
   await ins("INSERT INTO users (name,email,phone,role,status,password_hash,last_login_at) VALUES ($1,$2,$3,'employee','active',$4,$5) RETURNING id", ["Kirandeep Kaur", "kiran@manavnarularealtor.com", "+919876500033", hashPassword("Employee@1234"), daysAgo(3, 12)]);
 
-  for (const [i, l] of localities.entries()) await db.query("INSERT INTO localities (name, sort_order) VALUES ($1,$2)", [l, i]);
+  for (const [i, l] of localities.entries()) await db.query("INSERT INTO localities (name, sort_order) VALUES ($1,$2) ON CONFLICT (name) DO NOTHING", [l, i]);
   for (const t of ["NRI", "Investor", "End user", "Plot", "Commercial", "Rental"]) await db.query("INSERT INTO tags (name) VALUES ($1)", [t]);
   for (const s of ["Website", "Walk-in", "Referral", "Facebook", "Google", "Data entry", "Import", "Phone"]) await db.query("INSERT INTO lead_sources (name) VALUES ($1)", [s]);
 
@@ -102,16 +102,16 @@ export async function seed(db: Client) {
     await db.query("INSERT INTO lead_activities (prospect_id,user_id,type,body,to_status,created_at) VALUES ($1,$2,'created','Added by data entry','New',$3)", [r.id, assigned ?? admin.id, created]);
   }
 
-  const taskSeed: [string, string, number, number | null, string, string, number][] = [
-    ["Call back Harpreet Singh about the corner kothi", "He wants the sanctioned plan before the second visit.", arjun.id, leadIds[0], "High", "In progress", 0],
-    ["Collect valuation documents from Rakesh Verma", "Registry copy and property tax receipt.", arjun.id, leadIds[2], "Medium", "Open", 1],
-    ["Confirm Sunday site visit for Gurdeep Dhillon", "", arjun.id, leadIds[3], "High", "Open", 2],
-    ["Send rent agreement draft to Simran Kaur", "11-month registered agreement, two months' security.", priya.id, leadIds[1], "Medium", "Done", -1],
-    ["Update NRI prospect list with WhatsApp opt-in", "Ask each prospect for consent before Phase 3 campaigns.", priya.id, null, "Low", "Open", 5],
-    ["Follow up Pooja Khanna, no answer twice", "Try after 6 pm.", arjun.id, leadIds[12], "Low", "Open", -2],
+  const taskSeed: [string, number, number | null, "normal" | "high", string, number][] = [
+    ["Call back Harpreet Singh about the corner kothi", arjun.id, leadIds[0], "high", "In progress", 0],
+    ["Collect valuation documents from Rakesh Verma", arjun.id, leadIds[2], "normal", "Open", 1],
+    ["Confirm Sunday site visit for Gurdeep Dhillon", arjun.id, leadIds[3], "high", "Open", 2],
+    ["Send rent agreement draft to Simran Kaur", priya.id, leadIds[1], "normal", "Done", -1],
+    ["Update NRI prospect list with WhatsApp opt-in", priya.id, null, "normal", "Open", 5],
+    ["Follow up Pooja Khanna, no answer twice", arjun.id, leadIds[12], "normal", "Open", -2],
   ];
-  for (const [title, desc, assigned, leadId, priority, status, dueIn] of taskSeed) {
-    await db.query("INSERT INTO tasks (title,description,lead_id,assigned_to,created_by,due_date,priority,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)", [title, desc || null, leadId, assigned, admin.id, dateOnly(daysAhead(dueIn)), priority, status]);
+  for (const [title, assigned, leadId, priority, status, dueIn] of taskSeed) {
+    await db.query("INSERT INTO tasks (title,lead_id,assigned_to,created_by,due_date,priority,status) VALUES ($1,$2,$3,$4,$5,$6,$7)", [title, leadId, assigned, admin.id, dateOnly(daysAhead(dueIn)), priority, status]);
   }
 
   await db.query("INSERT INTO sales (sale_date,lead_id,property_id,property_title,client_name,deal_value,commission,employee_id,status,notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Approved',$9)", [dateOnly(daysAgo(10)), leadIds[5], propertyIds["residential-plot-surya-enclave"], "250 sq.yd plot, Surya Enclave", "Manpreet Gill", 1_10_00_000, 1_10_000, priya.id, "Registry done at Jalandhar sub-registrar."]);

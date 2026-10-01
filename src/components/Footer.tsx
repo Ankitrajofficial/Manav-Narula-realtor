@@ -10,7 +10,8 @@ const link = "text-sm text-white/85 hover:text-accent";
 
 export default async function Footer() {
   const b = await getBusiness();
-  const localities = (await q<{ name: string }>("SELECT name FROM localities ORDER BY sort_order, name")).map((r) => r.name);
+  // Active localities that have at least one published property; the first twelve active ones if none do yet.
+  const localities = (await q<{ name: string }>(`SELECT l.name FROM localities l WHERE l.is_active AND (EXISTS (SELECT 1 FROM properties p WHERE p.published AND p.locality = l.name) OR NOT EXISTS (SELECT 1 FROM properties p JOIN localities x ON x.name = p.locality WHERE p.published AND x.is_active)) ORDER BY l.sort_order, l.name LIMIT 12`)).map((r) => r.name);
   const tel = phoneHref(b), wa = whatsappHref(b);
   return (
     <footer className="bg-ink text-white pb-24 md:pb-0">
@@ -69,7 +70,7 @@ export default async function Footer() {
           <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5">
             {localities.map((l) => (
               <li key={l}>
-                <Link href={`/properties?locality=${encodeURIComponent(l)}`} className={`${link} whitespace-nowrap`}>{l}</Link>
+                <Link href={`/properties?locality=${encodeURIComponent(l)}`} className={link}>{l}</Link>
               </li>
             ))}
           </ul>

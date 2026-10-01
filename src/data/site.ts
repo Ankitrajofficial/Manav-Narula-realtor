@@ -75,7 +75,7 @@ export const offer = {
   image: "photo-1600607687939-ce8a6c25118c",
   headline: "Zero brokerage on home loans arranged through us",
   line: "Sanction letters from 4 partner banks, usually within 7 working days.",
-  cta: { label: "Talk to a loan advisor", href: "/contact?interest=Buy" },
+  cta: { label: "Talk to a loan advisor", href: "/home-loans" },
 };
 
 export const trustPoints = [
@@ -102,7 +102,7 @@ export const servicesShort = [
   { id: "selling", icon: "tag", title: "Selling and valuation", line: "Honest valuation, wide reach and screened buyers." },
   { id: "renting", icon: "key", title: "Renting", line: "Tenant checks, agreements and hassle-free handover." },
   { id: "legal", icon: "file", title: "Legal and documentation", line: "Title checks, registry, mutation and NOCs." },
-  { id: "loans", icon: "bank", title: "Home loans", line: "Sanction letters from partner banks, zero brokerage." },
+  { id: "loans", icon: "bank", title: "Home loans", line: "Sanction letters from partner banks, zero brokerage.", href: "/home-loans" },
   { id: "nri", icon: "globe", title: "NRI services", line: "Buy, sell or manage from abroad with one contact." },
 ];
 

@@ -55,6 +55,7 @@ export const adminNav = [
   { href: "/admin/projects", label: "Projects", icon: "layers" },
   { href: "/admin/banners", label: "Banners", icon: "image" },
   { href: "/admin/offers", label: "Offers", icon: "tag" },
+  { href: "/admin/home-loans", label: "Home Loans", icon: "bank" },
   { href: "/admin/blog", label: "Blog", icon: "file" },
   { href: "/admin/employees", label: "Employees", icon: "badge" },
   { href: "/admin/sales", label: "Sales", icon: "rupee" },

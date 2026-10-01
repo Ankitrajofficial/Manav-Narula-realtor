@@ -37,6 +37,14 @@ Sign in at `/login`. There is no self sign-up; the admin creates employees under
 
 Brand colours, fonts and status pill colours are in `src/app/globals.css` under `:root`.
 
+## Database migrations
+
+`src/db/schema.sql` creates the base tables on every start. Numbered files in `src/db/migrations/` run once each, in name order, and are recorded in `schema_migrations`. `001_october_changes.sql` adds partner banks, page videos, locality zones, the structured property address, task priority (normal/high), the home_loan and popup_consultation lead sources and the pop-up settings.
+
+## Home loans
+
+`/home-loans` shows partner banks, how it works, videos, a documents checklist, the loan enquiry form (saved as a lead with source `home_loan`) and an FAQ. Admin > Home Loans manages the banks (logo, name, short line, order, active) and the YouTube videos (paste any YouTube link; the id is extracted and checked). The home page offer slot rotates through every active offer in Admin > Offers.
+
 ## Leads
 
 Every website form posts to `/api/enquiry`, which validates the phone (stored as E.164), inserts a lead with source Website and writes a "created" activity. Optionally set `CRM_WEBHOOK_URL` to also forward each lead as JSON.

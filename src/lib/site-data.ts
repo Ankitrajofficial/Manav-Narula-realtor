@@ -1,4 +1,5 @@
 import "server-only";
+export { offerCta } from "./format";
 import { one, q } from "./db";
 import type { Property } from "@/data/properties";
 import type { Project } from "@/data/projects";
@@ -121,4 +122,14 @@ export async function getFaqGroups() {
 export function imageSrc(v: string, w = 1200, h = 900): string {
   if (/^https?:\/\//.test(v) || v.startsWith("/")) return v;
   return `https://images.unsplash.com/${v}?auto=format&fit=crop&w=${w}&h=${h}&q=70`;
+}
+
+export interface PartnerBank { id: number; name: string; logo: string | null; tagline: string | null }
+export async function getPartnerBanks(): Promise<PartnerBank[]> {
+  return q<PartnerBank>("SELECT id, name, logo_url AS logo, tagline FROM partner_banks WHERE is_active = true ORDER BY sort_order, id");
+}
+
+export interface PageVideo { id: number; youtubeId: string; title: string | null }
+export async function getPageVideos(page: string): Promise<PageVideo[]> {
+  return q<PageVideo>(`SELECT id, youtube_id AS "youtubeId", title FROM page_videos WHERE page_key = $1 AND is_active = true ORDER BY sort_order, id LIMIT 4`, [page]);
 }

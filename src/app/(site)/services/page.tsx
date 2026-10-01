@@ -28,7 +28,7 @@ export default function ServicesPage() {
               <p className="mt-5 text-sm text-muted">{s.fee}</p>
             </div>
             <div className="md:col-span-3 md:text-right">
-              <Link href={`/contact?service=${s.id}`} className="inline-flex rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-ink">Enquire</Link>
+              <Link href={s.id === "loans" ? "/home-loans" : `/contact?service=${s.id}`} className="inline-flex rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-ink">{s.id === "loans" ? "Home loan details" : "Enquire"}</Link>
             </div>
           </section>
         ))}

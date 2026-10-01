@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import BannerCarousel from "@/components/BannerCarousel";
+import OfferCarousel, { type OfferSlide } from "@/components/OfferCarousel";
 import FeaturedStrip from "@/components/FeaturedStrip";
 import ProjectCard from "@/components/ProjectCard";
 import EnquiryForm from "@/components/EnquiryForm";
@@ -8,13 +9,16 @@ import Accordion from "@/components/Accordion";
 import Icon from "@/components/Icon";
 import { Container, GoogleRating, Section, SectionTitle } from "@/components/ui";
 import { localities, servicesShort, site, testimonials, trustPoints, workEthics } from "@/data/site";
-import { getArticles, getBanners, getFaqGroups, getFeaturedProperties, getOfferBanner, getProjects, localityCounts } from "@/lib/site-data";
+import { getActiveOffers, getArticles, getBanners, getFaqGroups, getFeaturedProperties, getOfferBanner, getProjects, localityCounts, offerCta } from "@/lib/site-data";
 
 export const revalidate = 60;
 import { formatDate, unsplash } from "@/lib/format";
 
 export default async function HomePage() {
-  const [counts, featuredProperties, projects, articles, banners, offer, faqs] = await Promise.all([localityCounts(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getOfferBanner(), getFaqGroups()]);
+  const [counts, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs] = await Promise.all([localityCounts(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups()]);
+  const offers: OfferSlide[] = activeOffers.length
+    ? activeOffers.map((o) => ({ id: String(o.id), image: o.image ?? fallbackOffer.image, headline: o.title, line: o.text ?? "", cta: { label: offerCta(o.href), href: o.href } }))
+    : [{ ...fallbackOffer, id: `banner-${fallbackOffer.id}` }];
   const homeFaqs = [
     { ...faqs[0].items[0], tag: faqs[0].group },
     { ...faqs[0].items[1], tag: faqs[0].group },
@@ -77,7 +81,7 @@ export default async function HomePage() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {servicesShort.map((s) => (
             <li key={s.id}>
-              <Link href={`/services#${s.id}`} className="flex h-full gap-4 rounded-brand border border-line bg-white p-5 hover:border-ink">
+              <Link href={s.href ?? `/services#${s.id}`} className="flex h-full gap-4 rounded-brand border border-line bg-white p-5 hover:border-ink">
                 <Icon name={s.icon} size={24} className="mt-0.5 shrink-0 text-accent" />
                 <div>
                   <h3 className="text-lg">{s.title}</h3>
@@ -89,21 +93,12 @@ export default async function HomePage() {
         </ul>
       </Section>
 
-      {/* 6. Offer banner slot */}
-      <Container className="pb-14 md:pb-24">
-        <div className="relative overflow-hidden rounded-brand border border-line">
-          <div className="relative h-[320px] md:h-[360px]">
-            <Image src={unsplash(offer.image, 1600, 700)} alt="" fill sizes="100vw" className="object-cover" />
-            <div className="absolute inset-0 bg-ink/50" />
-            <div className="relative flex h-full flex-col justify-center px-6 text-white md:px-14">
-              <p className="text-xs uppercase tracking-wide">Offer</p>
-              <h2 className="mt-2 max-w-2xl text-3xl md:text-4xl">{offer.headline}</h2>
-              <p className="mt-3 max-w-xl">{offer.line}</p>
-              <Link href={offer.cta.href} className="mt-6 inline-flex w-fit rounded-brand bg-accent px-5 py-3 text-sm font-medium hover:bg-accent-ink">{offer.cta.label}</Link>
-            </div>
-          </div>
-        </div>
-      </Container>
+      {/* 6. Offer banner slot: every active offer, as a carousel */}
+      {offers.length > 0 && (
+        <Container className="pb-14 md:pb-24">
+          <OfferCarousel offers={offers} />
+        </Container>
+      )}
 
       {/* 7. Current projects */}
       <Section className="border-y border-line bg-white">

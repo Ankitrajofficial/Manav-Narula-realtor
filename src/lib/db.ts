@@ -38,13 +38,29 @@ async function connect(): Promise<Client> {
     if (!db) throw new Error(`The embedded database in ${dir} could not start (${(lastErr as Error)?.message}). Stop every other dev server or build using it, or delete web/.data to reset to seed data.`);
     client = { query: (t, p) => db.query(t, p as never[]) as Promise<{ rows: never[] }> };
   }
+  const statements = (sql: string) => sql.split(/;\s*\n/).map((s) => s.trim()).filter(Boolean);
   const schema = fs.readFileSync(path.join(process.cwd(), "src", "db", "schema.sql"), "utf8");
-  for (const stmt of schema.split(/;\s*\n/).map((s) => s.trim()).filter(Boolean)) await client.query(stmt);
+  for (const stmt of statements(schema)) await client.query(stmt);
+
+  // Numbered migrations in src/db/migrations run once each, in file-name order.
+  await client.query("CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
+  const migrationsDir = path.join(process.cwd(), "src", "db", "migrations");
+  const applied = new Set((await client.query<{ name: string }>("SELECT name FROM schema_migrations")).rows.map((r) => r.name));
+  for (const file of fs.existsSync(migrationsDir) ? fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort() : []) {
+    if (applied.has(file)) continue;
+    console.log(`[db] applying migration ${file}`);
+    // Statements are written to be safe to re-run, so a migration interrupted part-way can simply run again.
+    for (const stmt of statements(fs.readFileSync(path.join(migrationsDir, file), "utf8"))) await client.query(stmt);
+    await client.query("INSERT INTO schema_migrations (name) VALUES ($1)", [file]);
+  }
+
   const { rows } = await client.query<{ n: number | string }>("SELECT count(*)::int AS n FROM users");
   if (Number(rows[0].n) === 0) {
     const { seed } = await import("@/db/seed");
     await seed(client);
   }
+  const { ensureAdmins } = await import("@/db/admins");
+  await ensureAdmins(client);
   return client;
 }
 
