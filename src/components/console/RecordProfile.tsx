@@ -46,7 +46,7 @@ export default function RecordProfile({ kind, record: r, activities, isAdmin, ba
             <div><dt className="text-xs text-muted">Next follow-up</dt><dd className={r.next_follow_up_at && new Date(r.next_follow_up_at) < new Date() ? "text-red-700" : ""}>{r.next_follow_up_at ? formatDateTime(r.next_follow_up_at) : "—"}</dd></div>
           </dl>
           {r.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{r.tags.map((t) => <span key={t} className="rounded-brand border border-line px-2 py-0.5 text-xs">{t}</span>)}</div>}
-          {r.notes && <p className="mt-3 border-t border-line pt-3 text-sm text-muted">{r.notes}</p>}
+          {r.notes && <p className="mt-3 whitespace-pre-line border-t border-line pt-3 text-sm text-muted">{r.notes}</p>}
           {lead && (lead.property_title || lead.project_name) && (
             <div className="mt-3 border-t border-line pt-3 text-sm">
               <p className="text-xs text-muted">Linked {lead.property_title ? "property" : "project"}</p>
