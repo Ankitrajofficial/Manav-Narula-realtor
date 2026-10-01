@@ -92,6 +92,7 @@ input, select, textarea { font: inherit; color: inherit; }
   border-left: calc(var(--left-m) * 1px) solid var(--line);
   border-top: calc(var(--top-m) * 1px) solid var(--line);
   padding: 24px;
+  text-align: center;
 }
 @media (min-width: 768px) {
   .trust-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
@@ -110,7 +111,6 @@ input, select, textarea { font: inherit; color: inherit; }
 @media (min-width: 1280px) {
   .trust-grid { grid-template-columns: repeat(var(--count), minmax(0, 1fr)); }
   .trust-cell { grid-column: span 1; border-left-width: calc(var(--left-lg) * 1px); border-top-width: 0; padding: 28px 24px; }
-  .trust-cell:first-child { padding-left: 0; }
   .trust-number { font-size: var(--number-lg, 48px); }
 }
 @media (hover: hover) and (min-width: 768px) { .trust-cell:hover .trust-number { color: var(--accent); } }

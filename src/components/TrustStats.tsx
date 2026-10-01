@@ -62,7 +62,7 @@ export default function TrustStats({ stats }: { stats: TrustStat[] }) {
         const body = (
           <>
             <span className="sr-only">{`${s.value}${s.suffix === "★" ? " stars" : s.suffix}, ${s.label}`}</span>
-            <span aria-hidden="true" className="flex items-center gap-2.5">
+            <span aria-hidden="true" className="flex items-center justify-center gap-2.5">
               <ShieldCheck />
               <span className="trust-number">{shown[i]}{s.suffix && <span className={`${s.suffix === "★" ? "trust-star" : "trust-suffix"} text-accent`}>{s.suffix}</span>}</span>
             </span>
