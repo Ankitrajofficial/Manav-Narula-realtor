@@ -75,7 +75,7 @@ export const offer = {
   image: "photo-1600607687939-ce8a6c25118c",
   headline: "Zero brokerage on home loans arranged through us",
   line: "Sanction letters from 4 partner banks, usually within 7 working days.",
-  cta: { label: "Talk to a loan advisor", href: "/home-loans" },
+  cta: { label: "Check loan eligibility", href: "/home-loans" },
 };
 
 export const trustPoints = [

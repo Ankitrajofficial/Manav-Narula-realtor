@@ -53,7 +53,7 @@ export function formatINR(n: number | string | null | undefined): string {
 
 /** Label for an offer's button on the home page, from where it points. */
 export function offerCta(href: string): string {
-  if (href.startsWith("/home-loans")) return "Talk to a loan advisor";
+  if (href.startsWith("/home-loans")) return "Check loan eligibility";
   if (href.startsWith("/properties/")) return "View property";
   if (href.startsWith("/projects/")) return "View project";
   return "Enquire now";
