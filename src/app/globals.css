@@ -58,6 +58,8 @@ input, select, textarea { font: inherit; color: inherit; }
   --pill-darkgreen: #276749;
   --pill-red: #c53030;
 }
+/* Consoles use a darker hairline than the website so boxes, cards and tables read clearly on busy screens. */
+.console { --line: #cfcfcf; }
 .console table { font-size: 14px; }
 .console th, .console td { height: 44px; }
 .console input, .console select, .console textarea { font-size: 14px; }
