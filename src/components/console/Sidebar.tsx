@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
+import BackButton from "@/components/BackButton";
 import { logoutAction } from "@/app/(console)/actions";
 import { fieldCls } from "./Form";
 
@@ -42,11 +43,14 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
     <>
       {/* Phone header */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-white px-3 md:hidden">
-        <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="flex h-10 w-10 items-center justify-center rounded-brand hover:bg-bg"><Icon name="menu" size={22} /></button>
-        <Link href={home} className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-brand border border-ink font-heading text-xs">MN</span>
-          <span className="font-heading text-sm">Manav Narula Realtor</span>
-        </Link>
+        <div className="flex min-w-0 items-center">
+          <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-brand hover:bg-bg"><Icon name="menu" size={22} /></button>
+          {pathname !== home && <BackButton />}
+          <Link href={home} className="ml-1 flex min-w-0 items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-brand border border-ink font-heading text-xs">MN</span>
+            <span className="truncate font-heading text-sm">Manav Narula Realtor</span>
+          </Link>
+        </div>
         <Link href={notifications.href} className="relative flex h-10 w-10 items-center justify-center rounded-brand hover:bg-bg" aria-label={`${notifications.count} notifications`}>
           <Icon name="bell" size={20} />
           {notifications.count > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white tabular">{notifications.count}</span>}

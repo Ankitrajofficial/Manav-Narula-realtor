@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { nav, site } from "@/data/site";
+import BackButton from "./BackButton";
 import Icon from "./Icon";
 import { Container } from "./ui";
 
@@ -13,10 +14,13 @@ export default function Header({ phone = site.phone }: { phone?: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/95 backdrop-blur-sm">
       <Container className="flex h-16 items-center justify-between gap-6">
-        <Link href="/" className="flex items-center gap-3" aria-label={`${site.name} home`} onClick={() => setOpen(false)}>
-          <span className="flex h-9 w-9 items-center justify-center rounded-brand border border-ink font-heading text-sm">{site.monogram}</span>
-          <span className="font-heading text-lg leading-none md:text-xl">{site.name}</span>
-        </Link>
+        <div className="flex min-w-0 items-center">
+          {pathname !== "/" && <BackButton className="-ml-2.5 mr-0.5" />}
+          <Link href="/" className="flex min-w-0 items-center gap-3" aria-label={`${site.name} home`} onClick={() => setOpen(false)}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-brand border border-ink font-heading text-sm">{site.monogram}</span>
+            <span className="truncate font-heading text-lg leading-none md:text-xl">{site.name}</span>
+          </Link>
+        </div>
         <nav aria-label="Main" className="hidden items-center gap-7 lg:flex">
           {nav.map((n) => {
             const active = pathname === n.href || pathname.startsWith(n.href + "/");
