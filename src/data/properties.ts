@@ -10,6 +10,9 @@ export interface Property {
   type: PropertyType;
   purpose: Purpose;
   locality: string;
+  /** Street or block; shown on the website. The house/plot number is never sent to the website. */
+  street?: string;
+  city?: string;
   price: number;
   bhk?: number;
   baths?: number;

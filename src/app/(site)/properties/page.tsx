@@ -5,7 +5,7 @@ import PropertyFilters from "@/components/PropertyFilters";
 import SortSelect from "@/components/SortSelect";
 import { Breadcrumbs, Section } from "@/components/ui";
 import type { Property } from "@/data/properties";
-import { getActiveOffers, getProperties } from "@/lib/site-data";
+import { getActiveOffers, getLocalityFilterOptions, getProperties } from "@/lib/site-data";
 import { unsplash } from "@/lib/format";
 import Image from "next/image";
 
@@ -39,7 +39,7 @@ function filter(properties: Property[], sp: SP): Property[] {
 
 export default async function PropertiesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [properties, offers] = await Promise.all([getProperties(), getActiveOffers()]);
+  const [properties, offers, localityOptions] = await Promise.all([getProperties(), getActiveOffers(), getLocalityFilterOptions()]);
   const list = filter(properties, sp);
   const page = Math.max(1, Number(one(sp.page)) || 1);
   const pages = Math.max(1, Math.ceil(list.length / PAGE));
@@ -65,7 +65,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
       )}
       <div className="mt-10 grid gap-10 md:grid-cols-12">
         <div className="md:col-span-3">
-          <Suspense><PropertyFilters /></Suspense>
+          <Suspense><PropertyFilters localities={localityOptions} /></Suspense>
         </div>
         <div className="md:col-span-9">
           <div className="mb-6 flex items-center justify-between gap-4">

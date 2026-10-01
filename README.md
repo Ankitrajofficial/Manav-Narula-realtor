@@ -51,6 +51,12 @@ Only admins can export or download. Every export route calls `requireExporter` (
 
 `/home-loans` shows partner banks, how it works, videos, a documents checklist, the loan enquiry form (saved as a lead with source `home_loan`) and an FAQ. Admin > Home Loans manages the banks (logo, name, short line, order, active) and the YouTube videos (paste any YouTube link; the id is extracted and checked). The home page offer slot rotates through every active offer in Admin > Offers.
 
+## Localities and addresses
+
+Localities live in the `localities` table with a zone (Central, West, North, South, East, Outskirts) and an active flag. Admin > Settings > Localities adds, renames (the new name is written to every property, project, lead and prospect that used the old one), moves between zones, reorders and deactivates them; the website updates immediately. The zones seeded for the October list are a starting point; adjust them in Settings.
+
+Properties have a structured address: house/plot no. (`address_line`, console only), street/block, locality, city (default Jalandhar), pincode and a Google Maps link. The website shows Street/Block, Locality and City only. The website locality filter is a type-to-search list grouped by zone and lists only localities with at least one published property, with the count.
+
 ## Leads
 
 Every website form posts to `/api/enquiry`, which validates the phone (stored as E.164), inserts a lead with source Website and writes a "created" activity. Optionally set `CRM_WEBHOOK_URL` to also forward each lead as JSON.

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
+import { LOCALITY_ORDER, ZONES } from "@/lib/localities";
 import { DEFAULT_BUSINESS, getSettingValue, setSetting, type Business } from "@/lib/queries/settings";
 
 export interface BusinessState { errors?: Record<string, string>; message?: string }
@@ -45,8 +46,9 @@ export async function addListItem(kind: ListKind, fd: FormData) {
     const cur = await getSettingValue<string[]>("property_types", []);
     if (!cur.includes(name)) await setSetting("property_types", [...cur, name]);
   } else if (kind === "localities") {
+    const zone = (ZONES as readonly string[]).includes(s(fd, "zone")) ? s(fd, "zone") : "Central";
     const next = await one<{ n: number }>("SELECT COALESCE(max(sort_order),-1)+1 AS n FROM localities");
-    await q("INSERT INTO localities (name, sort_order) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING", [name, Number(next?.n ?? 0)]);
+    await q("INSERT INTO localities (name, zone, sort_order) VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING", [name, zone, Number(next?.n ?? 0)]);
   } else {
     await q(`INSERT INTO ${tables[kind]} (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [name]);
   }
@@ -68,14 +70,49 @@ export async function removeListItem(kind: ListKind, name: string) {
   redirect(`/admin/settings?toast=${encodeURIComponent(`Removed ${name}`)}#${kind}`);
 }
 
+/** Moves a locality up or down within its zone. */
 export async function moveLocality(id: number, dir: -1 | 1) {
   const user = await requireUser("admin");
-  const ids = (await q<{ id: number }>("SELECT id FROM localities ORDER BY sort_order, name")).map((r) => r.id);
+  const ids = (await q<{ id: number }>(`SELECT l.id FROM localities l WHERE l.zone = (SELECT zone FROM localities WHERE id = $1) ORDER BY ${LOCALITY_ORDER}`, [id])).map((r) => r.id);
   const i = ids.indexOf(id), j = i + dir;
   if (i < 0 || j < 0 || j >= ids.length) redirect("/admin/settings#localities");
   [ids[i], ids[j]] = [ids[j], ids[i]];
-  for (const [k, lid] of ids.entries()) await q("UPDATE localities SET sort_order = $1 WHERE id = $2", [k, lid]);
+  const base = (await one<{ n: number }>("SELECT COALESCE(min(sort_order), 0) AS n FROM localities WHERE id = ANY($1::int[])", [ids]))?.n ?? 0;
+  for (const [k, lid] of ids.entries()) await q("UPDATE localities SET sort_order = $1 WHERE id = $2", [Number(base) + k, lid]);
   await audit(user.id, "reorder", "settings_localities", id);
   revalidatePath("/", "layout");
   redirect("/admin/settings#localities");
+}
+
+/** Renames a locality everywhere it is used (properties, projects, leads, prospects), so filters and records stay matched. */
+export async function renameLocality(id: number, fd: FormData) {
+  const user = await requireUser("admin");
+  const name = s(fd, "name");
+  const cur = await one<{ name: string }>("SELECT name FROM localities WHERE id = $1", [id]);
+  if (!cur || !name || name === cur.name) redirect("/admin/settings#localities");
+  if (await one("SELECT 1 FROM localities WHERE lower(name) = lower($1) AND id <> $2", [name, id])) redirect(`/admin/settings?error=${encodeURIComponent(`${name} already exists`)}#localities`);
+  await q("UPDATE localities SET name = $1 WHERE id = $2", [name, id]);
+  for (const t of ["properties", "projects", "leads", "prospects"]) await q(`UPDATE ${t} SET locality = $1 WHERE locality = $2`, [name, cur.name]);
+  await audit(user.id, "rename", "settings_localities", id, { from: cur.name, to: name });
+  revalidatePath("/", "layout");
+  redirect(`/admin/settings?toast=${encodeURIComponent(`Renamed to ${name}`)}#localities`);
+}
+
+export async function setLocalityZone(id: number, fd: FormData) {
+  const user = await requireUser("admin");
+  const zone = s(fd, "zone");
+  if (!(ZONES as readonly string[]).includes(zone)) redirect("/admin/settings?error=Choose+a+zone#localities");
+  const next = await one<{ n: number }>("SELECT COALESCE(max(sort_order),-1)+1 AS n FROM localities WHERE zone = $1", [zone]);
+  await q("UPDATE localities SET zone = $1, sort_order = $2 WHERE id = $3 AND zone <> $1", [zone, Number(next?.n ?? 0), id]);
+  await audit(user.id, "zone", "settings_localities", id, { zone });
+  revalidatePath("/", "layout");
+  redirect(`/admin/settings?toast=${encodeURIComponent(`Moved to ${zone}`)}#localities`);
+}
+
+/** Inactive localities disappear from the website filters and new-record forms; existing records keep them. */
+export async function toggleLocality(id: number, value: boolean) {
+  const user = await requireUser("admin");
+  await q("UPDATE localities SET is_active = $1 WHERE id = $2", [value, id]);
+  await audit(user.id, value ? "activate" : "deactivate", "settings_localities", id);
+  revalidatePath("/", "layout");
 }

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import PageHeader from "@/components/console/PageHeader";
 import Pill from "@/components/console/Pill";
 import { requireUser } from "@/lib/auth";
-import { getSetting, listLocalities, projectOptions } from "@/lib/queries/common";
+import { getSetting, listLocalityOptions, projectOptions } from "@/lib/queries/common";
 import { getPropertyById, getPropertyImages } from "@/lib/queries/content";
 import PropertyForm from "../PropertyForm";
 import { deleteProperty, duplicateProperty, editProperty } from "../actions";
@@ -12,7 +12,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   await requireUser("admin");
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [p, imgs, localities, types, projects] = await Promise.all([getPropertyById(id), getPropertyImages(id), listLocalities(), getSetting<string[]>("property_types", ["Kothi", "Apartment", "Plot", "Commercial", "Farmhouse"]), projectOptions()]);
+  const [p, imgs, localities, types, projects] = await Promise.all([getPropertyById(id), getPropertyImages(id), listLocalityOptions(), getSetting<string[]>("property_types", ["Kothi", "Apartment", "Plot", "Commercial", "Farmhouse"]), projectOptions()]);
   if (!p) notFound();
   const ordered = [...imgs].sort((a, b) => a.sort_order - b.sort_order);
   return (

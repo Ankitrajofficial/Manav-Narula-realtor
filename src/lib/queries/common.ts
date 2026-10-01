@@ -1,10 +1,14 @@
 import "server-only";
 import { one, q } from "@/lib/db";
+import { LOCALITY_ORDER, type LocalityOption } from "@/lib/localities";
 
 export interface UserRow { id: number; name: string; email: string; phone: string | null; role: string; status: string; last_login_at: Date | null; created_at: Date }
 
 export const listEmployees = (activeOnly = true) => q<UserRow>(`SELECT id, name, email, phone, role, status, last_login_at, created_at FROM users ${activeOnly ? "WHERE status = 'active'" : ""} ORDER BY role, name`);
-export const listLocalities = async () => (await q<{ name: string }>("SELECT name FROM localities ORDER BY sort_order, name")).map((r) => r.name);
+/** Active locality names, grouped by zone order. */
+export const listLocalities = async () => (await q<{ name: string }>(`SELECT l.name FROM localities l WHERE l.is_active ORDER BY ${LOCALITY_ORDER}`)).map((r) => r.name);
+/** Active localities with their zone, for the searchable zone-grouped selects. */
+export const listLocalityOptions = () => q<LocalityOption>(`SELECT l.name, l.zone FROM localities l WHERE l.is_active ORDER BY ${LOCALITY_ORDER}`);
 export const listTags = async () => (await q<{ name: string }>("SELECT name FROM tags ORDER BY name")).map((r) => r.name);
 export const listSources = async () => (await q<{ name: string }>("SELECT name FROM lead_sources ORDER BY name")).map((r) => r.name);
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

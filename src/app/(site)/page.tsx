@@ -8,14 +8,14 @@ import EnquiryForm from "@/components/EnquiryForm";
 import Accordion from "@/components/Accordion";
 import Icon from "@/components/Icon";
 import { Container, GoogleRating, Section, SectionTitle } from "@/components/ui";
-import { localities, servicesShort, site, testimonials, trustPoints, workEthics } from "@/data/site";
-import { getActiveOffers, getArticles, getBanners, getFaqGroups, getFeaturedProperties, getOfferBanner, getProjects, localityCounts, offerCta } from "@/lib/site-data";
+import { servicesShort, site, testimonials, trustPoints, workEthics } from "@/data/site";
+import { getActiveOffers, getArticles, getBanners, getFaqGroups, getFeaturedProperties, getOfferBanner, getLocalitiesServed, getProjects, offerCta } from "@/lib/site-data";
 
 export const revalidate = 60;
 import { formatDate, unsplash } from "@/lib/format";
 
 export default async function HomePage() {
-  const [counts, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs] = await Promise.all([localityCounts(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups()]);
+  const [localitiesServed, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups()]);
   const offers: OfferSlide[] = activeOffers.length
     ? activeOffers.map((o) => ({ id: String(o.id), image: o.image ?? fallbackOffer.image, headline: o.title, line: o.text ?? "", cta: { label: offerCta(o.href), href: o.href } }))
     : [{ ...fallbackOffer, id: `banner-${fallbackOffer.id}` }];
@@ -112,11 +112,11 @@ export default async function HomePage() {
       <Section>
         <SectionTitle title="Localities we serve" intro="Click a locality to see what is available there." />
         <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-brand border border-line bg-line sm:grid-cols-3 lg:grid-cols-5">
-          {localities.slice(0, 10).map((l) => (
-            <li key={l} className="bg-white">
-              <Link href={`/properties?locality=${encodeURIComponent(l)}`} className="block p-5 hover:bg-bg">
-                <p className="text-base">{l}</p>
-                <p className="mt-1 text-sm tabular text-muted">{counts[l] ?? 0} {counts[l] === 1 ? "property" : "properties"}</p>
+          {localitiesServed.map((l) => (
+            <li key={l.name} className="bg-white">
+              <Link href={`/properties?locality=${encodeURIComponent(l.name)}`} className="block p-5 hover:bg-bg">
+                <p className="text-base">{l.name}</p>
+                <p className="mt-1 text-sm tabular text-muted">{l.count ?? 0} {l.count === 1 ? "property" : "properties"}</p>
               </Link>
             </li>
           ))}

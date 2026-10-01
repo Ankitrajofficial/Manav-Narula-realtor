@@ -8,7 +8,7 @@ import ShareButtons from "@/components/ShareButtons";
 import Icon from "@/components/Icon";
 import { Breadcrumbs, Container, Tag, TrustRow } from "@/components/ui";
 import type { Property } from "@/data/properties";
-import { getProperties, getPropertyBySlug } from "@/lib/site-data";
+import { getProperties, getPropertyBySlug, publicAddress } from "@/lib/site-data";
 
 export const revalidate = 60;
 
@@ -61,7 +61,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               <div>
                 <div className="flex items-center gap-3"><Tag>{p.status}</Tag><span className="text-sm text-muted">{p.type} · {p.purpose === "Rent" ? "For rent" : "For sale"}</span></div>
                 <h1 className="mt-3 text-3xl md:text-4xl">{p.title}</h1>
-                <p className="mt-1 text-muted">{p.locality}, Jalandhar</p>
+                <p className="mt-1 text-muted">{publicAddress(p)}</p>
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold tabular">{formatPrice(p.price, p.purpose)}</p>

@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { Field, FormError, Input, Section, Select, SubmitButton, Textarea } from "@/components/console/Form";
+import { Field, FormError, Input, Section, Select, SubmitButton, Textarea, inputCls } from "@/components/console/Form";
+import LocalitySelect from "@/components/LocalitySelect";
+import type { LocalityOption } from "@/lib/localities";
 import ImageUploader from "@/components/console/ImageUploader";
 import RowsEditor from "@/components/console/RowsEditor";
 import ConfirmButton from "@/components/console/ConfirmButton";
@@ -13,7 +15,7 @@ interface Props {
   property?: PropertyRow | null;
   images?: string[];
   cover?: string | null;
-  localities: string[];
+  localities: LocalityOption[];
   types: string[];
   projects: { id: number; name: string }[];
   action: (prev: PropertyFormState, fd: FormData) => Promise<PropertyFormState>;
@@ -31,6 +33,8 @@ export default function PropertyForm({ property: p, images = [], cover, localiti
   const sqft = unit === "sq.yd" ? Number(area) * 9 : Number(area);
   const perSqft = Number(price) > 0 && sqft > 0 ? Math.round(Number(price) / sqft) : null;
   const trust = p?.trust ?? [];
+  // Keep a property's current locality selectable even if it has since been deactivated.
+  const withCurrent = p?.locality && !localities.some((l) => l.name === p.locality) ? [...localities, { name: p.locality, zone: "Inactive" }] : localities;
 
   return (
     <form action={act} className="space-y-5">
@@ -39,10 +43,20 @@ export default function PropertyForm({ property: p, images = [], cover, localiti
         <Field label="Title" htmlFor="title" error={e.title} className="md:col-span-2"><Input id="title" name="title" defaultValue={p?.title} required maxLength={120} placeholder="Corner kothi on 300 sq.yd" /></Field>
         <Field label="Type" htmlFor="type" error={e.type}><Select id="type" name="type" defaultValue={p?.type ?? ""}><option value="">Choose</option>{types.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Listing type" htmlFor="purpose"><Select id="purpose" name="purpose" value={purpose} onChange={(ev) => setPurpose(ev.target.value)}><option>Buy</option><option>Rent</option></Select></Field>
-        <Field label="Locality" htmlFor="locality" error={e.locality}><Select id="locality" name="locality" defaultValue={p?.locality ?? ""}><option value="">Choose</option>{localities.map((l) => <option key={l}>{l}</option>)}</Select></Field>
         <Field label="Project (optional)" htmlFor="project_id"><Select id="project_id" name="project_id" defaultValue={p?.project_id ?? ""}><option value="">None</option>{projects.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}</Select></Field>
         <Field label="Status" htmlFor="status"><Select id="status" name="status" defaultValue={p?.status ?? "Ready"}>{PROPERTY_STATUSES.map((st) => <option key={st}>{st}</option>)}</Select></Field>
         <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="featured" defaultChecked={p?.featured} className="accent-[#00BF63]" />Featured on home page</label></div>
+      </Section>
+
+      <Section title="Address" description="The website shows Street/Block, Locality and City only. House/plot number, pincode and the map link stay in the console.">
+        <Field label="House / plot no. (optional, not shown on website)" htmlFor="address_line"><Input id="address_line" name="address_line" defaultValue={p?.address_line ?? ""} maxLength={80} placeholder="H.No. 412" /></Field>
+        <Field label="Street / Block" htmlFor="street"><Input id="street" name="street" defaultValue={p?.street ?? ""} maxLength={120} placeholder="Block C, near Shivalik Park" /></Field>
+        <Field label="Locality" htmlFor="locality" error={e.locality} hint="Type to search; grouped by zone.">
+          <LocalitySelect id="locality" name="locality" options={withCurrent} defaultValue={p?.locality ?? ""} placeholder="Search locality" inputClassName={inputCls} invalid={!!e.locality} />
+        </Field>
+        <Field label="City" htmlFor="city"><Input id="city" name="city" defaultValue={p?.city ?? "Jalandhar"} maxLength={60} /></Field>
+        <Field label="Pincode" htmlFor="pincode" error={e.pincode}><Input id="pincode" name="pincode" inputMode="numeric" maxLength={6} defaultValue={p?.pincode ?? ""} placeholder="144001" /></Field>
+        <Field label="Google Maps link (optional)" htmlFor="maps_url" error={e.maps_url}><Input id="maps_url" name="maps_url" type="url" defaultValue={p?.maps_url ?? ""} placeholder="https://maps.app.goo.gl/…" /></Field>
       </Section>
 
       <Section title="Specs">

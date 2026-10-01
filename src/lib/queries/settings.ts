@@ -1,4 +1,5 @@
 import "server-only";
+import { LOCALITY_ORDER } from "@/lib/localities";
 import { json, one, q } from "@/lib/db";
 import { pageOf } from "@/lib/console";
 
@@ -13,7 +14,7 @@ export async function setSetting(key: string, value: unknown) {
   await q("INSERT INTO settings (key, value, updated_at) VALUES ($1, $2::jsonb, now()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()", [key, json(value)]);
 }
 
-export const listLocalityRows = () => q<{ id: number; name: string; sort_order: number }>("SELECT * FROM localities ORDER BY sort_order, name");
+export const listLocalityRows = () => q<{ id: number; name: string; sort_order: number; zone: string; is_active: boolean; properties: number }>(`SELECT l.*, (SELECT count(*)::int FROM properties p WHERE p.locality = l.name) AS properties FROM localities l ORDER BY ${LOCALITY_ORDER}`);
 export const listTagRows = () => q<{ id: number; name: string }>("SELECT * FROM tags ORDER BY name");
 export const listSourceRows = () => q<{ id: number; name: string }>("SELECT * FROM lead_sources ORDER BY name");
 

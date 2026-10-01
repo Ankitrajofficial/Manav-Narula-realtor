@@ -20,6 +20,13 @@ async function parse(fd: FormData, id: number | null): Promise<{ input?: Propert
   const type = s(fd, "type"); if (!type) errors.type = "Choose a type.";
   const purpose = s(fd, "purpose") === "Rent" ? "Rent" : "Buy";
   const locality = s(fd, "locality"); if (!locality) errors.locality = "Choose a locality.";
+  else if (!(await one("SELECT 1 FROM localities WHERE name = $1", [locality]))) errors.locality = "Choose a locality from the list.";
+  const street = s(fd, "street").slice(0, 120);
+  const city = s(fd, "city").slice(0, 60) || "Jalandhar";
+  const pincode = s(fd, "pincode").replace(/\s/g, "");
+  if (pincode && !/^[1-9]\d{5}$/.test(pincode)) errors.pincode = "Enter a 6-digit pincode.";
+  const maps_url = s(fd, "maps_url");
+  if (maps_url && !/^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(maps_url)) errors.maps_url = "Paste a Google Maps link (https://maps.app.goo.gl/… or https://www.google.com/maps/…).";
   const price = n(fd, "price"); if (!price || price <= 0) errors.price = "Enter the price in rupees.";
   const area = n(fd, "area"); if (!area || area <= 0) errors.area = "Enter the area.";
   const status = s(fd, "status") || "Ready";
@@ -40,6 +47,7 @@ async function parse(fd: FormData, id: number | null): Promise<{ input?: Propert
       super_area: n(fd, "super_area"), floor: opt(s(fd, "floor")), facing: opt(s(fd, "facing")), furnishing: opt(s(fd, "furnishing")), parking: opt(s(fd, "parking")), possession: opt(s(fd, "possession")), status,
       description: opt(s(fd, "description")), long_description: opt(s(fd, "long_description")), amenities: fd.getAll("amenities").map(String), trust, rera, nearby,
       featured: !!fd.get("featured"), published: s(fd, "intent") === "publish", meta_title: opt(s(fd, "meta_title")), meta_description: opt(s(fd, "meta_description")),
+      address_line: opt(s(fd, "address_line").slice(0, 80)), street: opt(street), city, pincode: opt(pincode), maps_url: opt(maps_url),
     },
   };
 }
@@ -105,6 +113,7 @@ export async function duplicateProperty(id: number) {
     slug, title: `${p.title} (copy)`, type: p.type, purpose: p.purpose, locality: p.locality, project_id: p.project_id, price: Number(p.price), bhk: p.bhk, baths: p.baths, area: p.area == null ? null : Number(p.area), area_unit: p.area_unit,
     super_area: p.super_area == null ? null : Number(p.super_area), floor: p.floor, facing: p.facing, furnishing: p.furnishing, parking: p.parking, possession: p.possession, status: p.status, description: p.description, long_description: p.long_description,
     amenities: p.amenities ?? [], trust: p.trust ?? [], rera: p.rera, nearby: p.nearby ?? [], featured: false, published: false, meta_title: p.meta_title, meta_description: p.meta_description,
+    address_line: null, street: p.street, city: p.city ?? "Jalandhar", pincode: p.pincode, maps_url: null,
   });
   const imgs = await getPropertyImages(id);
   await replacePropertyImages(newId, imgs.map((i) => i.url), imgs.find((i) => i.is_cover)?.url ?? null);

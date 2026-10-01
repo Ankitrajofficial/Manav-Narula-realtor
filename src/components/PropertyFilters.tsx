@@ -1,7 +1,8 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { localities } from "@/data/site";
+import type { LocalityOption } from "@/lib/localities";
+import LocalitySelect from "./LocalitySelect";
 import Icon from "./Icon";
 import { inputCls } from "./ui";
 
@@ -27,7 +28,7 @@ const areas = [
   { v: "2000-", l: "Above 2,000 sq.ft" },
 ];
 
-function Fields({ sp, onChange }: { sp: URLSearchParams; onChange: (k: string, v: string) => void }) {
+function Fields({ sp, onChange, localities, idPrefix }: { sp: URLSearchParams; onChange: (k: string, v: string) => void; localities: LocalityOption[]; idPrefix: string }) {
   const purpose = sp.get("purpose") ?? "Buy";
   const sel = (k: string) => sp.get(k) ?? "";
   return (
@@ -54,12 +55,9 @@ function Fields({ sp, onChange }: { sp: URLSearchParams; onChange: (k: string, v
           <li><button type="button" className="text-xs text-muted hover:text-ink" onClick={() => onChange("type", "")}>Any type</button></li>
         </ul>
       </fieldset>
-      <label className="block text-sm"><span className="mb-1.5 block font-medium">Locality</span>
-        <select value={sel("locality")} onChange={(e) => onChange("locality", e.target.value)} className={inputCls}>
-          <option value="">Any locality</option>
-          {localities.map((l) => <option key={l}>{l}</option>)}
-        </select>
-      </label>
+      <div className="text-sm"><label htmlFor={`${idPrefix}-locality`} className="mb-1.5 block font-medium">Locality</label>
+        <LocalitySelect id={`${idPrefix}-locality`} options={localities} value={sel("locality")} onChange={(v) => onChange("locality", v)} emptyLabel="Any locality" inputClassName={inputCls} />
+      </div>
       <label className="block text-sm"><span className="mb-1.5 block font-medium">BHK</span>
         <select value={sel("bhk")} onChange={(e) => onChange("bhk", e.target.value)} className={inputCls}>
           <option value="">Any</option>
@@ -89,7 +87,7 @@ function Fields({ sp, onChange }: { sp: URLSearchParams; onChange: (k: string, v
   );
 }
 
-export default function PropertyFilters() {
+export default function PropertyFilters({ localities }: { localities: LocalityOption[] }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [open, setOpen] = useState(false);
@@ -109,7 +107,7 @@ export default function PropertyFilters() {
             <p className="text-lg">Filters</p>
             {active > 0 && <button type="button" className="text-xs text-muted hover:text-ink" onClick={() => router.push("/properties")}>Clear all</button>}
           </div>
-          <Fields sp={sp} onChange={onChange} />
+          <Fields sp={sp} onChange={onChange} localities={localities} idPrefix="side" />
         </div>
       </aside>
       <button type="button" onClick={() => setOpen(true)} className="fixed bottom-16 right-4 z-30 inline-flex items-center gap-2 rounded-brand border border-ink bg-white px-4 py-2.5 text-sm shadow-none md:hidden">
@@ -123,7 +121,7 @@ export default function PropertyFilters() {
               <p className="text-lg">Filters</p>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close"><Icon name="close" /></button>
             </div>
-            <Fields sp={sp} onChange={onChange} />
+            <Fields sp={sp} onChange={onChange} localities={localities} idPrefix="sheet" />
             <button type="button" onClick={() => setOpen(false)} className="mt-6 w-full rounded-brand bg-accent py-3 text-sm font-medium text-white">Show results</button>
           </div>
         </div>

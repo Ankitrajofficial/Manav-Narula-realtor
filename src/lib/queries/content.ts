@@ -14,6 +14,7 @@ export interface PropertyRow { [key: string]: unknown;
   floor: string | null; facing: string | null; furnishing: string | null; parking: string | null; possession: string | null; status: string;
   description: string | null; long_description: string | null; amenities: string[]; trust: string[]; rera: string | null;
   nearby: { name: string; distance: string }[]; featured: boolean; published: boolean; meta_title: string | null; meta_description: string | null;
+  address_line: string | null; street: string | null; city: string; pincode: string | null; maps_url: string | null;
   created_at: Date; updated_at: Date; cover: string | null;
 }
 export interface PropertyImage { [key: string]: unknown; id: number; property_id: number; url: string; sort_order: number; is_cover: boolean }
@@ -70,20 +71,22 @@ export interface PropertyInput {
   furnishing: string | null; parking: string | null; possession: string | null; status: string; description: string | null; long_description: string | null;
   amenities: string[]; trust: string[]; rera: string | null; nearby: { name: string; distance: string }[]; featured: boolean; published: boolean;
   meta_title: string | null; meta_description: string | null;
+  /** House/plot number: admin only, never shown on the website. */
+  address_line: string | null; street: string | null; city: string; pincode: string | null; maps_url: string | null;
 }
 
 export async function insertProperty(p: PropertyInput): Promise<number> {
   const r = await one<{ id: number }>(
-    `INSERT INTO properties (slug,title,type,purpose,locality,project_id,price,bhk,baths,area,area_unit,super_area,floor,facing,furnishing,parking,possession,status,description,long_description,amenities,trust,rera,nearby,featured,published,meta_title,meta_description)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23,$24::jsonb,$25,$26,$27,$28) RETURNING id`,
-    [p.slug, p.title, p.type, p.purpose, p.locality, p.project_id, p.price, p.bhk, p.baths, p.area, p.area_unit, p.super_area, p.floor, p.facing, p.furnishing, p.parking, p.possession, p.status, p.description, p.long_description, json(p.amenities), json(p.trust), p.rera, json(p.nearby), p.featured, p.published, p.meta_title, p.meta_description]);
+    `INSERT INTO properties (slug,title,type,purpose,locality,project_id,price,bhk,baths,area,area_unit,super_area,floor,facing,furnishing,parking,possession,status,description,long_description,amenities,trust,rera,nearby,featured,published,meta_title,meta_description,address_line,street,city,pincode,maps_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23,$24::jsonb,$25,$26,$27,$28,$29,$30,$31,$32,$33) RETURNING id`,
+    [p.slug, p.title, p.type, p.purpose, p.locality, p.project_id, p.price, p.bhk, p.baths, p.area, p.area_unit, p.super_area, p.floor, p.facing, p.furnishing, p.parking, p.possession, p.status, p.description, p.long_description, json(p.amenities), json(p.trust), p.rera, json(p.nearby), p.featured, p.published, p.meta_title, p.meta_description, p.address_line, p.street, p.city, p.pincode, p.maps_url]);
   return r!.id;
 }
 
 export async function updateProperty(id: number, p: PropertyInput) {
   await q(
-    `UPDATE properties SET slug=$1,title=$2,type=$3,purpose=$4,locality=$5,project_id=$6,price=$7,bhk=$8,baths=$9,area=$10,area_unit=$11,super_area=$12,floor=$13,facing=$14,furnishing=$15,parking=$16,possession=$17,status=$18,description=$19,long_description=$20,amenities=$21::jsonb,trust=$22::jsonb,rera=$23,nearby=$24::jsonb,featured=$25,published=$26,meta_title=$27,meta_description=$28,updated_at=now() WHERE id=$29`,
-    [p.slug, p.title, p.type, p.purpose, p.locality, p.project_id, p.price, p.bhk, p.baths, p.area, p.area_unit, p.super_area, p.floor, p.facing, p.furnishing, p.parking, p.possession, p.status, p.description, p.long_description, json(p.amenities), json(p.trust), p.rera, json(p.nearby), p.featured, p.published, p.meta_title, p.meta_description, id]);
+    `UPDATE properties SET slug=$1,title=$2,type=$3,purpose=$4,locality=$5,project_id=$6,price=$7,bhk=$8,baths=$9,area=$10,area_unit=$11,super_area=$12,floor=$13,facing=$14,furnishing=$15,parking=$16,possession=$17,status=$18,description=$19,long_description=$20,amenities=$21::jsonb,trust=$22::jsonb,rera=$23,nearby=$24::jsonb,featured=$25,published=$26,meta_title=$27,meta_description=$28,address_line=$29,street=$30,city=$31,pincode=$32,maps_url=$33,updated_at=now() WHERE id=$34`,
+    [p.slug, p.title, p.type, p.purpose, p.locality, p.project_id, p.price, p.bhk, p.baths, p.area, p.area_unit, p.super_area, p.floor, p.facing, p.furnishing, p.parking, p.possession, p.status, p.description, p.long_description, json(p.amenities), json(p.trust), p.rera, json(p.nearby), p.featured, p.published, p.meta_title, p.meta_description, p.address_line, p.street, p.city, p.pincode, p.maps_url, id]);
 }
 
 export async function replacePropertyImages(propertyId: number, urls: string[], coverUrl: string | null) {

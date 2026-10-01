@@ -1,6 +1,7 @@
 import "server-only";
 export { offerCta } from "./format";
 import { one, q } from "./db";
+import { LOCALITY_ORDER, type LocalityOption } from "./localities";
 import type { Property } from "@/data/properties";
 import type { Project } from "@/data/projects";
 import type { Article } from "@/data/content";
@@ -10,7 +11,7 @@ import { banners as staticBanners, offer as staticOffer, site } from "@/data/sit
 /** Public-site loaders. Every one reads the shared database the consoles write to. */
 
 interface PropertyRow {
-  id: number; slug: string; title: string; type: Property["type"]; purpose: Property["purpose"]; locality: string | null; price: string | number;
+  id: number; slug: string; title: string; type: Property["type"]; purpose: Property["purpose"]; locality: string | null; street: string | null; city: string | null; price: string | number;
   bhk: number | null; baths: number | null; area: string | number; area_unit: Property["areaUnit"]; floor: string | null; facing: string | null;
   furnishing: string | null; parking: string | null; possession: string | null; status: Property["status"]; description: string | null;
   long_description: string | null; amenities: string[]; trust: Property["trust"]; rera: string | null; nearby: { name: string; distance: string }[];
@@ -21,7 +22,7 @@ const PROPERTY_SELECT = `SELECT p.*, (SELECT json_agg(url ORDER BY is_cover DESC
 
 function mapProperty(r: PropertyRow): Property {
   return {
-    id: r.id, slug: r.slug, title: r.title, type: r.type, purpose: r.purpose, locality: r.locality ?? "", price: Number(r.price),
+    id: r.id, slug: r.slug, title: r.title, type: r.type, purpose: r.purpose, locality: r.locality ?? "", street: r.street ?? undefined, city: r.city ?? "Jalandhar", price: Number(r.price),
     bhk: r.bhk ?? undefined, baths: r.baths ?? undefined, area: Number(r.area), areaUnit: r.area_unit, floor: r.floor ?? undefined, facing: r.facing ?? "",
     furnishing: r.furnishing ?? undefined, parking: r.parking ?? undefined, possession: r.possession ?? "", status: r.status, description: r.description ?? "",
     longDescription: (r.long_description ?? "").split(/\n{2,}/).filter(Boolean), amenities: r.amenities ?? [], trust: r.trust ?? [], rera: r.rera ?? undefined,
@@ -133,3 +134,15 @@ export interface PageVideo { id: number; youtubeId: string; title: string | null
 export async function getPageVideos(page: string): Promise<PageVideo[]> {
   return q<PageVideo>(`SELECT id, youtube_id AS "youtubeId", title FROM page_videos WHERE page_key = $1 AND is_active = true ORDER BY sort_order, id LIMIT 4`, [page]);
 }
+
+/** Active localities that have at least one published property, with the count, in zone order (website filters). */
+export async function getLocalityFilterOptions(): Promise<LocalityOption[]> {
+  return q<LocalityOption>(`SELECT l.name, l.zone, count(p.id)::int AS count FROM localities l JOIN properties p ON p.locality = l.name AND p.published = true WHERE l.is_active GROUP BY l.id ORDER BY ${LOCALITY_ORDER}`);
+}
+/** Active localities with their published-property counts, busiest first (home page). */
+export async function getLocalitiesServed(limit = 10): Promise<LocalityOption[]> {
+  return q<LocalityOption>(`SELECT l.name, l.zone, (SELECT count(*)::int FROM properties p WHERE p.published AND p.locality = l.name) AS count FROM localities l WHERE l.is_active ORDER BY count DESC, ${LOCALITY_ORDER} LIMIT ${Number(limit)}`);
+}
+
+/** Public address line: Street/Block, Locality, City. House/plot number, pincode and map link stay private. */
+export const publicAddress = (p: Pick<Property, "street" | "locality" | "city">) => [p.street, p.locality, p.city || "Jalandhar"].filter(Boolean).join(", ");
