@@ -62,7 +62,7 @@ export default async function HomePage() {
         </ol>
         <p className="mt-6 flex items-start gap-2 text-sm text-muted">
           <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-accent" />
-          <span>RERA-registered agent <span className="tabular text-ink">{site.rera}</span>. Every step above is written into our engagement letter.</span>
+          <span>Every step above is written into our engagement letter.</span>
         </p>
       </Section>
 

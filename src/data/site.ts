@@ -52,7 +52,7 @@ export const banners = [
     id: "b1",
     image: "photo-1600596542815-ffad4c1539a9",
     headline: "Kothis, plots and commercial spaces across Jalandhar",
-    line: "Verified titles, RERA-registered advice and accompanied site visits.",
+    line: "Verified titles, honest advice and accompanied site visits.",
     cta: { label: "View properties", href: "/properties" },
   },
   {
@@ -80,7 +80,6 @@ export const offer = {
 
 export const trustPoints = [
   { label: "Years in Jalandhar", value: `${new Date().getFullYear() - 2012}+` },
-  { label: "RERA registered", value: "Yes" },
   { label: "Properties sold", value: "1000+" },
 ];
 
@@ -169,7 +168,7 @@ export const milestones = [
   { year: "2016", text: "First 100 registries completed; legal desk added with an empanelled advocate." },
   { year: "2019", text: "NRI desk started after a third of enquiries came from Canada, the UK and Australia." },
   { year: "2022", text: "Home loan partnerships with four banks; 500th family handed keys." },
-  { year: "2024", text: "RERA agent registration renewed; property management service launched." },
+  { year: "2024", text: "Property management service launched." },
 ];
 
 export const team = [
@@ -180,7 +179,6 @@ export const team = [
 ];
 
 export const certifications = [
-  { title: "RERA agent registration", text: `Registered with the Punjab Real Estate Regulatory Authority, ${"PBRERA-JAL-AGT-2024-0119"}.` },
   { title: "Empanelled advocate", text: "Title and documentation reviewed by an advocate enrolled with the Bar Council of Punjab and Haryana." },
   { title: "Home loan partner", text: "Direct selling associate with four scheduled banks and one housing finance company." },
 ];

@@ -10,7 +10,7 @@ import type { Article } from "@/data/content";
 import { faqGroups as staticFaqs } from "@/data/content";
 import { banners as staticBanners, offer as staticOffer, site } from "@/data/site";
 
-/** Public-site loaders. Every one reads the shared database the consoles write to. */
+/** Public-site loaders. Every one reads the shared database the consoles write to. RERA numbers stay in the consoles and are not sent to the website. */
 
 interface PropertyRow {
   id: number; slug: string; title: string; type: Property["type"]; purpose: Property["purpose"]; locality: string | null; street: string | null; city: string | null; price: string | number;
@@ -27,7 +27,7 @@ function mapProperty(r: PropertyRow): Property {
     id: r.id, slug: r.slug, title: r.title, type: r.type, purpose: r.purpose, locality: r.locality ?? "", street: r.street ?? undefined, city: r.city ?? "Jalandhar", price: Number(r.price),
     bhk: r.bhk ?? undefined, baths: r.baths ?? undefined, area: Number(r.area), areaUnit: r.area_unit, floor: r.floor ?? undefined, facing: r.facing ?? "",
     furnishing: r.furnishing ?? undefined, parking: r.parking ?? undefined, possession: r.possession ?? "", status: r.status, description: r.description ?? "",
-    longDescription: (r.long_description ?? "").split(/\n{2,}/).filter(Boolean), amenities: r.amenities ?? [], trust: r.trust ?? [], rera: r.rera ?? undefined,
+    longDescription: (r.long_description ?? "").split(/\n{2,}/).filter(Boolean), amenities: r.amenities ?? [], trust: (r.trust ?? []).filter((t) => t !== "rera"), rera: undefined,
     nearby: r.nearby ?? [], featured: r.featured, images: r.images && r.images.length ? r.images : ["photo-1600596542815-ffad4c1539a9"],
   };
 }
@@ -66,7 +66,7 @@ function mapProject(r: ProjectRow): Project {
   return {
     id: r.id, slug: r.slug, name: r.name, developer: r.developer ?? "", locality: r.locality ?? "", status: r.status, image: r.image ?? "photo-1600607687939-ce8a6c25118c",
     gallery: r.gallery?.length ? r.gallery : [r.image ?? "photo-1600607687939-ce8a6c25118c"], configurations: r.configurations ?? [], startingPrice: r.starting_price ?? "", possession: r.possession ?? "",
-    progress, milestones, keyFacts: r.key_facts ?? [], amenities: r.amenities ?? [], rera: r.rera ?? "", description: (r.description ?? "").split(/\n{2,}/).filter(Boolean), brochure: r.brochure ?? "#",
+    progress, milestones, keyFacts: (r.key_facts ?? []).filter((f) => !/rera/i.test(f.label)), amenities: r.amenities ?? [], rera: "", description: (r.description ?? "").split(/\n{2,}/).filter(Boolean), brochure: r.brochure ?? "#",
   };
 }
 export async function getProjects(): Promise<Project[]> {

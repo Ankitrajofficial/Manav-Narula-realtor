@@ -5,7 +5,7 @@ import { site } from "@/data/site";
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: `${site.name} · Property advisors in Jalandhar`, template: `%s · ${site.name}` },
-  description: "Kothis, plots, apartments and commercial spaces in Jalandhar with verified titles, RERA-registered advice and accompanied site visits. 4.8 Google rating.",
+  description: "Kothis, plots, apartments and commercial spaces in Jalandhar with verified titles, honest advice and accompanied site visits. 4.8 Google rating.",
   openGraph: { siteName: site.name, locale: "en_IN", type: "website" },
   robots: { index: true, follow: true },
 };

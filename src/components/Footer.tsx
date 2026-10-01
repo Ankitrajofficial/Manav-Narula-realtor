@@ -50,9 +50,6 @@ export default async function Footer() {
             <strong className="tabular">{Number(b.rating).toFixed(1)}</strong>
             <span className="text-white/60">({b.reviews} Google reviews)</span>
           </a>
-          <p className="mt-4 flex items-center gap-2 text-xs text-white/60">
-            <Icon name="shield" size={14} className="text-accent" />RERA agent no. {b.rera}
-          </p>
         </div>
 
         <div className="md:col-span-2">
@@ -105,7 +102,7 @@ export default async function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10">
         <Container className="flex flex-col gap-3 py-5 text-xs text-white/50 md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} {site.name}. All rights reserved. Registered real estate agent, Punjab RERA.</p>
+          <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy" className="hover:text-white">Privacy</Link>
             <Link href="/terms" className="hover:text-white">Terms</Link>

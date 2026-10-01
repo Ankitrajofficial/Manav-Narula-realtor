@@ -3,7 +3,7 @@ import Icon from "@/components/Icon";
 import { Breadcrumbs, GoogleRating, Section, SectionTitle } from "@/components/ui";
 import { aboutCommitments, certifications, milestones, site, team } from "@/data/site";
 
-export const metadata = { title: "About", description: "Manav Narula Realtor has advised families in Jalandhar since 2012. Our story, work ethics, team and RERA registration." };
+export const metadata = { title: "About", description: "Manav Narula Realtor has advised families in Jalandhar since 2012. Our story, work ethics, team and certifications." };
 
 export default function AboutPage() {
   return (
@@ -67,8 +67,8 @@ export default function AboutPage() {
       </Section>
 
       <Section className="border-y border-line bg-white">
-        <SectionTitle title="Certifications and RERA" />
-        <ul className="grid gap-8 md:grid-cols-3">
+        <SectionTitle title="Certifications" />
+        <ul className="grid gap-8 md:grid-cols-2">
           {certifications.map((c) => (
             <li key={c.title} className="flex gap-4">
               <Icon name="shield" size={24} className="mt-0.5 shrink-0 text-accent" />

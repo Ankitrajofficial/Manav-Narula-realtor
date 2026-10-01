@@ -112,8 +112,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
             </section>
 
             <section className="mt-12 text-xs text-muted">
-              {p.rera && <p>RERA registration: {p.rera}. Listed by {site.name}, RERA agent no. {site.rera}.</p>}
-              {!p.rera && <p>Listed by {site.name}, RERA agent no. {site.rera}.</p>}
+              <p>Listed by {site.name}.</p>
               <p className="mt-1">Areas and distances are as declared by the owner and approximate. Verify in the sale documents before payment.</p>
             </section>
           </div>
@@ -129,7 +128,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-brand border border-ink font-heading">MN</span>
                 <div className="text-sm">
                   <p>Manav Narula</p>
-                  <p className="text-muted">Principal advisor · RERA {site.rera}</p>
+                  <p className="text-muted">Principal advisor</p>
                   <div className="mt-2 flex gap-3">
                     <a href={site.phoneHref} className="inline-flex items-center gap-1 text-accent-ink hover:underline"><Icon name="phone" size={14} />Call</a>
                     <a href={site.whatsappHref} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-accent-ink hover:underline"><Icon name="whatsapp" size={14} />WhatsApp</a>

@@ -53,19 +53,19 @@ export function Tag({ children }: { children: React.ReactNode }) {
   return <span className="inline-block rounded-brand border border-line bg-bg px-2 py-0.5 text-xs text-ink">{children}</span>;
 }
 
+/** Trust badges shown on the website. Badges not listed here (such as the stored "rera" flag) are not shown. */
 export const trustLabels: Record<string, string> = {
   verified: "Verified title",
-  rera: "RERA registered",
   visit: "Site visit available",
 };
 
 export function TrustRow({ items, size = "sm" }: { items: string[]; size?: "sm" | "md" }) {
   return (
     <ul className={`flex flex-wrap gap-x-4 gap-y-1 ${size === "sm" ? "text-xs" : "text-sm"} text-ink`}>
-      {items.map((t) => (
+      {items.filter((t) => t in trustLabels).map((t) => (
         <li key={t} className="flex items-center gap-1.5">
           <Icon name="shield" size={size === "sm" ? 14 : 18} className="text-accent" />
-          {trustLabels[t] ?? t}
+          {trustLabels[t]}
         </li>
       ))}
     </ul>

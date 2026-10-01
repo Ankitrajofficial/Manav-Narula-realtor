@@ -77,7 +77,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
               </div>
               <a href={p.brochure} download className="mt-6 inline-flex items-center gap-2 rounded-brand border border-ink px-5 py-3 text-sm hover:bg-ink hover:text-white"><Icon name="download" size={16} />Download brochure (PDF)</a>
             </section>
-            <p className="mt-12 text-xs text-muted">RERA registration: {p.rera}. Prices and possession dates are as declared by the developer and subject to the builder-buyer agreement.</p>
+            <p className="mt-12 text-xs text-muted">Prices and possession dates are as declared by the developer and subject to the builder-buyer agreement.</p>
           </div>
           <aside className="lg:col-span-4">
             <div className="sticky top-24 rounded-brand border border-line bg-white p-5">

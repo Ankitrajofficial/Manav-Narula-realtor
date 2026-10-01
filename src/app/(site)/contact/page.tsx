@@ -29,7 +29,6 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </address>
           <a href={site.mapHref} target="_blank" rel="noopener" className="mt-5 inline-flex items-center gap-2 text-sm text-accent-ink hover:underline"><Icon name="pin" size={16} />Open in Google Maps</a>
           <GoogleRating rating={site.rating} reviews={site.reviews} className="mt-6" />
-          <p className="mt-2 text-xs text-muted">RERA agent no. {site.rera}</p>
 
           <div className="mt-10 rounded-brand border border-line bg-white p-5">
             <h2 className="text-xl">Request a callback</h2>
