@@ -55,7 +55,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
         <ul className="mt-8 grid gap-4 md:grid-cols-2">
           {offers.slice(0, 2).map((o) => (
             <li key={o.id}>
-              <Link href={o.href} className="flex items-center gap-4 rounded-brand border border-line bg-white p-3 hover:border-ink">
+              <Link href={o.href} className="flex items-center gap-4 rounded-brand border border-[#c9c9c6] bg-white p-3 transition-colors hover:border-ink">
                 {o.image && <span className="relative h-16 w-24 shrink-0 overflow-hidden rounded-brand bg-line"><Image src={unsplash(o.image, 400, 300)} alt="" fill sizes="96px" className="object-cover" /></span>}
                 <span><span className="text-xs uppercase tracking-wide text-accent-ink">Offer</span><span className="block text-base">{o.title}</span>{o.text && <span className="block text-sm text-muted">{o.text}</span>}</span>
               </Link>

@@ -56,7 +56,7 @@ export default function AboutPage() {
         <SectionTitle title="The team" intro="Four people, one point of contact for you throughout." />
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {team.map((t) => (
-            <li key={t.name} className="rounded-brand border border-line bg-white p-5">
+            <li key={t.name} className="rounded-brand border border-[#c9c9c6] bg-white p-5">
               <span className="flex h-14 w-14 items-center justify-center rounded-brand border border-ink font-heading text-lg">{t.initials}</span>
               <h3 className="mt-4 text-xl">{t.name}</h3>
               <p className="text-sm text-accent-ink">{t.role}</p>

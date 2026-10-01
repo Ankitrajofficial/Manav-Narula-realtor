@@ -72,7 +72,7 @@ export default async function HomePage() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {servicesShort.map((s) => (
             <li key={s.id}>
-              <Link href={s.href ?? `/services#${s.id}`} className="flex h-full gap-4 rounded-brand border border-line bg-white p-5 hover:border-ink">
+              <Link href={s.href ?? `/services#${s.id}`} className="flex h-full gap-4 rounded-brand border border-[#c9c9c6] bg-white p-5 transition-colors hover:border-ink">
                 <Icon name={s.icon} size={24} className="mt-0.5 shrink-0 text-accent" />
                 <div>
                   <h3 className="text-lg">{s.title}</h3>
