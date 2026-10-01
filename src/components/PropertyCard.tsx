@@ -17,7 +17,7 @@ export default function PropertyCard({ p, fixed = true }: { p: Property; fixed?:
   return (
     <Link
       href={`/properties/${p.slug}`}
-      className={`group block shrink-0 snap-start overflow-hidden rounded-brand border border-line bg-white ${fixed ? "w-[320px]" : "w-full"}`}
+      className={`group block shrink-0 snap-start overflow-hidden rounded-brand border border-[#c9c9c6] bg-white transition-colors hover:border-ink ${fixed ? "w-[320px]" : "w-full"}`}
     >
       <div className="relative aspect-[4/3] bg-line">
         <Image src={unsplash(p.images[0], 800, 600)} alt={p.title} fill sizes="320px" className="object-cover" />

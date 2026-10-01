@@ -6,7 +6,7 @@ import { Tag } from "./ui";
 
 export default function ProjectCard({ p, showProgress = false }: { p: Project; showProgress?: boolean }) {
   return (
-    <Link href={`/projects/${p.slug}`} className="group block overflow-hidden rounded-brand border border-line bg-white">
+    <Link href={`/projects/${p.slug}`} className="group block overflow-hidden rounded-brand border border-[#c9c9c6] bg-white transition-colors hover:border-ink">
       <div className="relative aspect-[4/3] bg-line">
         <Image src={unsplash(p.image, 800, 600)} alt={p.name} fill sizes="(min-width: 768px) 400px, 100vw" className="object-cover" />
         <span className="absolute left-3 top-3"><Tag>{p.status}</Tag></span>

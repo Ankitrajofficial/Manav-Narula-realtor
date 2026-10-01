@@ -137,7 +137,7 @@ export default async function HomePage() {
         <ul className="grid gap-6 md:grid-cols-3">
           {articles.slice(0, 3).map((a) => (
             <li key={a.slug}>
-              <Link href={`/blog/${a.slug}`} className="group block overflow-hidden rounded-brand border border-line bg-white">
+              <Link href={`/blog/${a.slug}`} className="group block overflow-hidden rounded-brand border border-[#c9c9c6] bg-white transition-colors hover:border-ink">
                 <div className="relative aspect-[4/3] bg-line"><Image src={unsplash(a.cover, 800, 600)} alt="" fill sizes="(min-width: 768px) 400px, 100vw" className="object-cover" /></div>
                 <div className="p-4">
                   <span className="text-xs text-accent-ink">{a.category}</span>
