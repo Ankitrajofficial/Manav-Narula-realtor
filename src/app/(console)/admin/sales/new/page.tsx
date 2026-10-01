@@ -7,7 +7,7 @@ import { leadOptions, prospectOptions } from "@/lib/queries/tasks";
 import { one } from "@/lib/db";
 import { createSale } from "../actions";
 
-export default async function NewSalePage({ searchParams }: { searchParams: Promise<{ lead?: string; prospect?: string }> }) {
+export default async function NewSalePage({ searchParams }: { searchParams: Promise<{ lead?: string; prospect?: string; employee?: string }> }) {
   await requireUser("admin");
   const sp = await searchParams;
   const [employees, leads, prospects, properties] = await Promise.all([listEmployees(), leadOptions(), prospectOptions(), salePropertyOptions()]);
@@ -18,7 +18,7 @@ export default async function NewSalePage({ searchParams }: { searchParams: Prom
   return (
     <div className="max-w-3xl">
       <PageHeader title="Record sale" description="Sales recorded by the admin are approved immediately." />
-      <SaleForm action={createSale} employees={employees} leads={leads} prospects={prospects} properties={properties} submitLabel="Record sale" values={{ lead_id, prospect_id, employee_id: linked?.assigned_to ?? null, property_id: linked?.property_id ?? null }} />
+      <SaleForm action={createSale} employees={employees} leads={leads} prospects={prospects} properties={properties} submitLabel="Record sale" values={{ lead_id, prospect_id, employee_id: linked?.assigned_to ?? (Number(sp.employee) || null), property_id: linked?.property_id ?? null }} />
     </div>
   );
 }

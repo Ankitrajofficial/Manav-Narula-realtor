@@ -48,7 +48,7 @@ export async function updateEmployee(id: number, _p: EmployeeFormState, fd: Form
   if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
   await q("UPDATE users SET name=$1, email=$2, phone=$3, role=$4 WHERE id=$5", [name, email, phone, role, id]);
   await audit(user.id, "update", "user", id, { name, email, role });
-  redirect(`/admin/employees/${id}?toast=Saved`);
+  redirect(`/admin/employees/${id}?tab=account&toast=Saved`);
 }
 
 export async function resetPassword(id: number): Promise<ResetState> {
