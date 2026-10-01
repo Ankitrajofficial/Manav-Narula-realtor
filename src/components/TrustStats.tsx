@@ -52,7 +52,7 @@ export default function TrustStats({ stats }: { stats: TrustStat[] }) {
 
   return (
     // Six numbers in one desktop row leaves ~150px per cell, so the figures step down from 48px to fit.
-    <div ref={ref} className="trust-grid mt-12 md:mt-16" style={{ "--count": stats.length, "--number-lg": stats.length >= 6 ? "38px" : stats.length === 5 ? "42px" : "48px" } as React.CSSProperties}>
+    <div ref={ref} className="trust-grid mt-8 md:mt-10" style={{ "--count": stats.length, "--number-lg": stats.length >= 6 ? "38px" : stats.length === 5 ? "42px" : "48px" } as React.CSSProperties}>
       {stats.map((s, i) => {
         const l = layout[i];
         const style = {

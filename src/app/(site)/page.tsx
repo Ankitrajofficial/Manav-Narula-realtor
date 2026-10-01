@@ -32,10 +32,10 @@ export default async function HomePage() {
       <BannerCarousel banners={banners} />
 
       {/* 2. Brand statement and trust numbers */}
-      <section className="border-b border-line bg-bg pt-16 pb-16 md:pt-24 md:pb-24">
+      <section className="border-b border-line bg-bg py-12 md:py-16">
         <Container>
           <p className="font-heading text-4xl md:text-6xl">{site.name}</p>
-          <p className="mt-4 max-w-xl text-lg text-muted">{withFoundedYear(business.tagline || site.tagline, foundedYear)}</p>
+          <p className="mt-3 max-w-xl text-lg text-muted">{withFoundedYear(business.tagline || site.tagline, foundedYear)}</p>
           <TrustStats stats={trustStats} />
         </Container>
       </section>

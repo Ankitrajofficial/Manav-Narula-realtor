@@ -179,7 +179,7 @@ const DEFAULT_TRUST_STATS: TrustStat[] = [
   { value: "1500", suffix: "+", label: "Properties sold", link: null, sort_order: 1, is_active: true },
   { value: "20", suffix: "+", label: "Developer partners", link: null, sort_order: 2, is_active: true },
   { value: "2", suffix: "+", label: "Offices", link: null, sort_order: 3, is_active: true },
-  { value: "4.8", suffix: "★", label: "Google rating (21 reviews)", link: site.reviewHref, sort_order: 4, is_active: true },
+  { value: "4.8", suffix: "★", label: "Google rating", link: site.reviewHref, sort_order: 4, is_active: true },
   { value: "30", suffix: "+", label: "Localities covered", link: null, sort_order: 5, is_active: true },
 ];
 /** Active trust numbers in admin order (at most 6). */
