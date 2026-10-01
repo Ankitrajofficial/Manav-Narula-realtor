@@ -88,7 +88,7 @@ input, select, textarea { font: inherit; color: inherit; }
 
 /* Home page trust numbers: hairline table of facts. One row on desktop; on tablet and phones each cell gets
    its span and borders from CSS variables set by trustLayout(), so 3 to 6 stats always fill the grid without gaps. */
-.trust-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.trust-grid { --line: #c9c9c6; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .trust-cell {
   grid-column: span var(--span-m);
   border-left: calc(var(--left-m) * 1px) solid var(--line);
