@@ -1,11 +1,11 @@
 "use client";
 import { useActionState } from "react";
-import { Field, FormError, Input, Select, SubmitButton, Textarea } from "./Form";
+import { Field, FormError, Input, Select, SubmitButton } from "./Form";
 import RecordPicker, { type PickerItem } from "./RecordPicker";
-import { PRIORITIES, TASK_STATUSES } from "@/lib/console";
+import { PRIORITIES, TASK_STATUSES, priorityLabel } from "@/lib/console";
 import type { TaskFormState } from "@/app/(console)/admin/tasks/actions";
 
-export interface TaskFormValues { title?: string; description?: string | null; lead_ids?: number[]; prospect_ids?: number[]; assigned_to?: number | null; due_date?: string | null; priority?: string; status?: string }
+export interface TaskFormValues { title?: string; lead_ids?: number[]; prospect_ids?: number[]; assigned_to?: number | null; due_date?: string | null; priority?: string; status?: string }
 type Opt = { id: number; name: string };
 
 export default function TaskForm({ action, values = {}, employees, leads, prospects, submitLabel = "Save task" }: { action: (prev: TaskFormState, fd: FormData) => Promise<TaskFormState>; values?: TaskFormValues; employees: Opt[]; leads: PickerItem[]; prospects: PickerItem[]; submitLabel?: string }) {
@@ -16,7 +16,6 @@ export default function TaskForm({ action, values = {}, employees, leads, prospe
       <div className="rounded-brand border border-line bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Title" htmlFor="title" error={e.title} className="md:col-span-2"><Input id="title" name="title" defaultValue={values.title ?? ""} required error={e.title} placeholder="What needs to be done, e.g. Call this week's Urban Estate enquiries" /></Field>
-          <Field label="Description" htmlFor="description" className="md:col-span-2"><Textarea id="description" name="description" rows={3} defaultValue={values.description ?? ""} placeholder="Optional details, context or what to say on the call" /></Field>
           <Field label="Assign to" htmlFor="assigned_to" error={e.assigned_to}>
             <Select id="assigned_to" name="assigned_to" defaultValue={values.assigned_to ?? ""} error={e.assigned_to} required>
               <option value="">Choose an employee</option>
@@ -25,7 +24,7 @@ export default function TaskForm({ action, values = {}, employees, leads, prospe
           </Field>
           <Field label="Due date" htmlFor="due_date" error={e.due_date}><Input id="due_date" name="due_date" type="date" defaultValue={values.due_date ?? ""} error={e.due_date} /></Field>
           <Field label="Priority" htmlFor="priority" error={e.priority}>
-            <Select id="priority" name="priority" defaultValue={values.priority ?? "Medium"}>{PRIORITIES.map((p) => <option key={p}>{p}</option>)}</Select>
+            <Select id="priority" name="priority" defaultValue={values.priority === "high" ? "high" : "normal"}>{PRIORITIES.map((p) => <option key={p} value={p}>{priorityLabel(p)}</option>)}</Select>
           </Field>
           <Field label="Status" htmlFor="status" error={e.status}>
             <Select id="status" name="status" defaultValue={values.status ?? "Open"}>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</Select>

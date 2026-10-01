@@ -1,23 +1,24 @@
 "use server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { one, q } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit, logActivity } from "@/lib/records";
 import { setTaskRecords } from "@/lib/queries/tasks";
 import { PRIORITIES, TASK_STATUSES } from "@/lib/console";
+import { dueFromChip } from "@/lib/dates";
 
 export interface TaskFormState { errors?: Record<string, string>; error?: string }
 
 function parse(fd: FormData) {
   const title = String(fd.get("title") ?? "").trim();
-  const description = String(fd.get("description") ?? "").trim() || null;
   const idList = (name: string) => Array.from(new Set(fd.getAll(name).map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0)));
   const lead_ids = idList("lead_ids");
   const prospect_ids = idList("prospect_ids");
   const assign_records = fd.get("assign_records") === "1";
   const assigned_to = fd.get("assigned_to") ? Number(fd.get("assigned_to")) : null;
   const due_date = String(fd.get("due_date") ?? "").trim() || null;
-  const priority = String(fd.get("priority") ?? "Medium");
+  const priority = String(fd.get("priority") ?? "normal");
   const status = String(fd.get("status") ?? "Open");
   const errors: Record<string, string> = {};
   if (title.length < 3) errors.title = "Enter a title of at least 3 characters.";
@@ -26,7 +27,7 @@ function parse(fd: FormData) {
   if (!(PRIORITIES as readonly string[]).includes(priority)) errors.priority = "Choose a priority.";
   if (!(TASK_STATUSES as readonly string[]).includes(status)) errors.status = "Choose a status.";
   if (lead_ids.length + prospect_ids.length > 500) errors.records = "A call sheet can hold up to 500 people.";
-  return { title, description, lead_ids, prospect_ids, assign_records, assigned_to, due_date, priority, status, errors };
+  return { title, lead_ids, prospect_ids, assign_records, assigned_to, due_date, priority, status, errors };
 }
 
 /** Moves every record on the sheet to the task's employee and logs the assignment on each one. */
@@ -49,7 +50,7 @@ export async function createTask(_prev: TaskFormState, fd: FormData): Promise<Ta
   const user = await requireUser("admin");
   const t = parse(fd);
   if (Object.keys(t.errors).length) return { errors: t.errors };
-  const row = await one<{ id: number }>("INSERT INTO tasks (title, description, assigned_to, created_by, due_date, priority, status) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id", [t.title, t.description, t.assigned_to, user.id, t.due_date, t.priority, t.status]);
+  const row = await one<{ id: number }>("INSERT INTO tasks (title, assigned_to, created_by, due_date, priority, status) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id", [t.title, t.assigned_to, user.id, t.due_date, t.priority, t.status]);
   await setTaskRecords(row!.id, t.lead_ids, t.prospect_ids);
   const moved = t.assign_records && t.assigned_to ? await assignSheet(user.id, t.assigned_to, t.lead_ids, t.prospect_ids) : 0;
   await audit(user.id, "create", "task", row?.id, { title: t.title, assigned_to: t.assigned_to, leads: t.lead_ids.length, prospects: t.prospect_ids.length, moved });
@@ -61,7 +62,7 @@ export async function updateTask(id: number, _prev: TaskFormState, fd: FormData)
   const user = await requireUser("admin");
   const t = parse(fd);
   if (Object.keys(t.errors).length) return { errors: t.errors };
-  await q("UPDATE tasks SET title=$1, description=$2, assigned_to=$3, due_date=$4, priority=$5, status=$6, updated_at=now() WHERE id=$7", [t.title, t.description, t.assigned_to, t.due_date, t.priority, t.status, id]);
+  await q("UPDATE tasks SET title=$1, assigned_to=$2, due_date=$3, priority=$4, status=$5, updated_at=now() WHERE id=$6", [t.title, t.assigned_to, t.due_date, t.priority, t.status, id]);
   await setTaskRecords(id, t.lead_ids, t.prospect_ids);
   const moved = t.assign_records && t.assigned_to ? await assignSheet(user.id, t.assigned_to, t.lead_ids, t.prospect_ids) : 0;
   await audit(user.id, "update", "task", id, { title: t.title, leads: t.lead_ids.length, prospects: t.prospect_ids.length, moved });
@@ -97,4 +98,56 @@ export async function deleteTask(fd: FormData) {
   await q("DELETE FROM tasks WHERE id=$1", [id]);
   await audit(user.id, "delete", "task", id, { title: t?.title });
   redirect(`/admin/tasks?toast=${encodeURIComponent("Task deleted")}`);
+}
+
+export type QuickResult = { ok: true; id: number } | { ok: false; error: string };
+const refreshTasks = () => { revalidatePath("/admin/tasks"); revalidatePath("/employee/tasks"); revalidatePath("/employee"); revalidatePath("/admin"); };
+
+/** Quick-add bar: title, one employee, a due shortcut and priority. Linked leads/prospects are optional. */
+export async function quickCreateTask(fd: FormData): Promise<QuickResult> {
+  const user = await requireUser("admin");
+  const title = String(fd.get("title") ?? "").trim().slice(0, 200);
+  const assignedTo = Number(fd.get("assigned_to"));
+  const priority = fd.get("priority") === "high" ? "high" : "normal";
+  const due = dueFromChip(String(fd.get("due") ?? ""), String(fd.get("due_date") ?? ""));
+  const idList = (name: string) => Array.from(new Set(String(fd.get(name) ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0))).slice(0, 500);
+  const leadIds = idList("lead_ids"), prospectIds = idList("prospect_ids");
+  if (title.length < 2) return { ok: false, error: "Type what needs to be done." };
+  const emp = assignedTo ? await one<{ name: string }>("SELECT name FROM users WHERE id = $1 AND status = 'active'", [assignedTo]) : null;
+  if (!emp) return { ok: false, error: "Tap the employee this task is for." };
+  if (String(fd.get("due") ?? "") === "date" && !due) return { ok: false, error: "Pick a due date." };
+  const row = await one<{ id: number }>("INSERT INTO tasks (title, assigned_to, created_by, due_date, priority, status) VALUES ($1,$2,$3,$4,$5,'Open') RETURNING id", [title, assignedTo, user.id, due, priority]);
+  if (leadIds.length || prospectIds.length) await setTaskRecords(row!.id, leadIds, prospectIds);
+  await audit(user.id, "create", "task", row!.id, { title, assigned_to: assignedTo, due, priority, leads: leadIds.length, prospects: prospectIds.length });
+  refreshTasks();
+  return { ok: true, id: row!.id };
+}
+
+/** Inline edits from the task list: rename, reassign, change due date or priority. */
+export async function updateTaskInline(id: number, patch: { title?: string; assigned_to?: number; due?: string; due_date?: string | null; priority?: string }): Promise<QuickResult> {
+  const user = await requireUser("admin");
+  const sets: string[] = []; const params: unknown[] = [];
+  const add = (col: string, v: unknown) => { params.push(v); sets.push(`${col} = $${params.length}`); };
+  if (patch.title !== undefined) { const t = patch.title.trim().slice(0, 200); if (t.length < 2) return { ok: false, error: "Title is too short." }; add("title", t); }
+  if (patch.assigned_to !== undefined) {
+    if (!(await one("SELECT 1 FROM users WHERE id = $1 AND status = 'active'", [patch.assigned_to]))) return { ok: false, error: "Choose an active employee." };
+    add("assigned_to", patch.assigned_to);
+  }
+  if (patch.due !== undefined) add("due_date", patch.due === "none" ? null : dueFromChip(patch.due, patch.due_date ?? null));
+  if (patch.priority !== undefined) add("priority", patch.priority === "high" ? "high" : "normal");
+  if (!sets.length) return { ok: true, id };
+  params.push(id);
+  await q(`UPDATE tasks SET ${sets.join(", ")}, updated_at = now() WHERE id = $${params.length}`, params);
+  await audit(user.id, "update", "task", id, patch);
+  refreshTasks();
+  return { ok: true, id };
+}
+
+/** The tick box: Done when ticked, back to Open when unticked. */
+export async function toggleTaskDone(id: number, done: boolean): Promise<QuickResult> {
+  const user = await requireUser("admin");
+  await q("UPDATE tasks SET status = $1, updated_at = now() WHERE id = $2", [done ? "Done" : "Open", id]);
+  await audit(user.id, "status", "task", id, { status: done ? "Done" : "Open" });
+  refreshTasks();
+  return { ok: true, id };
 }

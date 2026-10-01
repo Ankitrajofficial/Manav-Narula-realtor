@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/console/PageHeader";
+import { priorityLabel } from "@/lib/console";
 import Pill from "@/components/console/Pill";
 import { Textarea } from "@/components/console/Form";
 import { requireUser } from "@/lib/auth";
@@ -19,10 +20,9 @@ export default async function MyTaskPage({ params }: { params: Promise<{ id: str
       <PageHeader title={task.title} description={`From ${task.creator_name ?? "admin"} · ${formatDateTime(task.created_at)}`} />
       <section className="rounded-brand border border-line bg-white p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Pill value={task.status} /><Pill value={task.priority} />{task.overdue && <Pill value="Overdue" />}
+          <Pill value={task.status} /><Pill value={priorityLabel(task.priority)} />{task.overdue && <Pill value="Overdue" />}
           {task.due_date && <span className="text-xs tabular text-muted">Due {formatShortDate(task.due_date)}</span>}
         </div>
-        {task.description && <p className="mt-4 whitespace-pre-line text-sm">{task.description}</p>}
         {task.status !== "Done" && (
           <form action={employeeSetTaskStatus} className="mt-4 flex gap-2">
             <input type="hidden" name="id" value={task.id} />

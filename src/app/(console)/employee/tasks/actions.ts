@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { one, q } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/records";
@@ -29,4 +30,14 @@ export async function employeeAddComment(fd: FormData) {
   await q("INSERT INTO task_comments (task_id, user_id, body) VALUES ($1,$2,$3)", [id, user.id, body]);
   await q("UPDATE tasks SET updated_at=now() WHERE id=$1", [id]);
   redirect(`/employee/tasks/${id}?toast=${encodeURIComponent("Comment added")}`);
+}
+
+/** The tick box on My Tasks: an employee can close or reopen only their own tasks. */
+export async function employeeToggleTaskDone(id: number, done: boolean): Promise<{ ok: true; id: number } | { ok: false; error: string }> {
+  const user = await requireUser("employee");
+  if (!(await ownTask(id, user.id))) return { ok: false, error: "Not allowed" };
+  await q("UPDATE tasks SET status = $1, updated_at = now() WHERE id = $2", [done ? "Done" : "Open", id]);
+  await audit(user.id, "status", "task", id, { status: done ? "Done" : "Open" });
+  revalidatePath("/employee/tasks"); revalidatePath("/employee"); revalidatePath("/admin/tasks");
+  return { ok: true, id };
 }

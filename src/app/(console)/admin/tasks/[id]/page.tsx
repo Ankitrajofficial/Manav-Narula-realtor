@@ -5,7 +5,7 @@ import ConfirmButton from "@/components/console/ConfirmButton";
 import TaskForm from "@/components/console/TaskForm";
 import { Textarea } from "@/components/console/Form";
 import { requireUser } from "@/lib/auth";
-import { TASK_STATUSES } from "@/lib/console";
+import { TASK_STATUSES, priorityLabel } from "@/lib/console";
 import { listEmployees } from "@/lib/queries/common";
 import TaskSheet from "@/components/console/TaskSheet";
 import { getTask, leadPickerOptions, listTaskComments, listTaskRecords, prospectPickerOptions } from "@/lib/queries/tasks";
@@ -32,7 +32,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         <div className="space-y-4 lg:col-span-5">
           <section className="rounded-brand border border-line bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Pill value={task.status} /><Pill value={task.priority} />{task.overdue && <Pill value="Overdue" />}
+              <Pill value={task.status} /><Pill value={priorityLabel(task.priority)} />{task.overdue && <Pill value="Overdue" />}
               {task.due_date && <span className="text-xs tabular text-muted">Due {formatShortDate(task.due_date)}</span>}
             </div>
             <form action={setTaskStatus} className="mt-3 flex flex-wrap gap-1.5">

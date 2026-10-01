@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Pill from "./Pill";
-import { TASK_STATUSES } from "@/lib/console";
+import { TASK_STATUSES, priorityLabel } from "@/lib/console";
 import { formatShortDate } from "@/lib/format";
 import type { TaskRow } from "@/lib/queries/tasks";
 
@@ -23,7 +23,7 @@ export default function TaskBoard({ tasks, basePath, moveAction, back }: { tasks
                   <Link href={`${basePath}/${t.id}`} className="block text-sm hover:text-accent-ink">{t.title}</Link>
                   <p className="mt-1 text-xs text-muted">{t.assignee_name ?? "Unassigned"}{t.due_date ? ` · due ${formatShortDate(t.due_date)}` : ""}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <Pill value={t.priority} />
+                    <Pill value={priorityLabel(t.priority)} />
                     {t.overdue && <Pill value="Overdue" />}
                   </div>
                   <form action={moveAction} className="mt-2 flex flex-wrap gap-1">

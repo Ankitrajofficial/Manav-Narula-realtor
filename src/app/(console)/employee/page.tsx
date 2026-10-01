@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PageHeader from "@/components/console/PageHeader";
 import StatTile from "@/components/console/StatTile";
+import { priorityLabel } from "@/lib/console";
 import Pill from "@/components/console/Pill";
 import Icon from "@/components/Icon";
 import { requireUser } from "@/lib/auth";
@@ -60,7 +61,7 @@ export default async function EmployeeDashboard() {
                       <Link href={`/employee/tasks/${t.id}`} className="hover:text-accent-ink">{t.title}</Link>
                       <p className={`text-xs ${late ? "text-red-700" : "text-muted"}`}>{t.due_date ? `${late ? "Overdue · " : "Due "}${formatShortDate(t.due_date)}` : "No due date"}</p>
                     </div>
-                    <div className="flex items-center gap-2"><Pill value={t.priority} /><Pill value={t.status} /></div>
+                    <div className="flex items-center gap-2"><Pill value={priorityLabel(t.priority)} /><Pill value={t.status} /></div>
                   </li>
                 );
               })}

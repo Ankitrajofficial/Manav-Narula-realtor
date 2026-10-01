@@ -1,6 +1,8 @@
 import "server-only";
 import { one, q } from "@/lib/db";
 import { pageOf, sortOf } from "@/lib/console";
+import { toDateInput } from "@/lib/dates";
+import type { TaskItem } from "@/components/console/QuickTasks";
 
 export interface TaskRow {
   [key: string]: unknown;
@@ -85,3 +87,9 @@ export function linkedSummary(t: TaskRow): string | null {
   if (t.prospect_count) parts.push(`${t.prospect_count} ${t.prospect_count === 1 ? "prospect" : "prospects"}`);
   return parts.length ? parts.join(" · ") : null;
 }
+
+/** Shape the task list rows for the tick-box list. */
+export const toTaskItem = (t: TaskRow, base: string): TaskItem => ({
+  id: t.id, title: t.title, assigned_to: t.assigned_to, assignee_name: t.assignee_name, due: toDateInput(t.due_date) || null, priority: t.priority, status: t.status,
+  linked: t.lead_count + t.prospect_count === 1 && t.linked_name ? t.linked_name : linkedSummary(t), href: `${base}/tasks/${t.id}`,
+});

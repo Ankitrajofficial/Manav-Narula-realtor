@@ -1,19 +1,14 @@
-import PageHeader from "@/components/console/PageHeader";
-import TaskForm from "@/components/console/TaskForm";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { listEmployees } from "@/lib/queries/common";
-import { leadPickerOptions, prospectPickerOptions } from "@/lib/queries/tasks";
-import { createTask } from "../actions";
 
-export default async function NewTaskPage({ searchParams }: { searchParams: Promise<{ lead?: string; prospect?: string; leads?: string; prospects?: string; assignee?: string }> }) {
+/** "+ New > Task" and "Create task from selected" open the quick-add bar on the Tasks page, with any selected records linked. */
+export default async function NewTaskPage({ searchParams }: { searchParams: Promise<{ lead?: string; prospect?: string; leads?: string; prospects?: string }> }) {
   await requireUser("admin");
   const sp = await searchParams;
-  const [employees, leads, prospects] = await Promise.all([listEmployees(), leadPickerOptions(), prospectPickerOptions()]);
-  const ids = (v?: string) => (v ?? "").split(",").map(Number).filter((n) => n > 0);
-  return (
-    <div className="max-w-4xl">
-      <PageHeader title="Add task" description="Assign a piece of work to an employee, with the leads and prospects it is about." />
-      <TaskForm action={createTask} employees={employees} leads={leads} prospects={prospects} submitLabel="Create task" values={{ lead_ids: [...ids(sp.lead), ...ids(sp.leads)], prospect_ids: [...ids(sp.prospect), ...ids(sp.prospects)], assigned_to: sp.assignee ? Number(sp.assignee) : null }} />
-    </div>
-  );
+  const ids = (...v: (string | undefined)[]) => v.flatMap((x) => (x ?? "").split(",")).map(Number).filter((n) => n > 0).join(",");
+  const q = new URLSearchParams({ quick: "1" });
+  const leads = ids(sp.lead, sp.leads), prospects = ids(sp.prospect, sp.prospects);
+  if (leads) q.set("leads", leads);
+  if (prospects) q.set("prospects", prospects);
+  redirect(`/admin/tasks?${q}`);
 }

@@ -20,6 +20,7 @@ export const PILL_COLORS: Record<string, string> = {
   "Pending approval": "var(--pill-amber)",
   Approved: "var(--pill-darkgreen)",
   High: "var(--pill-red)",
+  Normal: "var(--pill-grey)",
   Medium: "var(--pill-amber)",
   Low: "var(--pill-grey)",
   Ready: "var(--pill-darkgreen)",
@@ -40,7 +41,9 @@ export const PILL_COLORS: Record<string, string> = {
 export const INTERESTS = ["Buy", "Sell", "Rent"] as const;
 export const BUDGETS = ["Under ₹50 L", "₹50 L to ₹1 Cr", "₹1 Cr to ₹2 Cr", "Above ₹2 Cr", "Rent under ₹25,000/mo", "Rent above ₹25,000/mo"];
 export const TASK_STATUSES = ["Open", "In progress", "Done"] as const;
-export const PRIORITIES = ["High", "Medium", "Low"] as const;
+export const PRIORITIES = ["normal", "high"] as const;
+export type Priority = (typeof PRIORITIES)[number];
+export const priorityLabel = (p: string) => (p === "high" ? "High" : "Normal");
 export const PROPERTY_STATUSES = ["Ready", "Under construction", "New"] as const;
 export const PROJECT_STATUSES = ["Upcoming", "Under construction", "Ready"] as const;
 export const AMENITY_OPTIONS = ["Modular kitchen", "Servant quarter", "Solar water heater", "Solar panels", "Inverter backup", "Generator backup", "Borewell", "Terrace garden", "Lawn", "CCTV wiring", "Park facing", "Lift", "Power backup", "24x7 security", "Covered parking", "Open parking", "Children's park", "Intercom", "Rainwater harvesting", "Swimming pool", "Gym", "Clubhouse", "Wardrobes", "Geysers in all baths", "Air conditioning", "Boundary wall", "Approved colony", "Wide road", "Sewer and water", "Street lights", "Main road frontage", "Three-phase power", "Signage rights", "Pantry", "Meeting room"];
