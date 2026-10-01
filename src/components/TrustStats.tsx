@@ -9,7 +9,7 @@ const decimals = (v: string) => (v.includes(".") ? v.split(".")[1].length : 0);
 
 function ShieldCheck() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="relative top-[2px] shrink-0 md:top-[3px]">
+    <svg aria-hidden="true" viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Zm-3 9 2 2 4-4" />
     </svg>
   );
@@ -51,8 +51,8 @@ export default function TrustStats({ stats }: { stats: TrustStat[] }) {
   }, [stats]);
 
   return (
-    // Six numbers in one desktop row leaves ~150px per cell, so the figures step down from 48px to fit.
-    <div ref={ref} className="trust-grid mt-8 md:mt-10" style={{ "--count": stats.length, "--number-lg": stats.length >= 6 ? "38px" : stats.length === 5 ? "42px" : "48px" } as React.CSSProperties}>
+    // Six numbers in one desktop row leave ~150px per cell, so the figures step down to 40px there.
+    <div ref={ref} className="trust-grid mt-8 md:mt-10" style={{ "--count": stats.length, "--number-lg": stats.length >= 6 ? "40px" : "44px" } as React.CSSProperties}>
       {stats.map((s, i) => {
         const l = layout[i];
         const style = {
@@ -64,7 +64,7 @@ export default function TrustStats({ stats }: { stats: TrustStat[] }) {
             <span className="sr-only">{`${s.value}${s.suffix === "★" ? " stars" : s.suffix}, ${s.label}`}</span>
             <span aria-hidden="true" className="flex items-center gap-2.5">
               <ShieldCheck />
-              <span className="trust-number">{shown[i]}{s.suffix && <span className="text-accent">{s.suffix}</span>}</span>
+              <span className="trust-number">{shown[i]}{s.suffix && <span className={`${s.suffix === "★" ? "trust-star" : "trust-suffix"} text-accent`}>{s.suffix}</span>}</span>
             </span>
             <span aria-hidden="true" className="trust-label block">{s.label}</span>
           </>

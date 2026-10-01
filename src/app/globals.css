@@ -102,13 +102,16 @@ input, select, textarea { font: inherit; color: inherit; }
     padding: 32px;
   }
 }
-.trust-number { font-family: var(--font-heading); font-size: 36px; line-height: 1; letter-spacing: -0.5px; font-variant-numeric: lining-nums tabular-nums; color: var(--ink); transition: color 200ms ease; }
-@media (min-width: 768px) { .trust-number { font-size: 48px; } }
+.trust-number { font-family: var(--font-body); font-size: 34px; font-weight: 400; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; color: var(--ink); transition: color 200ms ease; }
+.trust-number .trust-suffix { margin-left: 2px; }
+.trust-number .trust-star { margin-left: 4px; font-size: 0.72em; position: relative; top: -0.12em; }
+@media (min-width: 768px) { .trust-number { font-size: 44px; } }
 /* Wide screens: every stat in one row, one column each (below 1280px six figures do not fit side by side). */
 @media (min-width: 1280px) {
   .trust-grid { grid-template-columns: repeat(var(--count), minmax(0, 1fr)); }
-  .trust-cell { grid-column: span 1; border-left-width: calc(var(--left-lg) * 1px); border-top-width: 0; padding: 32px 24px; }
+  .trust-cell { grid-column: span 1; border-left-width: calc(var(--left-lg) * 1px); border-top-width: 0; padding: 28px 24px; }
+  .trust-cell:first-child { padding-left: 0; }
   .trust-number { font-size: var(--number-lg, 48px); }
 }
 @media (hover: hover) and (min-width: 768px) { .trust-cell:hover .trust-number { color: var(--accent); } }
-.trust-label { margin-top: 8px; font-family: var(--font-body); font-size: 14px; line-height: 1.4; letter-spacing: 0.2px; color: var(--muted); }
+.trust-label { margin-top: 10px; font-family: var(--font-body); font-size: 14px; line-height: 1.4; letter-spacing: 0.2px; color: var(--muted); }
