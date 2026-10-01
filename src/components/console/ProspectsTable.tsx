@@ -5,7 +5,7 @@ import Pill from "./Pill";
 import BulkBar from "./BulkBar";
 import { inputCls } from "./Form";
 import { LEAD_STATUSES, INTERESTS } from "@/lib/console";
-import { relativeTime } from "@/lib/format";
+import { maskPhone, relativeTime } from "@/lib/format";
 import { listProspects, type ProspectRow } from "@/lib/queries/prospects";
 import type { SP } from "@/lib/queries/leads";
 import { listEmployees, listLocalities, listTags } from "@/lib/queries/common";
@@ -16,7 +16,7 @@ export default async function ProspectsTable({ sp, base, userId }: { sp: SP; bas
   const [data, employees, localities, tags] = await Promise.all([listProspects(sp, userId ? { userId } : {}), isAdmin ? listEmployees() : Promise.resolve([]), listLocalities(), listTags()]);
   const columns = [
     { key: "name", label: "Name", sortable: true, render: (r: ProspectRow) => <Link href={`${base}/prospects/${r.id}`} className="font-medium hover:text-accent-ink">{r.name}</Link> },
-    { key: "phone", label: "Phone", sortable: true, className: "tabular", render: (r: ProspectRow) => <a href={`tel:${r.phone}`} className="hover:text-accent-ink">{r.phone}</a> },
+    { key: "phone", label: "Phone", sortable: true, className: "tabular whitespace-nowrap", render: (r: ProspectRow) => isAdmin ? <a href={`tel:${r.phone}`} className="hover:text-accent-ink">{r.phone}</a> : <Link href={`${base}/prospects/${r.id}`} className="text-muted hover:text-accent-ink" title="Open the profile to see the full number">{maskPhone(r.phone)}</Link> },
     { key: "locality", label: "Locality", sortable: true, render: (r: ProspectRow) => r.locality ?? "—" },
     { key: "budget", label: "Budget", sortable: true, hideOnMobile: true, render: (r: ProspectRow) => r.budget ?? "—" },
     { key: "interest", label: "Interest", sortable: true, hideOnMobile: true, render: (r: ProspectRow) => r.interest ?? "—" },

@@ -1,5 +1,6 @@
 import "server-only";
 import { one, q } from "@/lib/db";
+import { maskPhone } from "@/lib/format";
 import { LOCALITY_ORDER, type LocalityOption } from "@/lib/localities";
 
 export interface UserRow { id: number; name: string; email: string; phone: string | null; role: string; status: string; last_login_at: Date | null; created_at: Date }
@@ -54,8 +55,8 @@ export async function globalSearch(term: string, userId: number, role: string): 
   const leads = await q<{ id: number; name: string; phone: string; status: string }>(`SELECT id, name, phone, status FROM leads WHERE (name ILIKE $1 OR phone ILIKE $1) ${mine} ORDER BY created_at DESC LIMIT 10`, [t]);
   const prospects = await q<{ id: number; name: string; phone: string; status: string }>(`SELECT id, name, phone, status FROM prospects WHERE (name ILIKE $1 OR phone ILIKE $1) ${mineP} ORDER BY created_at DESC LIMIT 10`, [t]);
   const out: SearchHit[] = [
-    ...leads.map((l) => ({ kind: "Lead" as const, id: l.id, title: l.name, detail: `${l.phone} · ${l.status}`, href: `${base}/leads/${l.id}` })),
-    ...prospects.map((l) => ({ kind: "Prospect" as const, id: l.id, title: l.name, detail: `${l.phone} · ${l.status}`, href: `${base}/prospects/${l.id}` })),
+    ...leads.map((l) => ({ kind: "Lead" as const, id: l.id, title: l.name, detail: `${role === "admin" ? l.phone : maskPhone(l.phone)} · ${l.status}`, href: `${base}/leads/${l.id}` })),
+    ...prospects.map((l) => ({ kind: "Prospect" as const, id: l.id, title: l.name, detail: `${role === "admin" ? l.phone : maskPhone(l.phone)} · ${l.status}`, href: `${base}/prospects/${l.id}` })),
   ];
   if (role === "admin") {
     const props = await q<{ id: number; title: string; locality: string | null }>("SELECT id, title, locality FROM properties WHERE title ILIKE $1 OR locality ILIKE $1 ORDER BY updated_at DESC LIMIT 10", [t]);

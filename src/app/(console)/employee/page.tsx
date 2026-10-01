@@ -37,8 +37,7 @@ export default async function EmployeeDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Pill value={f.status} />
-                      <a href={`tel:${f.phone}`} className="inline-flex items-center gap-1 rounded-brand border border-ink px-2.5 py-1.5 text-xs hover:bg-ink hover:text-white"><Icon name="phone" size={12} />Call</a>
-                      <a href={`https://wa.me/${f.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 rounded-brand border border-ink px-2.5 py-1.5 text-xs hover:bg-ink hover:text-white"><Icon name="whatsapp" size={12} />WhatsApp</a>
+                      <Link href={`/employee/${f.kind}s/${f.id}`} className="inline-flex items-center gap-1 rounded-brand border border-ink px-2.5 py-1.5 text-xs hover:bg-ink hover:text-white"><Icon name="phone" size={12} />Open to call</Link>
                     </div>
                   </li>
                 );

@@ -2,7 +2,7 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import SheetStatus from "./SheetStatus";
 import { setStatusAction } from "@/app/(console)/records/actions";
-import { formatShortDate } from "@/lib/format";
+import { formatShortDate, maskPhone } from "@/lib/format";
 import type { SheetRecord } from "@/lib/queries/tasks";
 
 const CONTACTED = ["Called", "Follow up", "Hot lead", "Site visit", "Closed won", "Closed lost"];
@@ -38,7 +38,7 @@ export default function TaskSheet({ records, base, returnTo }: { records: SheetR
             <span className="w-16 text-xs uppercase tracking-wide text-muted">{r.kind}</span>
             <Link href={`${base}/${r.kind === "lead" ? "leads" : "prospects"}/${r.id}`} className="min-w-[180px] flex-1 hover:text-accent-ink">
               <span className="block truncate text-sm">{r.name}</span>
-              <span className="block truncate text-xs text-muted">{[r.phone, r.locality, r.interest, r.next_follow_up_at && `follow-up ${formatShortDate(r.next_follow_up_at)}`].filter(Boolean).join(" · ")}</span>
+              <span className="block truncate text-xs text-muted">{[base === "/employee" ? maskPhone(r.phone) : r.phone, r.locality, r.interest, r.next_follow_up_at && `follow-up ${formatShortDate(r.next_follow_up_at)}`].filter(Boolean).join(" · ")}</span>
             </Link>
             <form action={setStatusAction} className="flex items-center">
               <input type="hidden" name="kind" value={r.kind} />
@@ -46,9 +46,13 @@ export default function TaskSheet({ records, base, returnTo }: { records: SheetR
               <input type="hidden" name="return" value={returnTo} />
               <SheetStatus value={r.status} />
             </form>
-            <a href={`tel:${r.phone}`} className="inline-flex items-center gap-1 rounded-brand border border-line px-2.5 py-1 text-xs hover:border-ink"><Icon name="phone" size={12} />Call</a>
-            <a href={`https://wa.me/${r.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 rounded-brand border border-line px-2.5 py-1 text-xs hover:border-ink"><Icon name="whatsapp" size={12} />WhatsApp</a>
-            <Link href={`${base}/${r.kind === "lead" ? "leads" : "prospects"}/${r.id}`} className="inline-flex items-center gap-1 rounded-brand border border-line px-2.5 py-1 text-xs hover:border-ink" title="Open profile to add a note or schedule a follow-up"><Icon name="edit" size={12} />Note</Link>
+            {base !== "/employee" && (
+              <>
+                <a href={`tel:${r.phone}`} className="inline-flex items-center gap-1 rounded-brand border border-line px-2.5 py-1 text-xs hover:border-ink"><Icon name="phone" size={12} />Call</a>
+                <a href={`https://wa.me/${r.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 rounded-brand border border-line px-2.5 py-1 text-xs hover:border-ink"><Icon name="whatsapp" size={12} />WhatsApp</a>
+              </>
+            )}
+            <Link href={`${base}/${r.kind === "lead" ? "leads" : "prospects"}/${r.id}`} className="inline-flex items-center gap-1 rounded-brand border border-line px-2.5 py-1 text-xs hover:border-ink" title="Open profile to call, add a note or schedule a follow-up"><Icon name="edit" size={12} />{base === "/employee" ? "Open" : "Note"}</Link>
           </li>
         ))}
       </ul>

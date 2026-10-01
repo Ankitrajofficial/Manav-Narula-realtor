@@ -5,7 +5,7 @@ import Pill from "./Pill";
 import BulkBar from "./BulkBar";
 import { inputCls } from "./Form";
 import { LEAD_STATUSES, INTERESTS } from "@/lib/console";
-import { formatShortDate, relativeTime } from "@/lib/format";
+import { formatShortDate, maskPhone, relativeTime } from "@/lib/format";
 import { listLeads, type LeadRow, type SP } from "@/lib/queries/leads";
 import { listEmployees, listLocalities, listSources } from "@/lib/queries/common";
 import { bulkAssignAction, bulkCreateTaskAction, bulkStatusAction } from "@/app/(console)/records/actions";
@@ -16,7 +16,7 @@ export default async function LeadsTable({ sp, base, userId }: { sp: SP; base: "
   const [data, employees, localities, sources] = await Promise.all([listLeads(sp, userId ? { userId } : {}), isAdmin ? listEmployees() : Promise.resolve([]), listLocalities(), listSources()]);
   const columns = [
     { key: "name", label: "Name", sortable: true, render: (r: LeadRow) => <Link href={`${base}/leads/${r.id}`} className="font-medium hover:text-accent-ink">{r.name}</Link> },
-    { key: "phone", label: "Phone", sortable: true, className: "tabular", render: (r: LeadRow) => <a href={`tel:${r.phone}`} className="hover:text-accent-ink">{r.phone}</a> },
+    { key: "phone", label: "Phone", sortable: true, className: "tabular whitespace-nowrap", render: (r: LeadRow) => isAdmin ? <a href={`tel:${r.phone}`} className="hover:text-accent-ink">{r.phone}</a> : <Link href={`${base}/leads/${r.id}`} className="text-muted hover:text-accent-ink" title="Open the profile to see the full number">{maskPhone(r.phone)}</Link> },
     { key: "source", label: "Source", sortable: true, hideOnMobile: true },
     { key: "interest", label: "Interest", sortable: true, hideOnMobile: true, render: (r: LeadRow) => r.interest ?? "—" },
     { key: "property", label: "Property / project", hideOnMobile: true, render: (r: LeadRow) => <span className="block max-w-[200px] truncate" title={r.property_title ?? r.project_name ?? ""}>{r.property_title ?? r.project_name ?? "—"}</span> },

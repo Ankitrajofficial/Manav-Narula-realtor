@@ -58,3 +58,11 @@ export function offerCta(href: string): string {
   if (href.startsWith("/projects/")) return "View project";
   return "Enquire now";
 }
+
+/** Phone shown in employee lists: country code, first two and last three digits ("+91 98•••••345"). The full number is on the record's profile. */
+export function maskPhone(phone: string | null | undefined): string {
+  const d = String(phone ?? "").replace(/\D/g, "");
+  if (d.length < 6) return "•••••";
+  const ten = d.slice(-10), cc = d.length > 10 ? `+${d.slice(0, d.length - 10)} ` : "";
+  return `${cc}${ten.slice(0, 2)}•••••${ten.slice(-3)}`;
+}
