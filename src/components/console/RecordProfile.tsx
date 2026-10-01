@@ -40,7 +40,8 @@ export default function RecordProfile({ kind, record: r, activities, isAdmin, ba
             <div><dt className="text-xs text-muted">Locality</dt><dd>{r.locality ?? "—"}</dd></div>
             <div><dt className="text-xs text-muted">Source</dt><dd>{r.source}</dd></div>
             <div><dt className="text-xs text-muted">WhatsApp opt-in</dt><dd>{r.whatsapp_opt_in ? "Yes" : "No"}</dd></div>
-            <div><dt className="text-xs text-muted">{lead ? "Added" : "Added by"}</dt><dd>{lead ? formatDateTime(lead.created_at) : (prospect?.added_by_name ?? "—")}</dd></div>
+            <div><dt className="text-xs text-muted">Added by</dt><dd>{lead ? (lead.created_by_name ?? "Website") : (prospect?.added_by_name ?? "—")}<span className="block text-xs text-muted">{formatDateTime(r.created_at)}</span></dd></div>
+            <div><dt className="text-xs text-muted">Assigned by</dt><dd>{r.assigned_by_name ?? "—"}</dd></div>
             {prospect && <div><dt className="text-xs text-muted">Last contacted</dt><dd>{prospect.last_contacted_at ? relativeTime(prospect.last_contacted_at) : "Never"}</dd></div>}
             <div><dt className="text-xs text-muted">Next follow-up</dt><dd className={r.next_follow_up_at && new Date(r.next_follow_up_at) < new Date() ? "text-red-700" : ""}>{r.next_follow_up_at ? formatDateTime(r.next_follow_up_at) : "—"}</dd></div>
           </dl>

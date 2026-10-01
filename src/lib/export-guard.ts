@@ -10,6 +10,7 @@ import { audit } from "./records";
 export async function requireExporter(req: Request): Promise<SessionUser | Response> {
   const user = await getSession();
   if (!user) return new Response("Sign in to export.", { status: 401 });
+  if (user.must_reset) return new Response("Change your temporary password first.", { status: 403 });
   if (user.role !== "admin") {
     const url = new URL(req.url);
     await audit(user.id, "export_blocked", "export", null, { path: url.pathname, query: url.search || null, role: user.role });

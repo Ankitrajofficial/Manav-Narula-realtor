@@ -10,6 +10,13 @@ export interface EmployeeFormState { errors?: Record<string, string>; message?: 
 export interface ResetState { tempPassword?: string; message?: string }
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
+/** True when some other active admin would remain if `id` stopped being one. The system always keeps at least one active admin. */
+async function anotherActiveAdmin(id: number): Promise<boolean> {
+  const r = await one<{ n: number }>("SELECT count(*)::int AS n FROM users WHERE role = 'admin' AND status = 'active' AND id <> $1", [id]);
+  return Number(r?.n ?? 0) > 0;
+}
+const isActiveAdmin = async (id: number) => !!(await one("SELECT 1 FROM users WHERE id = $1 AND role = 'admin' AND status = 'active'", [id]));
+
 function validate(fd: FormData) {
   const errors: Record<string, string> = {};
   const name = s(fd, "name"); if (name.length < 2) errors.name = "Enter the person's name.";
@@ -37,6 +44,7 @@ export async function updateEmployee(id: number, _p: EmployeeFormState, fd: Form
   const { errors, name, email, phone, role } = validate(fd);
   if (!errors.email && (await emailTaken(email, id))) errors.email = "Another account uses this email.";
   if (id === user.id && role !== "admin") errors.role = "You cannot remove your own admin role.";
+  else if (role !== "admin" && (await isActiveAdmin(id)) && !(await anotherActiveAdmin(id))) errors.role = "At least one active admin must remain.";
   if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
   await q("UPDATE users SET name=$1, email=$2, phone=$3, role=$4 WHERE id=$5", [name, email, phone, role, id]);
   await audit(user.id, "update", "user", id, { name, email, role });
@@ -56,6 +64,7 @@ export async function resetPassword(id: number): Promise<ResetState> {
 export async function setEmployeeStatus(id: number, status: "active" | "blocked") {
   const user = await requireUser("admin");
   if (id === user.id) redirect("/admin/employees?error=You+cannot+block+yourself");
+  if (status === "blocked" && (await isActiveAdmin(id)) && !(await anotherActiveAdmin(id))) redirect("/admin/employees?error=At+least+one+active+admin+must+remain");
   await q("UPDATE users SET status = $1 WHERE id = $2", [status, id]);
   await audit(user.id, status === "blocked" ? "block" : "unblock", "user", id);
   redirect(`/admin/employees?toast=${status === "blocked" ? "Employee+blocked" : "Employee+unblocked"}`);
@@ -64,6 +73,7 @@ export async function setEmployeeStatus(id: number, status: "active" | "blocked"
 export async function deleteEmployee(id: number, fd: FormData) {
   const user = await requireUser("admin");
   if (id === user.id) redirect("/admin/employees?error=You+cannot+delete+yourself");
+  if ((await isActiveAdmin(id)) && !(await anotherActiveAdmin(id))) redirect("/admin/employees?error=At+least+one+active+admin+must+remain");
   const toId = Number(fd.get("reassign_to"));
   if (!toId || toId === id) redirect(`/admin/employees/${id}?error=Choose+who+receives+their+records+first`);
   const to = await one<{ name: string; status: string }>("SELECT name, status FROM users WHERE id = $1", [toId]);

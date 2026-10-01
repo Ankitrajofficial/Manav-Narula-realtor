@@ -6,7 +6,7 @@ export interface LeadRow {
   id: number; name: string; phone: string; email: string | null; interest: string | null; budget: string | null; locality: string | null;
   property_id: number | null; project_id: number | null; source: string; status: string; assigned_to: number | null; created_by: number | null;
   notes: string | null; tags: string[]; whatsapp_opt_in: boolean; next_follow_up_at: Date | null; last_activity_at: Date; created_at: Date; updated_at: Date;
-  assigned_name: string | null; created_by_name: string | null; property_title: string | null; property_slug: string | null; project_name: string | null; project_slug: string | null;
+  assigned_name: string | null; created_by_name: string | null; assigned_by_name: string | null; property_title: string | null; property_slug: string | null; project_name: string | null; project_slug: string | null;
 }
 
 export interface Scope { userId?: number }
@@ -14,7 +14,8 @@ export type SP = Record<string, string | undefined>;
 
 const SORTS: Record<string, string> = { name: "l.name", phone: "l.phone", source: "l.source", interest: "l.interest", locality: "l.locality", status: "l.status", assigned: "u.name", created: "l.created_at", activity: "l.last_activity_at", follow_up: "l.next_follow_up_at" };
 
-const SELECT = `SELECT l.*, u.name AS assigned_name, c.name AS created_by_name, p.title AS property_title, p.slug AS property_slug, pr.name AS project_name, pr.slug AS project_slug
+const SELECT = `SELECT l.*, u.name AS assigned_name, c.name AS created_by_name,
+  (SELECT ab.name FROM lead_activities a JOIN users ab ON ab.id = a.user_id WHERE a.lead_id = l.id AND a.type = 'assign' ORDER BY a.created_at DESC, a.id DESC LIMIT 1) AS assigned_by_name, p.title AS property_title, p.slug AS property_slug, pr.name AS project_name, pr.slug AS project_slug
 FROM leads l LEFT JOIN users u ON u.id = l.assigned_to LEFT JOIN users c ON c.id = l.created_by LEFT JOIN properties p ON p.id = l.property_id LEFT JOIN projects pr ON pr.id = l.project_id`;
 
 /** Builds the WHERE clause for the list, export and PDF from URL params. `meta` describes applied filters for reports. */

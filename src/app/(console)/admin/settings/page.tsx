@@ -44,7 +44,7 @@ export default async function SettingsPage() {
   ]);
   return (
     <>
-      <PageHeader title="Settings" description="Business details shown on the website, the lists used in forms, and the audit log." actions={<><Link href="/admin/settings/whatsapp" className="inline-flex items-center gap-1.5 rounded-brand border border-line bg-white px-3 py-1.5 text-sm hover:border-ink"><Icon name="whatsapp" size={14} />WhatsApp API</Link><Link href="/admin/settings/audit" className="inline-flex items-center gap-1.5 rounded-brand border border-line bg-white px-3 py-1.5 text-sm hover:border-ink"><Icon name="list" size={14} />Audit log</Link></>} />
+      <PageHeader title="Settings" description="Business details shown on the website, the lists used in forms, and the audit log." actions={<><Link href="/change-password" className="inline-flex items-center gap-1.5 rounded-brand border border-line bg-white px-3 py-1.5 text-sm hover:border-ink"><Icon name="key" size={14} />Change my password</Link><Link href="/admin/settings/whatsapp" className="inline-flex items-center gap-1.5 rounded-brand border border-line bg-white px-3 py-1.5 text-sm hover:border-ink"><Icon name="whatsapp" size={14} />WhatsApp API</Link><Link href="/admin/settings/audit" className="inline-flex items-center gap-1.5 rounded-brand border border-line bg-white px-3 py-1.5 text-sm hover:border-ink"><Icon name="list" size={14} />Audit log</Link></>} />
       <div className="grid gap-5 lg:grid-cols-12">
         <div className="lg:col-span-7"><BusinessForm business={{ ...DEFAULT_BUSINESS, ...business }} notificationEmail={notificationEmail} action={saveBusiness} /></div>
         <div className="space-y-5 lg:col-span-5">

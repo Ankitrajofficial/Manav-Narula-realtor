@@ -16,10 +16,12 @@ With no `DATABASE_URL` set, an embedded PostgreSQL (PGlite) is created in `web/.
 
 | Console | URL | Seeded login |
 | --- | --- | --- |
-| Admin | `/admin` | admin@manavnarularealtor.com / Admin@1234 |
+| Admin | `/admin` | Manav Narula and Komal, from `ADMIN_MANAV_*` and `ADMIN_KOMAL_*` in `.env` (see below). Without them the seeded admin@manavnarularealtor.com / Admin@1234 is used |
 | Employee | `/employee` | arjun@manavnarularealtor.com / Employee@1234 (also priya@ and kiran@) |
 
-Sign in at `/login`. There is no self sign-up; the admin creates employees under Employees. Change the seeded passwords before going live (Employees > Reset password, and the admin's own under Settings).
+Sign in at `/login`. There is no self sign-up; an admin creates employees under Employees. Both admins have identical permissions (every check is `role === "admin"`); an admin cannot block, delete or demote themselves, and the last active admin cannot be blocked, deleted or demoted.
+
+The two admin accounts are created once at start-up from `ADMIN_MANAV_EMAIL` / `ADMIN_MANAV_TEMP_PASSWORD` and `ADMIN_KOMAL_EMAIL` / `ADMIN_KOMAL_TEMP_PASSWORD` (Manav's takes over the seeded admin so his history is kept). Any account with a temporary password (new accounts, Employees > Reset password, the two admins) is sent to `/change-password` at sign-in and cannot use the console until it sets its own. Admins can also change their password from Settings.
 
 ## Where things live
 
@@ -59,7 +61,7 @@ Admin > Settings > WhatsApp API stores the Meta Cloud API phone number ID and pe
 
 ## Environment
 
-See `.env.example`: `DATABASE_URL`, `SESSION_SECRET` (random string that signs login cookies), `CRM_WEBHOOK_URL`, `CRON_SECRET`.
+See `.env.example`: `DATABASE_URL`, `SESSION_SECRET` (random string that signs login cookies), `CRM_WEBHOOK_URL`, `CRON_SECRET`, and the four `ADMIN_*` values for the two admin accounts.
 
 ## Deploy (Vercel)
 

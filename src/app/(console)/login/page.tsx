@@ -6,7 +6,7 @@ export const metadata = { title: "Sign in", robots: { index: false } };
 
 export default async function LoginPage() {
   const user = await getSession();
-  if (user) redirect(user.role === "admin" ? "/admin" : "/employee");
+  if (user) redirect(user.must_reset ? "/change-password" : user.role === "admin" ? "/admin" : "/employee");
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">

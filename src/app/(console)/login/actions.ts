@@ -13,7 +13,7 @@ export async function loginAction(_prev: LoginState, fd: FormData): Promise<Logi
   const res = await login(email, password);
   if (!res.ok) return { error: res.error };
   await audit(res.user.id, "login", "user", res.user.id);
-  redirect(res.user.role === "admin" ? "/admin" : "/employee");
+  redirect(res.user.must_reset ? "/change-password" : res.user.role === "admin" ? "/admin" : "/employee");
 }
 
 export async function forgotAction(_prev: { done?: boolean }, fd: FormData): Promise<{ done: boolean }> {
