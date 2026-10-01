@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
 import { toE164 } from "@/lib/records";
+import { suggestProperties } from "@/lib/site-data";
 
 const SOURCES = ["home_loan", "popup_consultation"];
 
@@ -42,7 +43,8 @@ export async function POST(req: Request) {
     if (webhook) {
       fetch(webhook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: lead!.id, name, phone, interest, locality, notes, source, receivedAt: new Date().toISOString() }) }).catch((e) => console.error("[lead] webhook failed", e));
     }
-    return NextResponse.json({ ok: true, id: lead!.id });
+    const suggestions = source === "popup_consultation" ? await suggestProperties({ interest, budget: body.budget ? String(body.budget) : null, locality }).catch(() => []) : undefined;
+    return NextResponse.json({ ok: true, id: lead!.id, suggestions });
   } catch (err) {
     console.error("[lead] insert failed", err);
     return NextResponse.json({ ok: false, error: "Could not save the enquiry" }, { status: 500 });

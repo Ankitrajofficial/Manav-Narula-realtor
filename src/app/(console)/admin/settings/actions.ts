@@ -116,3 +116,25 @@ export async function toggleLocality(id: number, value: boolean) {
   await audit(user.id, value ? "activate" : "deactivate", "settings_localities", id);
   revalidatePath("/", "layout");
 }
+
+export interface PopupState { errors?: Record<string, string>; message?: string }
+/** Website pop-up: on/off, headline, one line and delay. */
+export async function savePopup(_p: PopupState, fd: FormData): Promise<PopupState> {
+  const user = await requireUser("admin");
+  const errors: Record<string, string> = {};
+  const headline = s(fd, "popup_headline").slice(0, 80);
+  const text = s(fd, "popup_text").slice(0, 200);
+  const delay = Number(s(fd, "popup_delay_seconds"));
+  if (headline.length < 3) errors.popup_headline = "Enter a headline.";
+  if (text.length < 3) errors.popup_text = "Enter one line of text.";
+  if (!Number.isInteger(delay) || delay < 0 || delay > 600) errors.popup_delay_seconds = "Whole seconds between 0 and 600.";
+  if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
+  const enabled = !!fd.get("popup_enabled");
+  await setSetting("popup_enabled", enabled);
+  await setSetting("popup_headline", headline);
+  await setSetting("popup_text", text);
+  await setSetting("popup_delay_seconds", delay);
+  await audit(user.id, "update", "settings", "popup", { enabled, headline, delay });
+  revalidatePath("/", "layout");
+  redirect("/admin/settings?toast=Pop-up+saved#popup");
+}

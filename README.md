@@ -39,6 +39,10 @@ The two admin accounts are created once at start-up from `ADMIN_MANAV_EMAIL` / `
 
 Brand colours, fonts and status pill colours are in `src/app/globals.css` under `:root`.
 
+## Website pop-up
+
+A free consultation pop-up (`src/components/ConsultationPopup.tsx`) appears once per visitor session, after the configured delay (default 20 s) or at 50% scroll, whichever comes first. It never shows on `/contact` or `/home-loans` or over another dialog, and not again for 7 days after it is closed or sent (kept in localStorage). On desktop it is a centred card, on phones a bottom sheet; Esc, the close button and clicking outside close it, and focus stays inside while open. A reply is saved as a lead with source `popup_consultation` and the pop-up then shows 3 published properties matched on interest, budget and locality (topped up with featured ones). Admin > Settings > Website pop-up turns it on or off and edits the headline, line and delay.
+
 ## Tasks
 
 Admin > Tasks opens with a quick-add bar: type the title, tap the employee, tap a due shortcut (Today, Tomorrow, This week = coming Saturday, or Pick date), optionally High, press Enter. "+ New > Task" and "Create task from selected" open the same bar, with the selected leads or prospects shown as a removable "Linked" chip. The list is grouped Overdue / Today / Upcoming / Done; the tick box closes a task (with Undo) and unticking reopens it. Admins rename, reassign and re-date inline by tapping. Employees see the same list under My Tasks and can tick only their own tasks. Task priority is `normal` or `high`; the description column is kept in the database but no longer used.
