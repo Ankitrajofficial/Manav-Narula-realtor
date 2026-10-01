@@ -8,14 +8,15 @@ import EnquiryForm from "@/components/EnquiryForm";
 import Accordion from "@/components/Accordion";
 import Icon from "@/components/Icon";
 import { Container, GoogleRating, Section, SectionTitle } from "@/components/ui";
-import { servicesShort, site, testimonials, trustPoints, workEthics } from "@/data/site";
-import { getActiveOffers, getArticles, getBanners, getFaqGroups, getFeaturedProperties, getOfferBanner, getLocalitiesServed, getProjects, offerCta } from "@/lib/site-data";
+import { servicesShort, site, testimonials, workEthics } from "@/data/site";
+import TrustStats from "@/components/TrustStats";
+import { getActiveOffers, getArticles, getBanners, getBusiness, getFoundedYear, getTrustStats, withFoundedYear, getFaqGroups, getFeaturedProperties, getOfferBanner, getLocalitiesServed, getProjects, offerCta } from "@/lib/site-data";
 
 export const revalidate = 60;
 import { formatDate, unsplash } from "@/lib/format";
 
 export default async function HomePage() {
-  const [localitiesServed, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups()]);
+  const [localitiesServed, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs, trustStats, foundedYear, business] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups(), getTrustStats(), getFoundedYear(), getBusiness()]);
   const offers: OfferSlide[] = activeOffers.length
     ? activeOffers.map((o) => ({ id: String(o.id), image: o.image ?? fallbackOffer.image, headline: o.title, line: o.text ?? "", cta: { label: offerCta(o.href), href: o.href } }))
     : [{ ...fallbackOffer, id: `banner-${fallbackOffer.id}` }];
@@ -30,22 +31,14 @@ export default async function HomePage() {
       {/* 1. Banner slot */}
       <BannerCarousel banners={banners} />
 
-      {/* 2. Brand statement */}
-      <Section className="border-b border-line">
-        <p className="font-heading text-4xl md:text-6xl">{site.name}</p>
-        <p className="mt-4 max-w-xl text-lg text-muted">{site.tagline}</p>
-        <ul className="mt-10 grid gap-6 border-t border-line pt-8 sm:grid-cols-3">
-          {trustPoints.map((t) => (
-            <li key={t.label} className="flex items-start gap-3">
-              <Icon name="shield" size={22} className="mt-1 text-accent" />
-              <div>
-                <p className="text-2xl tabular">{t.value}</p>
-                <p className="text-sm text-muted">{t.label}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Section>
+      {/* 2. Brand statement and trust numbers */}
+      <section className="border-b border-line bg-bg pt-16 pb-16 md:pt-24 md:pb-24">
+        <Container>
+          <p className="font-heading text-4xl md:text-6xl">{site.name}</p>
+          <p className="mt-4 max-w-xl text-lg text-muted">{withFoundedYear(business.tagline || site.tagline, foundedYear)}</p>
+          <TrustStats stats={trustStats} />
+        </Container>
+      </section>
 
       {/* 3. Featured properties */}
       <Section>

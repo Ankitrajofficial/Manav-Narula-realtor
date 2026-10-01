@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
 import { LOCALITY_ORDER, ZONES } from "@/lib/localities";
+import { MAX_ACTIVE_STATS, MIN_ACTIVE_STATS, TRUST_SUFFIXES, type TrustStat } from "@/lib/trust-stats";
 import { DEFAULT_BUSINESS, getSettingValue, setSetting, type Business } from "@/lib/queries/settings";
 
 export interface BusinessState { errors?: Record<string, string>; message?: string }
@@ -137,4 +138,34 @@ export async function savePopup(_p: PopupState, fd: FormData): Promise<PopupStat
   await audit(user.id, "update", "settings", "popup", { enabled, headline, delay });
   revalidatePath("/", "layout");
   redirect("/admin/settings?toast=Pop-up+saved#popup");
+}
+
+export interface TrustState { error?: string; rowErrors?: Record<number, string> }
+/** Home page trust numbers and the founding year used in the tagline. */
+export async function saveTrustStats(_p: TrustState, fd: FormData): Promise<TrustState> {
+  const user = await requireUser("admin");
+  let raw: unknown;
+  try { raw = JSON.parse(String(fd.get("stats") ?? "[]")); } catch { return { error: "Could not read the numbers. Reload and try again." }; }
+  if (!Array.isArray(raw) || raw.length > 10) return { error: "Keep at most 10 rows." };
+  const rowErrors: Record<number, string> = {};
+  const stats: TrustStat[] = raw.map((r: Record<string, unknown>, i) => {
+    const value = String(r.value ?? "").trim();
+    const suffix = (TRUST_SUFFIXES as readonly string[]).includes(String(r.suffix)) ? (String(r.suffix) as TrustStat["suffix"]) : "";
+    const label = String(r.label ?? "").trim().slice(0, 40);
+    const link = String(r.link ?? "").trim() || null;
+    if (!/^\d{1,6}(\.\d{1,2})?$/.test(value)) rowErrors[i] = "Value must be a number, e.g. 12 or 4.8.";
+    else if (label.length < 2) rowErrors[i] = "Add a label.";
+    else if (link && !/^(\/|https:\/\/)/.test(link)) rowErrors[i] = "Link must start with / or https://";
+    return { value, suffix, label, link, sort_order: i, is_active: !!r.is_active };
+  });
+  if (Object.keys(rowErrors).length) return { rowErrors, error: "Fix the highlighted rows." };
+  const active = stats.filter((x) => x.is_active).length;
+  if (active < MIN_ACTIVE_STATS || active > MAX_ACTIVE_STATS) return { error: `Turn on between ${MIN_ACTIVE_STATS} and ${MAX_ACTIVE_STATS} numbers (now ${active}).` };
+  const year = Number(s(fd, "founded_year"));
+  if (!Number.isInteger(year) || year < 1950 || year > new Date().getFullYear()) return { error: "Enter the founding year, e.g. 2014." };
+  await setSetting("trust_stats", stats);
+  await setSetting("founded_year", year);
+  await audit(user.id, "update", "settings", "trust_stats", { active, founded_year: year });
+  revalidatePath("/", "layout");
+  redirect("/admin/settings?toast=Trust+numbers+saved#trust");
 }

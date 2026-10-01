@@ -3,6 +3,7 @@ export { offerCta } from "./format";
 import { formatPrice } from "./format";
 import { one, q } from "./db";
 import { LOCALITY_ORDER, type LocalityOption } from "./localities";
+import { MAX_ACTIVE_STATS, type TrustStat } from "./trust-stats";
 import type { Property } from "@/data/properties";
 import type { Project } from "@/data/projects";
 import type { Article } from "@/data/content";
@@ -172,3 +173,25 @@ export async function suggestProperties(f: { interest: string | null; budget: st
   const fallback = all.filter((p) => !matches.includes(p)).sort((a, b) => Number(!!b.featured) - Number(!!a.featured) || Number(b.purpose === purpose) - Number(a.purpose === purpose));
   return [...matches, ...fallback].slice(0, 3).map((p) => ({ slug: p.slug, title: p.title, price: formatPrice(p.price, p.purpose), locality: p.locality, image: imageSrc(p.images[0], 400, 300) }));
 }
+
+const DEFAULT_TRUST_STATS: TrustStat[] = [
+  { value: "12", suffix: "+", label: "Years in Jalandhar", link: null, sort_order: 0, is_active: true },
+  { value: "1500", suffix: "+", label: "Properties sold", link: null, sort_order: 1, is_active: true },
+  { value: "20", suffix: "+", label: "Developer partners", link: null, sort_order: 2, is_active: true },
+  { value: "2", suffix: "+", label: "Offices", link: null, sort_order: 3, is_active: true },
+  { value: "4.8", suffix: "★", label: "Google rating (21 reviews)", link: site.reviewHref, sort_order: 4, is_active: true },
+  { value: "30", suffix: "+", label: "Localities covered", link: null, sort_order: 5, is_active: true },
+];
+/** Active trust numbers in admin order (at most 6). */
+export async function getTrustStats(): Promise<TrustStat[]> {
+  const row = await one<{ value: TrustStat[] }>("SELECT value FROM settings WHERE key = 'trust_stats'");
+  const list = Array.isArray(row?.value) ? row.value : DEFAULT_TRUST_STATS;
+  return list.filter((s) => s.is_active).sort((a, b) => a.sort_order - b.sort_order).slice(0, MAX_ACTIVE_STATS);
+}
+export async function getFoundedYear(): Promise<number> {
+  const row = await one<{ value: number | string }>("SELECT value FROM settings WHERE key = 'founded_year'");
+  const y = Number(row?.value);
+  return Number.isInteger(y) && y > 1900 ? y : site.foundedYear;
+}
+/** Puts the founding year into a tagline that says "since YYYY"; other taglines are left as they are. */
+export const withFoundedYear = (tagline: string, year: number) => (/since \d{4}/i.test(tagline) ? tagline.replace(/since \d{4}/i, `since ${year}`) : tagline);

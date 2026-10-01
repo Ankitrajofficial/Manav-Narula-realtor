@@ -39,6 +39,10 @@ The two admin accounts are created once at start-up from `ADMIN_MANAV_EMAIL` / `
 
 Brand colours, fonts and status pill colours are in `src/app/globals.css` under `:root`.
 
+## Trust numbers
+
+The row under the brand statement on the home page reads settings key `trust_stats` (value, suffix `+`/`★`/none, label, optional link, order, active) and `founded_year`, which also sets the "since YYYY" in the tagline and footer. Admin > Settings > Trust numbers edits them; 3 to 6 can be shown and the grid fills without gaps (3, 2+2, 3+2, 3+3; two columns on phones). Values are rendered on the server and count up once when scrolled into view (not with reduced motion).
+
 ## Website pop-up
 
 A free consultation pop-up (`src/components/ConsultationPopup.tsx`) appears once per visitor session, after the configured delay (default 20 s) or at 50% scroll, whichever comes first. It never shows on `/contact` or `/home-loans` or over another dialog, and not again for 7 days after it is closed or sent (kept in localStorage). On desktop it is a centred card, on phones a bottom sheet; Esc, the close button and clicking outside close it, and focus stays inside while open. A reply is saved as a lead with source `popup_consultation` and the pop-up then shows 3 published properties matched on interest, budget and locality (topped up with featured ones). Admin > Settings > Website pop-up turns it on or off and edits the headline, line and delay.

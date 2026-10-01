@@ -5,9 +5,11 @@ import { inputCls } from "@/components/console/Form";
 import { requireUser } from "@/lib/auth";
 import { DEFAULT_BUSINESS, getSettingValue, listLocalityRows, listSourceRows, listTagRows, type Business } from "@/lib/queries/settings";
 import BusinessForm from "./BusinessForm";
-import { addListItem, moveLocality, removeListItem, renameLocality, saveBusiness, savePopup, setLocalityZone, toggleLocality } from "./actions";
+import { addListItem, moveLocality, removeListItem, renameLocality, saveBusiness, savePopup, saveTrustStats, setLocalityZone, toggleLocality } from "./actions";
 import PopupForm from "./PopupForm";
-import { getPopupSettings } from "@/lib/site-data";
+import { getFoundedYear, getPopupSettings } from "@/lib/site-data";
+import TrustStatsForm from "./TrustStatsForm";
+import type { TrustStat } from "@/lib/trust-stats";
 import ToggleForm from "@/components/console/ToggleForm";
 import { ZONES, groupByZone } from "@/lib/localities";
 
@@ -94,7 +96,7 @@ function LocalitiesCard({ rows }: { rows: LocalityRow[] }) {
 
 export default async function SettingsPage() {
   await requireUser("admin");
-  const [popup, business, notificationEmail, types, sources, localities, tags] = await Promise.all([getPopupSettings(),
+  const [trustStats, foundedYear, popup, business, notificationEmail, types, sources, localities, tags] = await Promise.all([getSettingValue<TrustStat[]>("trust_stats", []), getFoundedYear(), getPopupSettings(),
     getSettingValue<Business>("business", DEFAULT_BUSINESS), getSettingValue<string>("notification_email", ""), getSettingValue<string[]>("property_types", []), listSourceRows(), listLocalityRows(), listTagRows(),
   ]);
   return (
@@ -103,6 +105,7 @@ export default async function SettingsPage() {
       <div className="grid gap-5 lg:grid-cols-12">
         <div className="space-y-5 lg:col-span-7">
           <BusinessForm business={{ ...DEFAULT_BUSINESS, ...business }} notificationEmail={notificationEmail} action={saveBusiness} />
+          <TrustStatsForm stats={trustStats} foundedYear={foundedYear} action={saveTrustStats} />
           <PopupForm popup={popup} action={savePopup} />
         </div>
         <div className="space-y-5 lg:col-span-5">

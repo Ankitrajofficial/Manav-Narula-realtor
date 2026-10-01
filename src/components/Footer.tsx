@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { nav, site } from "@/data/site";
-import { getBusiness, phoneHref, whatsappHref } from "@/lib/site-data";
+import { getBusiness, getFoundedYear, phoneHref, whatsappHref, withFoundedYear } from "@/lib/site-data";
 import { q } from "@/lib/db";
 import Icon from "./Icon";
 import { Container } from "./ui";
@@ -9,7 +9,7 @@ const heading = "mb-4 text-xs font-medium uppercase tracking-[0.12em] text-white
 const link = "text-sm text-white/85 hover:text-accent";
 
 export default async function Footer() {
-  const b = await getBusiness();
+  const [b, foundedYear] = await Promise.all([getBusiness(), getFoundedYear()]);
   // Active localities that have at least one published property; the first twelve active ones if none do yet.
   const localities = (await q<{ name: string }>(`SELECT l.name FROM localities l WHERE l.is_active AND (EXISTS (SELECT 1 FROM properties p WHERE p.published AND p.locality = l.name) OR NOT EXISTS (SELECT 1 FROM properties p JOIN localities x ON x.name = p.locality WHERE p.published AND x.is_active)) ORDER BY l.sort_order, l.name LIMIT 12`)).map((r) => r.name);
   const tel = phoneHref(b), wa = whatsappHref(b);
@@ -21,7 +21,7 @@ export default async function Footer() {
           <span className="flex h-10 w-10 items-center justify-center rounded-brand border border-white/60 font-heading">{site.monogram}</span>
           <div>
             <p className="font-heading text-xl leading-tight">{site.name}</p>
-            <p className="text-sm text-white/60">{b.tagline}</p>
+            <p className="text-sm text-white/60">{withFoundedYear(b.tagline, foundedYear)}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -42,7 +42,7 @@ export default async function Footer() {
         <div className="md:col-span-3">
           <p className={heading}>About</p>
           <p className="text-sm text-white/75">
-            Property advisors in Jalandhar since {site.foundedYear}. Verified titles, honest pricing and accompanied site visits across the city.
+            Property advisors in Jalandhar since {foundedYear}. Verified titles, honest pricing and accompanied site visits across the city.
           </p>
           <a href={site.reviewHref} target="_blank" rel="noopener" className="mt-5 inline-flex items-center gap-2 rounded-brand border border-white/20 px-3 py-2 text-sm hover:border-white/60">
             <Icon name="google" size={18} />
