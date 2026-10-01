@@ -29,7 +29,7 @@ export default async function LeadsTable({ sp, base, userId }: { sp: SP; base: "
   const qs = queryString(sp, { page: undefined });
   const table = (
     <DataTable columns={columns} rows={data.rows} total={data.total} page={data.page} pageSize={data.size} sp={sp} basePath={`${base}/leads`} sortKey={data.sort.key} sortDir={data.sort.dir}
-      exportHref={`${base}/leads/export?format=csv${qs ? `&${qs}` : ""}`} exportPdfHref={`${base}/leads/export?format=pdf${qs ? `&${qs}` : ""}`}
+      exportHref={isAdmin ? `${base}/leads/export?format=csv${qs ? `&${qs}` : ""}` : undefined} exportPdfHref={isAdmin ? `${base}/leads/export?format=pdf${qs ? `&${qs}` : ""}` : undefined}
       selectable={isAdmin} rowId={(r) => r.id}
       empty={{ text: isAdmin ? "No leads match. Website enquiries appear here automatically." : "No leads assigned to you match these filters.", action: isAdmin ? { label: "Add lead", href: "/admin/leads/new" } : undefined }} />
   );

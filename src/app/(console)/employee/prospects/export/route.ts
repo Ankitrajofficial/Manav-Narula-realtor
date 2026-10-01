@@ -1,3 +1,4 @@
-import { exportRecords } from "@/components/console/RecordExport";
+import { blockedExport } from "@/lib/export-guard";
 export const dynamic = "force-dynamic";
-export async function GET(req: Request) { return exportRecords("prospect", req, "employee"); }
+/** Employees cannot export or download. This URL stays only to refuse (403) and log the attempt. */
+export async function GET(req: Request) { return blockedExport(req); }

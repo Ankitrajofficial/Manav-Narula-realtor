@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import PageHeader from "@/components/console/PageHeader";
-import DataTable, { queryString, type Column } from "@/components/console/DataTable";
+import DataTable, { type Column } from "@/components/console/DataTable";
 import FilterBar from "@/components/console/FilterBar";
 import Pill from "@/components/console/Pill";
 import SaleTotals from "@/components/console/SaleTotals";
@@ -34,7 +34,6 @@ export default async function MySalesPage({ searchParams }: { searchParams: Prom
       </Suspense>
       <SaleTotals total={data.total} totalValue={data.totalValue} totalCommission={data.totalCommission} months={data.months} rangeLabel={rangeLabel} />
       <DataTable columns={columns} rows={data.rows} total={data.total} page={data.page} pageSize={data.size} sp={sp} basePath="/employee/sales" sortKey={data.sortKey} sortDir={data.sortDir} rowId={(s) => s.id}
-        exportHref={`/employee/downloads/export?${queryString({ type: "sales", from: sp.from, to: sp.to })}`}
         empty={{ text: "You have not recorded a sale yet.", action: { label: "Record sale", href: "/employee/sales/new" } }} />
     </>
   );

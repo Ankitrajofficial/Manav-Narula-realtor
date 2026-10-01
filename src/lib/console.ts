@@ -70,7 +70,6 @@ export const employeeNav = [
   { href: "/employee/data-entry", label: "Data Entry", icon: "edit" },
   { href: "/employee/tasks", label: "My Tasks", icon: "check" },
   { href: "/employee/sales", label: "My Sales", icon: "rupee" },
-  { href: "/employee/downloads", label: "Downloads", icon: "download" },
 ];
 
 /** Parse a "from,to" style filter into SQL-safe date strings. */

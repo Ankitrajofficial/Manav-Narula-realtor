@@ -30,7 +30,7 @@ export default async function ProspectsTable({ sp, base, userId }: { sp: SP; bas
   const qs = queryString(sp, { page: undefined });
   const table = (
     <DataTable columns={columns} rows={data.rows} total={data.total} page={data.page} pageSize={data.size} sp={sp} basePath={`${base}/prospects`} sortKey={data.sort.key} sortDir={data.sort.dir}
-      exportHref={`${base}/prospects/export?format=csv${qs ? `&${qs}` : ""}`} exportPdfHref={`${base}/prospects/export?format=pdf${qs ? `&${qs}` : ""}`}
+      exportHref={isAdmin ? `${base}/prospects/export?format=csv${qs ? `&${qs}` : ""}` : undefined} exportPdfHref={isAdmin ? `${base}/prospects/export?format=pdf${qs ? `&${qs}` : ""}` : undefined}
       selectable={isAdmin} rowId={(r) => r.id}
       empty={{ text: isAdmin ? "No prospects match these filters." : "No prospects of yours match these filters.", action: { label: "Add prospect", href: isAdmin ? "/admin/prospects/new" : "/employee/data-entry" } }} />
   );

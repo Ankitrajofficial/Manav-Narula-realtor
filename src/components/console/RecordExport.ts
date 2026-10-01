@@ -1,19 +1,19 @@
 import "server-only";
-import { getSession } from "@/lib/auth";
+import { requireExporter } from "@/lib/export-guard";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { buildPdf, pdfResponse } from "@/lib/pdf";
 import { formatDateTime, formatShortDate } from "@/lib/format";
 import { allLeads, type LeadRow, type SP } from "@/lib/queries/leads";
 import { allProspects, type ProspectRow } from "@/lib/queries/prospects";
 
-/** Shared GET handler body for /admin|employee/leads|prospects/export. Employees only get their own rows. */
-export async function exportRecords(kind: "lead" | "prospect", req: Request, role: "admin" | "employee") {
-  const user = await getSession();
-  if (!user || user.role !== role) return new Response("Unauthorized", { status: 401 });
+/** Shared GET handler body for /admin/leads|prospects/export. Admins only; employees get 403 and the attempt is logged. */
+export async function exportRecords(kind: "lead" | "prospect", req: Request) {
+  const user = await requireExporter(req);
+  if (user instanceof Response) return user;
   const url = new URL(req.url);
   const sp: SP = Object.fromEntries(url.searchParams.entries());
   const format = sp.format === "pdf" ? "pdf" : "csv";
-  const scope = role === "employee" ? { userId: user.id } : {};
+  const scope = {};
   const stamp = new Date().toISOString().slice(0, 10);
   if (kind === "lead") {
     const { rows, meta } = await allLeads(sp, scope);

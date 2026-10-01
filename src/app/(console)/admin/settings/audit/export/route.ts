@@ -1,9 +1,9 @@
-import { requireUser } from "@/lib/auth";
+import { requireExporter } from "@/lib/export-guard";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { listAudit, type AuditRow } from "@/lib/queries/settings";
 
 export async function GET(req: Request) {
-  await requireUser("admin");
+  const auth = await requireExporter(req); if (auth instanceof Response) return auth;
   const sp = Object.fromEntries(new URL(req.url).searchParams.entries());
   const all: AuditRow[] = [];
   for (let page = 1; page < 200; page++) {

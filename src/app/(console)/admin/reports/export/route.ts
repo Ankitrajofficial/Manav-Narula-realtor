@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireExporter } from "@/lib/export-guard";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { buildPdf, pdfResponse } from "@/lib/pdf";
 import { defaultRange, employeePerformance, funnel, leadsBySource, leadsByStatus, localityDemand } from "@/lib/queries/reports";
@@ -7,7 +7,7 @@ import { formatINR } from "@/lib/format";
 type R = Record<string, unknown>;
 
 export async function GET(req: Request) {
-  await requireUser("admin");
+  const auth = await requireExporter(req); if (auth instanceof Response) return auth;
   const sp = Object.fromEntries(new URL(req.url).searchParams.entries());
   const range = defaultRange(sp);
   const report = sp.report ?? "source";

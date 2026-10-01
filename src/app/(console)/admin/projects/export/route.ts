@@ -1,10 +1,10 @@
-import { requireUser } from "@/lib/auth";
+import { requireExporter } from "@/lib/export-guard";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { listProjects, type ProjectRow } from "@/lib/queries/content";
 import { audit } from "@/lib/records";
 
 export async function GET(req: Request) {
-  const user = await requireUser("admin");
+  const user = await requireExporter(req); if (user instanceof Response) return user;
   const sp = Object.fromEntries(new URL(req.url).searchParams.entries());
   const all: ProjectRow[] = [];
   for (let page = 1; page < 100; page++) {

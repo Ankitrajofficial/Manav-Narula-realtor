@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireExporter } from "@/lib/export-guard";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { buildPdf, pdfResponse } from "@/lib/pdf";
 import { listSales, type SaleRow } from "@/lib/queries/sales";
@@ -6,7 +6,7 @@ import { listEmployees } from "@/lib/queries/common";
 import { formatINR, formatShortDate } from "@/lib/format";
 
 export async function GET(req: Request) {
-  await requireUser("admin");
+  const auth = await requireExporter(req); if (auth instanceof Response) return auth;
   const sp = Object.fromEntries(new URL(req.url).searchParams.entries());
   const data = await listSales(sp, { all: true });
   const stamp = new Date().toISOString().slice(0, 10);

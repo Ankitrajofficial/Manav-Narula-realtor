@@ -26,7 +26,7 @@ Sign in at `/login`. There is no self sign-up; the admin creates employees under
 | Path | Holds |
 | --- | --- |
 | `src/app/(site)/` | Public website pages |
-| `src/app/(console)/admin/`, `src/app/(console)/employee/` | Console screens; each module has `page.tsx`, `actions.ts` (server actions) and an `export/route.ts` for CSV/PDF |
+| `src/app/(console)/admin/`, `src/app/(console)/employee/` | Console screens; each module has `page.tsx`, `actions.ts` (server actions) and, in the admin console, an `export/route.ts` for CSV/PDF |
 | `src/components/console/` | Shell, DataTable, FilterBar, Pill, forms, charts, toast, confirm buttons |
 | `src/lib/db.ts`, `src/db/schema.sql`, `src/db/seed.ts` | Database connection, schema and seed |
 | `src/lib/site-data.ts` | Loaders the public site uses to read banners, properties, projects, blog, settings |
@@ -36,6 +36,10 @@ Sign in at `/login`. There is no self sign-up; the admin creates employees under
 | `public/uploads/` | Uploaded images and documents (local disk; use blob storage on Vercel) |
 
 Brand colours, fonts and status pill colours are in `src/app/globals.css` under `:root`.
+
+## Exports
+
+Only admins can export or download. Every export route calls `requireExporter` (`src/lib/export-guard.ts`): other roles get 403 and the attempt is written to the audit log as `export_blocked`. The old employee export URLs remain only to refuse and log; `/employee/downloads` redirects to My Dashboard.
 
 ## Database migrations
 

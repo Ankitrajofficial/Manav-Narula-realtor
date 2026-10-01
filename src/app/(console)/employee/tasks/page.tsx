@@ -38,8 +38,7 @@ export default async function MyTasksPage({ searchParams }: { searchParams: Prom
           { key: "priority", label: "Priority", options: PRIORITIES.map((p) => ({ value: p, label: p })) },
         ]} />
       </Suspense>
-      <DataTable columns={columns} rows={data.rows} total={data.total} page={data.page} pageSize={data.size} sp={sp} basePath="/employee/tasks" sortKey={data.sortKey} sortDir={data.sortDir} rowId={(t) => t.id}
-        exportHref={`/employee/tasks/export?${queryString(sp)}`} empty={{ text: "No tasks assigned to you." }} />
+      <DataTable columns={columns} rows={data.rows} total={data.total} page={data.page} pageSize={data.size} sp={sp} basePath="/employee/tasks" sortKey={data.sortKey} sortDir={data.sortDir} rowId={(t) => t.id} empty={{ text: "No tasks assigned to you." }} />
     </>
   );
 }
