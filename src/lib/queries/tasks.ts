@@ -93,3 +93,14 @@ export const toTaskItem = (t: TaskRow, base: string): TaskItem => ({
   id: t.id, title: t.title, assigned_to: t.assigned_to, assignee_name: t.assignee_name, due: toDateInput(t.due_date) || null, priority: t.priority, status: t.status,
   linked: t.lead_count + t.prospect_count === 1 && t.linked_name ? t.linked_name : linkedSummary(t), href: `${base}/tasks/${t.id}`,
 });
+
+/** Who currently owns each lead/prospect linked to a task. One record has one owner; a task about it must go to that owner. */
+export interface LinkedOwner { kind: "lead" | "prospect"; id: number; name: string; assigned_to: number | null; assignee_name: string | null }
+export async function linkedOwners(leadIds: number[], prospectIds: number[]): Promise<LinkedOwner[]> {
+  const leads = leadIds.length ? await q<LinkedOwner>("SELECT 'lead' AS kind, l.id, l.name, l.assigned_to, u.name AS assignee_name FROM leads l LEFT JOIN users u ON u.id = l.assigned_to WHERE l.id = ANY($1::int[]) ORDER BY l.name", [leadIds]) : [];
+  const prospects = prospectIds.length ? await q<LinkedOwner>("SELECT 'prospect' AS kind, p.id, p.name, p.assigned_to, u.name AS assignee_name FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to WHERE p.id = ANY($1::int[]) ORDER BY p.name", [prospectIds]) : [];
+  return [...leads, ...prospects];
+}
+/** Linked records that already belong to someone other than `assignee`. */
+export const ownedByOthers = (owners: LinkedOwner[], assignee: number) => owners.filter((o) => o.assigned_to != null && o.assigned_to !== assignee);
+export const describeConflicts = (c: LinkedOwner[]) => c.slice(0, 4).map((o) => `${o.name} (with ${o.assignee_name ?? "another employee"})`).join(", ") + (c.length > 4 ? ` and ${c.length - 4} more` : "");

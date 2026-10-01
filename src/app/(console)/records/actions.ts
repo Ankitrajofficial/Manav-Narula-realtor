@@ -81,6 +81,17 @@ export async function scheduleFollowUpAction(fd: FormData) {
   redirect(toastTo(path, "Follow-up scheduled"));
 }
 
+
+/** Open tasks about these records that belong to someone other than the new owner (shown so nothing is worked twice). */
+async function otherOwnersTasks(kind: "lead" | "prospect", ids: number[], ownerId: number | null): Promise<string> {
+  if (!ids.length) return "";
+  const col = kind === "lead" ? "lead_id" : "prospect_id";
+  const rows = await q<{ name: string | null; n: number }>(`SELECT u.name, count(DISTINCT t.id)::int AS n FROM task_records r JOIN tasks t ON t.id = r.task_id LEFT JOIN users u ON u.id = t.assigned_to
+    WHERE r.${col} = ANY($1::int[]) AND t.status <> 'Done' AND t.assigned_to IS DISTINCT FROM $2 GROUP BY u.name`, [ids, ownerId]);
+  if (!rows.length) return "";
+  return `. Still open with others: ${rows.map((r) => `${r.n} task${r.n === 1 ? "" : "s"} with ${r.name ?? "unassigned"}`).join(", ")}`;
+}
+
 export async function assignAction(fd: FormData) {
   const user = await requireUser("admin");
   const kind = kindOf(fd.get("kind")); const id = Number(fd.get("id"));
@@ -93,7 +104,8 @@ export async function assignAction(fd: FormData) {
   await q(`UPDATE ${table(kind)} SET assigned_to = $1, updated_at = now() WHERE id = $2`, [toId, id]);
   await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "assign", body: emp ? `Assigned to ${emp.name}` : "Unassigned" });
   await audit(user.id, "assign", kind, id, { assigned_to: toId });
-  redirect(toastTo(path, emp ? `Assigned to ${emp.name}` : "Unassigned"));
+  const note = await otherOwnersTasks(kind, [id], toId);
+  redirect(toastTo(path, `${emp ? `Assigned to ${emp.name}` : "Unassigned"}${note}`));
 }
 
 export async function bulkAssignAction(fd: FormData) {
@@ -109,7 +121,8 @@ export async function bulkAssignAction(fd: FormData) {
     await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "assign", body: `Assigned to ${emp.name}` });
   }
   await audit(user.id, "bulk_assign", kind, null, { ids: list, assigned_to: Number(to) });
-  redirect(toastTo(back, `${list.length} assigned to ${emp.name}`));
+  const note = await otherOwnersTasks(kind, list, Number(to));
+  redirect(toastTo(back, `${list.length} assigned to ${emp.name}${note}`));
 }
 
 /** Admin ticks rows in the Leads or Prospects table and opens a new task with them already on the call sheet. */

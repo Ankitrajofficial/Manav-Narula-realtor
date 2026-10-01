@@ -2,8 +2,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Icon from "@/components/Icon";
+import type { LinkedOwner } from "@/lib/queries/tasks";
 
-type Result = { ok: true; id: number } | { ok: false; error: string };
+type Result = { ok: true; id: number; message?: string } | { ok: false; error: string };
 type Opt = { id: number; name: string };
 
 const chipCls = (on: boolean) =>
@@ -34,7 +35,7 @@ function useToast() {
 }
 
 /** One-line task entry: title, tap an employee, tap a due shortcut, Enter. */
-export function QuickTaskBar({ employees, action, linked, autoFocus }: { employees: Opt[]; action: (fd: FormData) => Promise<Result>; linked?: { leadIds: number[]; prospectIds: number[] }; autoFocus?: boolean }) {
+export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoFocus }: { employees: Opt[]; action: (fd: FormData) => Promise<Result>; linked?: { leadIds: number[]; prospectIds: number[] }; linkedInfo?: LinkedOwner[]; autoFocus?: boolean }) {
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState<number | null>(employees.length === 1 ? employees[0].id : null);
   const [due, setDue] = useState("today");
@@ -42,8 +43,19 @@ export function QuickTaskBar({ employees, action, linked, autoFocus }: { employe
   const [priority, setPriority] = useState<"normal" | "high">("normal");
   const [links, setLinks] = useState(linked ?? { leadIds: [], prospectIds: [] });
   const [error, setError] = useState<string | null>(null);
+  // What to do with linked records that already belong to another employee: move them, or not decided yet.
+  const [moveFor, setMoveFor] = useState<number | null>(null);
   const [pending, start] = useTransition();
   const input = useRef<HTMLInputElement>(null);
+  const linkedNow = linkedInfo.filter((o) => (o.kind === "lead" ? links.leadIds : links.prospectIds).includes(o.id));
+  const conflicts = assignee ? linkedNow.filter((o) => o.assigned_to != null && o.assigned_to !== assignee) : [];
+  const unassignedLinked = linkedNow.filter((o) => o.assigned_to == null);
+  const moving = conflicts.length > 0 && moveFor === assignee;
+  const assigneeName = employees.find((x) => x.id === assignee)?.name.split(" ")[0] ?? "this employee";
+  const removeConflicts = () => setLinks((l) => ({
+    leadIds: l.leadIds.filter((i) => !conflicts.some((c) => c.kind === "lead" && c.id === i)),
+    prospectIds: l.prospectIds.filter((i) => !conflicts.some((c) => c.kind === "prospect" && c.id === i)),
+  }));
   const toast = useToast();
   useEffect(() => { if (autoFocus) input.current?.focus(); }, [autoFocus]);
 
@@ -54,15 +66,17 @@ export function QuickTaskBar({ employees, action, linked, autoFocus }: { employe
     if (title.trim().length < 2) { setError("Type what needs to be done."); input.current?.focus(); return; }
     if (!assignee) { setError("Tap the employee this task is for."); return; }
     if (due === "date" && !date) { setError("Pick a due date."); return; }
+    if (conflicts.length && !moving) { setError(`Some linked records already belong to another employee. Move them to ${assigneeName} or remove them from this task.`); return; }
     setError(null);
     const fd = new FormData();
     fd.set("title", title); fd.set("assigned_to", String(assignee)); fd.set("due", due); fd.set("due_date", date); fd.set("priority", priority);
     fd.set("lead_ids", links.leadIds.join(",")); fd.set("prospect_ids", links.prospectIds.join(","));
+    if (moving) fd.set("conflicts", "move");
     start(async () => {
       const r = await action(fd);
       if (!r.ok) { setError(r.error); return; }
       const who = employees.find((x) => x.id === assignee)?.name ?? "employee";
-      toast.show({ text: `Task added for ${who}`, kind: "ok" }, 3000);
+      toast.show({ text: `Task added for ${who}${r.message ? `. ${r.message}` : ""}`, kind: "ok" }, 4000);
       setTitle(""); setLinks({ leadIds: [], prospectIds: [] });
       if (linked && (linked.leadIds.length || linked.prospectIds.length)) window.history.replaceState(null, "", window.location.pathname);
       input.current?.focus();
@@ -105,6 +119,28 @@ export function QuickTaskBar({ employees, action, linked, autoFocus }: { employe
           </span>
         )}
       </div>
+      {assignee != null && conflicts.length > 0 && (
+        <div className={`mt-3 rounded-brand border px-3 py-2.5 text-sm ${moving ? "border-accent bg-accent/5" : "border-[#b7791f] bg-[#b7791f]/5"}`} role="status">
+          <p className="font-medium">{moving ? `These will move to ${assigneeName} with the task:` : `Already assigned to another employee. One lead can have only one owner:`}</p>
+          <ul className="mt-1.5 space-y-1">
+            {conflicts.map((c) => (
+              <li key={`${c.kind}-${c.id}`} className="flex flex-wrap items-center gap-x-2">
+                <span>{c.name}</span><span className="text-xs text-muted">{c.kind}</span>
+                <span className="text-xs">{moving ? <>from {c.assignee_name} <Icon name="arrowRight" size={11} className="inline" /> {assigneeName}</> : <>with <strong>{c.assignee_name ?? "another employee"}</strong></>}</span>
+              </li>
+            ))}
+          </ul>
+          {!moving ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setMoveFor(assignee)} className="rounded-brand border border-ink bg-white px-3 py-1.5 text-xs hover:bg-ink hover:text-white">Move {conflicts.length === 1 ? "it" : `all ${conflicts.length}`} to {assigneeName}</button>
+              <button type="button" onClick={removeConflicts} className="rounded-brand border border-line bg-white px-3 py-1.5 text-xs hover:border-ink">Remove from this task</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setMoveFor(null)} className="mt-2 text-xs text-muted underline hover:text-ink">Undo, keep them with their current owner</button>
+          )}
+        </div>
+      )}
+      {assignee != null && unassignedLinked.length > 0 && <p className="mt-2 text-xs text-muted">{unassignedLinked.length} unassigned linked {unassignedLinked.length === 1 ? "record" : "records"} will be assigned to {assigneeName}.</p>}
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
       {/* Phones: full-width Add that stays in reach while the chips scroll. */}
       <button type="submit" disabled={pending} className="sticky bottom-3 z-10 mt-3 flex min-h-12 w-full items-center justify-center gap-1.5 rounded-brand bg-accent text-sm font-medium text-white disabled:opacity-60 md:hidden">
@@ -163,7 +199,7 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
   function save(id: number, patch: Parameters<NonNullable<typeof update>>[1]) {
     if (!update) return;
     setEditor(null);
-    start(async () => { const r = await update(id, patch); if (!r.ok) toast.show({ text: r.error, kind: "error" }); });
+    start(async () => { const r = await update(id, patch); if (!r.ok) toast.show({ text: r.error, kind: "error" }); else if (r.message) toast.show({ text: r.message, kind: "ok" }); });
   }
 
   // Group by the server status so a ticked row stays put (struck through) until the save lands.
