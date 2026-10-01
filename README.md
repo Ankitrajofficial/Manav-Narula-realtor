@@ -41,7 +41,7 @@ Brand colours, fonts and status pill colours are in `src/app/globals.css` under 
 
 ## Trust numbers
 
-The row under the brand statement on the home page reads settings key `trust_stats` (value, suffix `+`/`★`/none, label, optional link, order, active) and `founded_year`, which also sets the "since YYYY" in the tagline and footer. Admin > Settings > Trust numbers edits them; 3 to 6 can be shown and the grid fills without gaps (3, 2+2, 3+2, 3+3; two columns on phones). Values are rendered on the server and count up once when scrolled into view (not with reduced motion).
+The row under the brand statement on the home page reads settings key `trust_stats` (value, suffix `+`/`★`/none, label, optional link, order, active) and `founded_year`, which also sets the "since YYYY" in the tagline and footer. Admin > Settings > Trust numbers edits them; 3 to 6 can be shown and the grid fills without gaps (one row on screens 1280px and wider; 3, 2+2, 3+2 or 3+3 on tablets and small laptops; two columns on phones). Values are rendered on the server and count up once when scrolled into view (not with reduced motion).
 
 ## Website pop-up
 

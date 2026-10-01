@@ -84,8 +84,8 @@ input, select, textarea { font: inherit; color: inherit; }
   .rtable td[data-mobile="hide"] { display: none; }
 }
 
-/* Home page trust numbers: hairline table of facts. Each cell gets its span and borders from CSS variables
-   set by trustLayout(), so 3 to 6 stats always fill the grid without gaps. */
+/* Home page trust numbers: hairline table of facts. One row on desktop; on tablet and phones each cell gets
+   its span and borders from CSS variables set by trustLayout(), so 3 to 6 stats always fill the grid without gaps. */
 .trust-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
 .trust-cell {
   grid-column: span var(--span-m);
@@ -104,5 +104,11 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .trust-number { font-family: var(--font-heading); font-size: 36px; line-height: 1; letter-spacing: -0.5px; font-variant-numeric: lining-nums tabular-nums; color: var(--ink); transition: color 200ms ease; }
 @media (min-width: 768px) { .trust-number { font-size: 48px; } }
+/* Wide screens: every stat in one row, one column each (below 1280px six figures do not fit side by side). */
+@media (min-width: 1280px) {
+  .trust-grid { grid-template-columns: repeat(var(--count), minmax(0, 1fr)); }
+  .trust-cell { grid-column: span 1; border-left-width: calc(var(--left-lg) * 1px); border-top-width: 0; padding: 32px 24px; }
+  .trust-number { font-size: var(--number-lg, 48px); }
+}
 @media (hover: hover) and (min-width: 768px) { .trust-cell:hover .trust-number { color: var(--accent); } }
 .trust-label { margin-top: 8px; font-family: var(--font-body); font-size: 14px; line-height: 1.4; letter-spacing: 0.2px; color: var(--muted); }
