@@ -48,23 +48,21 @@ export default async function HomePage() {
       {/* 4. How we work */}
       <Section className="border-y border-line bg-white">
         <SectionTitle title="How we work" intro="Four principles every advisor in our office follows on every deal, in this order." />
-        <ol className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="grid border-y border-line md:grid-cols-2 lg:grid-cols-4">
           {workEthics.map((w, i) => (
-            <li key={w.title} className="group flex flex-col border-t border-line pt-6 transition-colors hover:border-accent">
-              <div className="flex items-center justify-between">
-                <span className="flex h-12 w-12 items-center justify-center rounded-brand border border-line bg-bg text-accent transition-colors group-hover:border-accent">
-                  <Icon name={w.icon} size={24} />
-                </span>
-                <span className="font-heading text-sm tabular text-muted">0{i + 1}</span>
+            <li key={w.title} className="group flex flex-col border-line py-8 not-first:border-t md:pr-8 md:nth-[2n]:border-l md:nth-[2n]:pl-8 md:nth-[-n+2]:border-t-0 lg:pl-8 lg:not-first:border-l lg:nth-[n+3]:border-t-0 lg:first:pl-0 lg:last:pr-0">
+              <div className="flex items-center gap-3">
+                <Icon name={w.icon} size={22} className="text-accent" />
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Step <span className="tabular text-accent-ink">{String(i + 1).padStart(2, "0")}</span></span>
               </div>
-              <h3 className="mt-5 text-xl leading-snug">{w.title}</h3>
-              <p className="mt-2 text-sm text-muted">{w.text}</p>
+              <h3 className="mt-5 text-xl leading-snug transition-colors group-hover:text-accent-ink lg:min-h-[3.5rem]">{w.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">{w.text}</p>
             </li>
           ))}
         </ol>
-        <p className="mt-10 flex items-center gap-2 text-sm text-muted">
-          <Icon name="shield" size={16} className="text-accent" />
-          RERA-registered agent {site.rera}. Every step above is written into our engagement letter.
+        <p className="mt-6 flex items-start gap-2 text-sm text-muted">
+          <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-accent" />
+          <span>RERA-registered agent <span className="tabular text-ink">{site.rera}</span>. Every step above is written into our engagement letter.</span>
         </p>
       </Section>
 
