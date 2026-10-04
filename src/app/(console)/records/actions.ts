@@ -4,6 +4,7 @@ import { requireUser, type SessionUser } from "@/lib/auth";
 import { json, one, q } from "@/lib/db";
 import { audit, logActivity, toE164 } from "@/lib/records";
 import { LEAD_STATUSES } from "@/lib/console";
+import { forwardLeads } from "@/lib/lead-webhook";
 
 type Kind = "lead" | "prospect";
 const table = (k: Kind) => (k === "lead" ? "leads" : "prospects");
@@ -197,6 +198,7 @@ export async function saveLeadAction(prev: RecordFormState, fd: FormData): Promi
     [v.name, phone, v.email || null, v.interest || null, v.budget || null, v.locality || null, v.source || "Walk-in", v.notes || null, v.property_id ? Number(v.property_id) : null, v.project_id ? Number(v.project_id) : null, assigned ?? user.id, user.id, v.whatsapp_opt_in, json(v.tags)]);
   const newId = row!.id;
   await logActivity({ leadId: newId, userId: user.id, type: "created", body: `Lead added manually (${v.source || "Walk-in"})`, toStatus: "New" });
+  void forwardLeads([newId]);
   if (assigned) { const emp = await one<{ name: string }>("SELECT name FROM users WHERE id = $1", [assigned]); await logActivity({ leadId: newId, userId: user.id, type: "assign", body: `Assigned to ${emp?.name ?? "employee"}` }); }
   await audit(user.id, "create", "lead", newId);
   redirect(toastTo(`${base(user)}/leads/${newId}`, "Lead added"));
@@ -243,6 +245,7 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
   let imported = 0, skipped = 0;
   const reasons: string[] = [];
   const seen = new Set<string>();
+  const importedLeads: number[] = [];
   for (const [i, r] of rows.slice(0, 5000).entries()) {
     const name = String(r.name ?? "").trim();
     const phone = toE164(String(r.phone ?? ""));
@@ -260,6 +263,7 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
       const row = await one<{ id: number }>("INSERT INTO leads (name, phone, email, interest, budget, locality, source, notes, tags, whatsapp_opt_in, created_by, assigned_to) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12) RETURNING id", [...common, user.role === "admin" ? null : user.id]);
       newId = row!.id;
       await logActivity({ leadId: newId, userId: user.id, type: "created", body: "Imported from CSV", toStatus: "New" });
+      importedLeads.push(newId);
     } else {
       const row = await one<{ id: number }>("INSERT INTO prospects (name, phone, email, interest, budget, locality, source, notes, tags, whatsapp_opt_in, added_by, assigned_to) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12) RETURNING id", [...common, user.role === "admin" ? null : user.id]);
       newId = row!.id;
@@ -268,6 +272,7 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
     imported++;
   }
   await audit(user.id, "import", kind, null, { imported, skipped });
+  void forwardLeads(importedLeads);
   const dest = user.role === "admin" ? `/admin/${table(kind)}` : `/employee/${table(kind)}`;
   return { imported, skipped, reasons, redirect: toastTo(dest, `Imported ${imported}, skipped ${skipped}`) };
 }
