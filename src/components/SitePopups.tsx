@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { LocalityOption } from "@/lib/localities";
+import { popupShowsOn, type SitePopup } from "@/lib/popups";
 import Icon from "./Icon";
 import LocalitySelect from "./LocalitySelect";
 import { inputCls } from "./ui";
 
-const SNOOZE_KEY = "mn.popup.snoozeUntil";
+const SNOOZE_PREFIX = "mn.popup.snoozeUntil.";
 const SESSION_KEY = "mn.popup.shown";
 const SNOOZE_DAYS = 7;
-const EXCLUDED = ["/contact", "/home-loans"];
 const INTERESTS = ["Buy", "Rent", "Sell"] as const;
 // Stored values match the budget list used on leads; labels are the short chip text.
 const BUDGETS = [
@@ -23,16 +23,19 @@ const BUDGETS = [
 
 type Suggestion = { slug: string; title: string; price: string; locality: string; image: string };
 const safe = <T,>(fn: () => T, fallback: T): T => { try { return fn(); } catch { return fallback; } };
+const snoozed = (id: number) => safe(() => Number(localStorage.getItem(SNOOZE_PREFIX + id) || 0) > Date.now(), false);
+const snooze = (id: number) => safe(() => localStorage.setItem(SNOOZE_PREFIX + id, String(Date.now() + SNOOZE_DAYS * 864e5)), undefined);
 
 const chip = (on: boolean) => `inline-flex min-h-10 items-center rounded-brand border px-3 text-sm transition-colors ${on ? "border-accent bg-accent text-white" : "border-line bg-white text-ink hover:border-ink"}`;
 
 /**
- * Free consultation pop-up. Shows at most once per visitor session, after the configured delay or 50% scroll,
- * never on /contact or /home-loans or over another dialog, and not again for 7 days after it is closed or sent.
+ * Website pop-ups managed under Admin → Pop-ups. At most one shows per visitor session: the newest live pop-up that suits
+ * the current page and that this visitor has not closed in the last 7 days. It appears after that pop-up's delay or once the
+ * visitor scrolls half-way down, never over another dialog.
  */
-export default function ConsultationPopup({ headline, text, delaySeconds, localities }: { headline: string; text: string; delaySeconds: number; localities: LocalityOption[] }) {
+export default function SitePopups({ popups, localities }: { popups: SitePopup[]; localities: LocalityOption[] }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [popup, setPopup] = useState<SitePopup | null>(null);
   const [state, setState] = useState<"form" | "sending" | "done">("form");
   const [error, setError] = useState("");
   const [interest, setInterest] = useState<(typeof INTERESTS)[number]>("Buy");
@@ -47,45 +50,45 @@ export default function ConsultationPopup({ headline, text, delaySeconds, locali
 
   // Arm the trigger once per page load; it survives client-side navigation.
   useEffect(() => {
-    const blocked = () =>
-      safe(() => Number(localStorage.getItem(SNOOZE_KEY) || 0) > Date.now(), false) ||
-      safe(() => sessionStorage.getItem(SESSION_KEY) === "1", false);
-    if (blocked()) return;
+    if (!popups.length) return;
+    const loadedAt = Date.now();
+    const shownThisVisit = () => safe(() => sessionStorage.getItem(SESSION_KEY) === "1", false);
+    if (shownThisVisit()) return;
     let fired = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    const tryShow = () => {
-      if (fired || blocked()) return;
-      // Wait while another dialog is open or the visitor is on a page where it must not appear.
-      if (EXCLUDED.some((p) => pathRef.current === p || pathRef.current.startsWith(`${p}/`)) || document.querySelector('[aria-modal="true"]')) {
-        clearTimeout(retry);
-        retry = setTimeout(tryShow, 3000);
-        return;
-      }
+    const later = (ms: number) => { clearTimeout(retry); retry = setTimeout(() => tryShow(false), ms); };
+    const tryShow = (scrolled: boolean) => {
+      if (fired || shownThisVisit()) return;
+      const pick = popups.find((p) => popupShowsOn(p, pathRef.current) && !snoozed(p.id));
+      // Nothing for this page (yet), or another dialog is open: look again shortly, the visitor may move on.
+      if (!pick || document.querySelector('[aria-modal="true"]')) return later(3000);
+      const wait = pick.delaySeconds * 1000 - (Date.now() - loadedAt);
+      if (!scrolled && wait > 0) return later(wait);
       fired = true;
       safe(() => sessionStorage.setItem(SESSION_KEY, "1"), undefined);
       lastFocus.current = document.activeElement;
-      setOpen(true);
+      setPopup(pick);
       cleanup();
     };
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      if (max > 0 && window.scrollY / max >= 0.5) tryShow();
+      if (max > 0 && window.scrollY / max >= 0.5) tryShow(true);
     };
-    const timer = setTimeout(tryShow, delaySeconds * 1000);
+    const timer = setTimeout(() => tryShow(false), Math.min(...popups.map((p) => p.delaySeconds)) * 1000);
     window.addEventListener("scroll", onScroll, { passive: true });
     function cleanup() { clearTimeout(timer); window.removeEventListener("scroll", onScroll); }
     return () => { cleanup(); clearTimeout(retry); };
-  }, [delaySeconds]);
+  }, [popups]);
 
   const close = () => {
-    setOpen(false);
-    safe(() => localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_DAYS * 864e5)), undefined);
+    if (popup) snooze(popup.id);
+    setPopup(null);
     (lastFocus.current as HTMLElement | null)?.focus?.();
   };
 
   // Escape closes; Tab stays inside the dialog; page behind does not scroll.
   useEffect(() => {
-    if (!open) return;
+    if (!popup) return;
     const el = dialog.current;
     (el?.querySelector<HTMLElement>('input[name="name"]') ?? el?.querySelector<HTMLElement>("a[href], button"))?.focus();
     const onKey = (e: KeyboardEvent) => {
@@ -101,10 +104,11 @@ export default function ConsultationPopup({ headline, text, delaySeconds, locali
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = overflow; };
-  }, [open, done]);
+  }, [popup, done]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!popup) return;
     const data = Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
     if (String(data.name ?? "").trim().length < 2) { setError("Enter your name."); return; }
     if (!/^[6-9]\d{9}$/.test(String(data.phone ?? "").replace(/\D/g, "").slice(-10))) { setError("Enter a 10-digit Indian mobile number."); return; }
@@ -114,31 +118,47 @@ export default function ConsultationPopup({ headline, text, delaySeconds, locali
       const res = await fetch("/api/enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name, phone: data.phone, interest, budget: budget || undefined, locality: locality || undefined, source: "popup_consultation", subject: "Free property consultation", page: window.location.pathname }),
+        body: JSON.stringify({ name: data.name, phone: data.phone, interest, budget: budget || undefined, locality: locality || undefined, source: "popup_consultation", subject: popup.title, page: window.location.pathname }),
       });
       const j = (await res.json()) as { ok: boolean; suggestions?: Suggestion[] };
       if (!res.ok || !j.ok) throw new Error("failed");
       setSuggestions(j.suggestions ?? []);
       setState("done");
-      safe(() => localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_DAYS * 864e5)), undefined);
+      snooze(popup.id);
     } catch {
       setState("form");
       setError("Could not send. Please call or WhatsApp us instead.");
     }
   }
 
-  if (!open) return null;
+  if (!popup) return null;
+  const external = !!popup.ctaHref && /^https?:\/\//i.test(popup.ctaHref);
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center md:p-4">
       <button type="button" tabIndex={-1} aria-label="Close" className="absolute inset-0 cursor-default bg-ink/50" onClick={close} />
       <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="popup-title"
         className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-brand border-t border-line bg-bg p-5 pb-6 md:max-w-[480px] md:rounded-brand md:border md:p-6">
         <span className="mx-auto mb-3 block h-1 w-10 rounded-full bg-line md:hidden" aria-hidden="true" />
-        <button type="button" onClick={close} aria-label="Close" className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center text-muted hover:text-ink"><Icon name="close" size={20} /></button>
-        {state !== "done" ? (
+        <button type="button" onClick={close} aria-label="Close" className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-muted hover:text-ink"><Icon name="close" size={20} /></button>
+        {popup.image && state !== "done" && (
+          // Admin uploads vary in size and shape: show the whole picture, never cropped.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={popup.image} alt="" className={`mb-4 w-full rounded-brand bg-white object-contain ${popup.kind === "promo" ? "max-h-[55vh]" : "max-h-44"}`} />
+        )}
+        {popup.kind === "promo" ? (
           <>
-            <h2 id="popup-title" className="pr-10 text-2xl">{headline}</h2>
-            <p className="mt-1 text-sm text-muted">{text}</p>
+            <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
+            {popup.text && <p className="mt-1 whitespace-pre-line text-sm text-muted">{popup.text}</p>}
+            {popup.ctaLabel && popup.ctaHref && (
+              <Link href={popup.ctaHref} onClick={close} {...(external ? { target: "_blank", rel: "noopener" } : {})} className="mt-5 flex w-full items-center justify-center gap-2 rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-ink">
+                {popup.ctaLabel}<Icon name="arrowRight" size={16} />
+              </Link>
+            )}
+          </>
+        ) : state !== "done" ? (
+          <>
+            <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
+            {popup.text && <p className="mt-1 text-sm text-muted">{popup.text}</p>}
             <form onSubmit={submit} className="mt-5 space-y-4" noValidate>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm"><span className="mb-1.5 block">Name</span><input name="name" autoComplete="name" required className={inputCls} placeholder="Your name" /></label>

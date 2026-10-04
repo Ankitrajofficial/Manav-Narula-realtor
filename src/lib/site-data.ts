@@ -150,18 +150,6 @@ export async function getLocalitiesServed(limit = 10): Promise<LocalityOption[]>
 /** Public address line: Street/Block, Locality, City. House/plot number, pincode and map link stay private. */
 export const publicAddress = (p: Pick<Property, "street" | "locality" | "city">) => [p.street, p.locality, p.city || "Jalandhar"].filter(Boolean).join(", ");
 
-export interface PopupSettings { enabled: boolean; headline: string; text: string; delaySeconds: number }
-export async function getPopupSettings(): Promise<PopupSettings> {
-  const rows = await q<{ key: string; value: unknown }>("SELECT key, value FROM settings WHERE key IN ('popup_enabled','popup_headline','popup_text','popup_delay_seconds')");
-  const v = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  return {
-    enabled: v.popup_enabled !== false,
-    headline: typeof v.popup_headline === "string" && v.popup_headline ? v.popup_headline : "Free property consultation",
-    text: typeof v.popup_text === "string" && v.popup_text ? v.popup_text : "Tell us what you need. We will suggest 3 matching properties within 24 hours.",
-    delaySeconds: Math.min(600, Math.max(0, Number(v.popup_delay_seconds ?? 20) || 0)),
-  };
-}
-
 export interface Suggestion { slug: string; title: string; price: string; locality: string; image: string }
 const BUDGET_RANGES: Record<string, [number, number]> = { "Under ₹50 L": [0, 50_00_000], "₹50 L to ₹1 Cr": [50_00_000, 1_00_00_000], "₹1 Cr to ₹2 Cr": [1_00_00_000, 2_00_00_000], "Above ₹2 Cr": [2_00_00_000, Infinity] };
 /** Three published properties for the consultation pop-up: same purpose, then budget band and locality, topped up with featured ones. */

@@ -5,9 +5,8 @@ import { inputCls } from "@/components/console/Form";
 import { requireUser } from "@/lib/auth";
 import { DEFAULT_BUSINESS, getSettingValue, listLocalityRows, listSourceRows, listTagRows, type Business } from "@/lib/queries/settings";
 import BusinessForm from "./BusinessForm";
-import { addListItem, moveLocality, removeListItem, renameLocality, saveBusiness, savePopup, saveTrustStats, setLocalityZone, toggleLocality } from "./actions";
-import PopupForm from "./PopupForm";
-import { getFoundedYear, getPopupSettings } from "@/lib/site-data";
+import { addListItem, moveLocality, removeListItem, renameLocality, saveBusiness, saveTrustStats, setLocalityZone, toggleLocality } from "./actions";
+import { getFoundedYear } from "@/lib/site-data";
 import TrustStatsForm from "./TrustStatsForm";
 import type { TrustStat } from "@/lib/trust-stats";
 import ToggleForm from "@/components/console/ToggleForm";
@@ -96,7 +95,7 @@ function LocalitiesCard({ rows }: { rows: LocalityRow[] }) {
 
 export default async function SettingsPage() {
   await requireUser("admin");
-  const [trustStats, foundedYear, popup, business, notificationEmail, types, sources, localities, tags] = await Promise.all([getSettingValue<TrustStat[]>("trust_stats", []), getFoundedYear(), getPopupSettings(),
+  const [trustStats, foundedYear, business, notificationEmail, types, sources, localities, tags] = await Promise.all([getSettingValue<TrustStat[]>("trust_stats", []), getFoundedYear(),
     getSettingValue<Business>("business", DEFAULT_BUSINESS), getSettingValue<string>("notification_email", ""), getSettingValue<string[]>("property_types", []), listSourceRows(), listLocalityRows(), listTagRows(),
   ]);
   return (
@@ -106,7 +105,10 @@ export default async function SettingsPage() {
         <div className="space-y-5 lg:col-span-7">
           <BusinessForm business={{ ...DEFAULT_BUSINESS, ...business }} notificationEmail={notificationEmail} action={saveBusiness} />
           <TrustStatsForm stats={trustStats} foundedYear={foundedYear} action={saveTrustStats} />
-          <PopupForm popup={popup} action={savePopup} />
+          <div id="popup" className="flex scroll-mt-20 items-center justify-between gap-4 rounded-brand border border-line bg-white p-4 text-sm">
+            <div><p className="font-medium">Website pop-ups</p><p className="mt-0.5 text-muted">Create pop-ups with images, buttons, pages and dates, including the free consultation form.</p></div>
+            <Link href="/admin/popups" className="shrink-0 rounded-brand border border-line px-3 py-1.5 hover:border-ink">Manage pop-ups</Link>
+          </div>
         </div>
         <div className="space-y-5 lg:col-span-5">
           <ListCard id="sources" title="Lead sources" hint="Where a lead came from. Used on lead forms and reports." items={sources} kind="sources" />
