@@ -80,9 +80,12 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
                 <Link key={qk.href} href={qk.href} onClick={() => setOpen(false)} className="mx-2 my-0.5 flex items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm hover:bg-bg"><Icon name="plus" size={18} className="text-accent" />{qk.label}</Link>
               ))}
             </nav>
-            <form action={logoutAction} className="border-t border-line p-2">
-              <button type="submit" className="flex w-full items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="logout" size={18} />Log out</button>
-            </form>
+            <div className="border-t border-line p-2">
+              <Link href="/change-password" onClick={() => setOpen(false)} className="flex w-full items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />Change password</Link>
+              <form action={logoutAction}>
+                <button type="submit" className="flex w-full items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="logout" size={18} />Log out</button>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -103,6 +106,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
               <p className="text-xs capitalize text-muted">{user.role}</p>
             </div>
           )}
+          <Link href="/change-password" title="Change password" className="flex items-center gap-2 rounded-brand px-2.5 py-2 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />{!collapsed && "Change password"}</Link>
           <div className="flex items-center justify-between">
             <form action={logoutAction}>
               <button type="submit" title="Log out" className="flex items-center gap-2 rounded-brand px-2.5 py-2 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="logout" size={18} />{!collapsed && "Log out"}</button>
