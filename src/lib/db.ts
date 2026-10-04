@@ -42,6 +42,14 @@ async function connect(): Promise<Client> {
   const schema = fs.readFileSync(path.join(process.cwd(), "src", "db", "schema.sql"), "utf8");
   for (const stmt of statements(schema)) await client.query(stmt);
 
+  // A brand-new database gets the demo data before the migrations, the order every existing database went through,
+  // so the migrations' data fixes apply to it and the listings they add are the newest.
+  const { rows } = await client.query<{ n: number | string }>("SELECT count(*)::int AS n FROM users");
+  if (Number(rows[0].n) === 0) {
+    const { seed } = await import("@/db/seed");
+    await seed(client);
+  }
+
   // Numbered migrations in src/db/migrations run once each, in file-name order.
   await client.query("CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
   const migrationsDir = path.join(process.cwd(), "src", "db", "migrations");
@@ -54,11 +62,6 @@ async function connect(): Promise<Client> {
     await client.query("INSERT INTO schema_migrations (name) VALUES ($1)", [file]);
   }
 
-  const { rows } = await client.query<{ n: number | string }>("SELECT count(*)::int AS n FROM users");
-  if (Number(rows[0].n) === 0) {
-    const { seed } = await import("@/db/seed");
-    await seed(client);
-  }
   const { ensureAdmins } = await import("@/db/admins");
   await ensureAdmins(client);
   return client;
