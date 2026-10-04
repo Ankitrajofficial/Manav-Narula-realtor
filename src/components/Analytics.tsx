@@ -1,7 +1,7 @@
 /**
  * Google Tag Manager and Google Analytics 4, switched on by Hostinger environment variables:
  *   GTM_ID=GTM-XXXXXXX         (Tag Manager container)
- *   GA_MEASUREMENT_ID=G-XXXXXXXXXX   (Analytics data stream)
+ *   GA_MEASUREMENT_ID=G-XXXXXXXXXX   (Analytics data stream; defaults to the site's G-PH8KEL9J0L, "none" turns it off)
  * Either, both or neither. Rendered in <head> on every page, which is where Google Search Console looks when
  * verifying ownership through Tag Manager or Analytics. Staff pages (console, login) are never tracked, so
  * visits by the team do not count as website traffic.
@@ -12,7 +12,8 @@ const STAFF = "/^\\/(admin|employee|login|change-password|forgot-password)(\\/|$
 
 export function analyticsIds() {
   const gtm = process.env.GTM_ID?.trim().toUpperCase();
-  const ga = process.env.GA_MEASUREMENT_ID?.trim().toUpperCase();
+  // The site's own Analytics property; GA_MEASUREMENT_ID overrides it, and "none" turns Analytics off.
+  const ga = (process.env.GA_MEASUREMENT_ID?.trim() || "G-PH8KEL9J0L").toUpperCase();
   return { gtm: gtm && GTM.test(gtm) ? gtm : null, ga: ga && GA.test(ga) ? ga : null };
 }
 
