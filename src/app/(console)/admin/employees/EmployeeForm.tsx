@@ -12,11 +12,15 @@ export default function EmployeeForm({ employee: u, isSelf, action }: { employee
     return (
       <div className="max-w-lg rounded-brand border border-accent bg-white p-5">
         <p className="text-base">Account created for {state.created.name}</p>
-        <p className="mt-1 text-sm text-muted">Share these details with them now. The temporary password is shown only once.</p>
+        {state.created.emailed ? (
+          <p className="mt-1 text-sm text-accent-ink">Sign-in details emailed to {state.created.email}. They are also shown below, once.</p>
+        ) : (
+          <p className="mt-1 text-sm text-muted">{state.created.emailError ? <span className="text-red-700">Email not sent: {state.created.emailError}. </span> : null}Share these details with them now. The temporary password is shown only once.</p>
+        )}
         <dl className="mt-4 grid grid-cols-[120px_1fr] gap-y-2 text-sm">
           <dt className="text-muted">Email</dt><dd>{state.created.email}</dd>
           <dt className="text-muted">Password</dt><dd className="font-mono text-base tabular">{state.created.tempPassword}</dd>
-          <dt className="text-muted">Sign in at</dt><dd>/login</dd>
+          <dt className="text-muted">Sign in at</dt><dd className="break-all">{state.created.signIn}</dd>
         </dl>
         <div className="mt-5 flex gap-2">
           <Link href={`/admin/employees/${state.created.id}`} className="rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink">Open profile</Link>
@@ -36,7 +40,7 @@ export default function EmployeeForm({ employee: u, isSelf, action }: { employee
         {!u && (
           <>
             <Field label="Temporary password" htmlFor="password" error={e.password} hint="Leave blank to generate one. It is shown once after saving."><Input id="password" name="password" minLength={8} autoComplete="new-password" /></Field>
-            <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="send_invite" defaultChecked className="accent-[#00BF63]" />Send invite (recorded in the audit log; email delivery comes with Phase 2 hosting)</label></div>
+            <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="send_invite" defaultChecked className="accent-[#00BF63]" />Email the sign-in details to them</label></div>
           </>
         )}
       </Section>

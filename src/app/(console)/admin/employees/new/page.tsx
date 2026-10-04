@@ -5,5 +5,5 @@ import { createEmployee } from "../actions";
 
 export default async function NewEmployeePage() {
   await requireUser("admin");
-  return (<><PageHeader title="Create employee" description="They sign in at /login with the email and temporary password you share." /><EmployeeForm action={createEmployee} /></>);
+  return (<><PageHeader title="Create employee" description="Their sign-in details are emailed to them when email is connected; otherwise share the temporary password shown after saving." /><EmployeeForm action={createEmployee} /></>);
 }

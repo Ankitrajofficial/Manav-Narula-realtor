@@ -5,9 +5,10 @@ import { one, q } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { audit, toE164 } from "@/lib/records";
 import { emailTaken, reassignAndDelete, tempPassword } from "@/lib/queries/employees";
+import { credentialsEmail, mailConfigured, sendMail, signInUrl } from "@/lib/mailer";
 
-export interface EmployeeFormState { errors?: Record<string, string>; message?: string; created?: { id: number; name: string; email: string; tempPassword: string } }
-export interface ResetState { tempPassword?: string; message?: string }
+export interface EmployeeFormState { errors?: Record<string, string>; message?: string; created?: { id: number; name: string; email: string; tempPassword: string; signIn: string; emailed: boolean; emailError?: string } }
+export interface ResetState { tempPassword?: string; message?: string; emailed?: boolean; emailError?: string }
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 /** True when some other active admin would remain if `id` stopped being one. The system always keeps at least one active admin. */
@@ -35,8 +36,14 @@ export async function createEmployee(_p: EmployeeFormState, fd: FormData): Promi
   if (password.length < 8) return { errors: { password: "At least 8 characters." }, message: "Fix the highlighted fields." };
   const r = await one<{ id: number }>("INSERT INTO users (name,email,phone,role,status,password_hash,must_reset) VALUES ($1,$2,$3,$4,'active',$5,true) RETURNING id", [name, email, phone, role, hashPassword(password)]);
   await audit(user.id, "create", "user", r!.id, { name, email, role });
-  if (fd.get("send_invite")) await audit(user.id, "invite_sent", "user", r!.id, { email, note: "Invite recorded; email delivery is not connected yet" });
-  return { created: { id: r!.id, name, email, tempPassword: password } };
+  let emailed = false, emailError: string | undefined;
+  if (fd.get("send_invite")) {
+    const res = await sendMail(credentialsEmail({ name, email, password, role }));
+    emailed = res.ok;
+    if (!res.ok) emailError = res.error;
+    await audit(user.id, res.ok ? "invite_sent" : "invite_failed", "user", r!.id, { email, ...(res.ok ? {} : { error: res.error }) });
+  }
+  return { created: { id: r!.id, name, email, tempPassword: password, signIn: signInUrl(), emailed, emailError } };
 }
 
 export async function updateEmployee(id: number, _p: EmployeeFormState, fd: FormData): Promise<EmployeeFormState> {
@@ -51,14 +58,17 @@ export async function updateEmployee(id: number, _p: EmployeeFormState, fd: Form
   redirect(`/admin/employees/${id}?tab=account&toast=Saved`);
 }
 
-export async function resetPassword(id: number): Promise<ResetState> {
+export async function resetPassword(id: number, email: boolean): Promise<ResetState> {
   const user = await requireUser("admin");
-  const target = await one<{ id: number }>("SELECT id FROM users WHERE id = $1", [id]);
+  const target = await one<{ id: number; name: string; email: string; role: string }>("SELECT id, name, email, role FROM users WHERE id = $1", [id]);
   if (!target) return { message: "Employee not found." };
   const pw = tempPassword();
   await q("UPDATE users SET password_hash = $1, must_reset = true WHERE id = $2", [hashPassword(pw), id]);
   await audit(user.id, "reset_password", "user", id);
-  return { tempPassword: pw };
+  if (!email || !mailConfigured()) return { tempPassword: pw };
+  const res = await sendMail(credentialsEmail({ name: target.name, email: target.email, password: pw, role: target.role, reset: true }));
+  await audit(user.id, res.ok ? "reset_email_sent" : "reset_email_failed", "user", id, res.ok ? { email: target.email } : { email: target.email, error: res.error });
+  return { tempPassword: pw, emailed: res.ok, emailError: res.ok ? undefined : res.error };
 }
 
 export async function setEmployeeStatus(id: number, status: "active" | "blocked") {

@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import "server-only";
 import { one, q } from "@/lib/db";
 import { pageOf, sortOf } from "@/lib/console";
@@ -34,6 +35,6 @@ export async function reassignAndDelete(fromId: number, toId: number) {
 export function tempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   let s = "";
-  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 10; i++) s += chars[randomInt(chars.length)];
   return `Mn-${s}`;
 }
