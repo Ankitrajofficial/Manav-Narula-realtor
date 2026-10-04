@@ -37,7 +37,9 @@ export async function requireUser(role?: Role): Promise<SessionUser> {
 
 export async function login(email: string, password: string): Promise<{ ok: true; user: SessionUser } | { ok: false; error: string }> {
   const row = await one<SessionUser & { password_hash: string }>("SELECT id, name, email, role, status, must_reset, password_hash FROM users WHERE lower(email) = lower($1)", [email.trim()]);
-  if (!row || !verifyPassword(password, row.password_hash)) return { ok: false, error: "Email or password is incorrect." };
+  // A password pasted from a message often carries a stray space at either end: accept it once trimmed too.
+  const matches = row && (verifyPassword(password, row.password_hash) || (password.trim() !== password && verifyPassword(password.trim(), row.password_hash)));
+  if (!row || !matches) return { ok: false, error: "Email or password is incorrect." };
   if (row.status !== "active") return { ok: false, error: "This account is blocked. Contact the admin." };
   const exp = Date.now() + 1000 * 60 * 60 * 24 * 7;
   const value = `${row.id}.${exp}.${sign(`${row.id}.${exp}`)}`;
