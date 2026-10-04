@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Kothis, plots, apartments and commercial spaces in Jalandhar with verified titles, honest advice and accompanied site visits. 4.8 Google rating.",
   openGraph: { siteName: site.name, locale: "en_IN", type: "website" },
   robots: { index: true, follow: true },
+  // Google Search Console ownership (public/google47110b573c11a6e5.html is the second, file-based proof).
+  verification: { google: "JjtVLhqEllFHPRlLro-nS6NfzcoKgrSUaxPRlVTEfOE" },
 };
 
 const orgSchema = {
