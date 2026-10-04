@@ -3,7 +3,7 @@ import Icon from "@/components/Icon";
 import { Breadcrumbs, Section } from "@/components/ui";
 import { services } from "@/data/site";
 
-export const metadata = { title: "Services", description: "Buying, selling and valuation, renting, legal and documentation, home loans, NRI services and property management in Jalandhar, with fees stated upfront." };
+export const metadata = { title: "Services", description: "Buying, selling and valuation, renting, legal and documentation, home loans and NRI services in Jalandhar, with fees stated upfront." };
 
 export default function ServicesPage() {
   return (

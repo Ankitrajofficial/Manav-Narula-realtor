@@ -148,13 +148,6 @@ export const services = [
     points: ["Power of attorney guidance and video site visits", "Sale, rental or purchase handled end to end", "Repatriation and tax documentation support"],
     fee: "Fee: same as the underlying service. Video updates and monthly statements are included.",
   },
-  {
-    id: "management",
-    title: "Property management",
-    description: "Rent collection, maintenance, utility payments and quarterly inspections for owners who cannot be in Jalandhar.",
-    points: ["Rent collection and monthly statement", "Repairs, utility bills and society dues", "Quarterly inspection with photos"],
-    fee: "Fee: 8% of monthly rent, or a fixed quarterly amount for vacant properties. Quoted in writing.",
-  },
 ];
 
 export const testimonials = [
@@ -168,7 +161,6 @@ export const milestones = [
   { year: "2016", text: "First 100 registries completed; legal desk added with an empanelled advocate." },
   { year: "2019", text: "NRI desk started after a third of enquiries came from Canada, the UK and Australia." },
   { year: "2022", text: "Home loan partnerships with four banks; 500th family handed keys." },
-  { year: "2024", text: "Property management service launched." },
 ];
 
 export const team = [
