@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { site } from "@/data/site";
+import { AnalyticsBody, AnalyticsHead } from "@/components/Analytics";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -28,7 +29,11 @@ const orgSchema = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN" className="h-full" data-scroll-behavior="smooth">
+      <head>
+        <AnalyticsHead />
+      </head>
       <body className="flex min-h-full flex-col">
+        <AnalyticsBody />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
         {children}
       </body>

@@ -2,6 +2,9 @@ import type { MetadataRoute } from "next";
 import { site } from "@/data/site";
 import { getArticles, getProjects, getProperties } from "@/lib/site-data";
 
+// Rebuilt at most hourly, so properties, projects and posts added in the console reach Google without a redeploy.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const [properties, projects, articles] = await Promise.all([getProperties(), getProjects(), getArticles()]);
