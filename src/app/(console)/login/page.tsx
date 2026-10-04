@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import LoginForm from "./LoginForm";
+import Logo from "@/components/Logo";
 
 export const metadata = { title: "Sign in", robots: { index: false } };
 
@@ -11,7 +12,7 @@ export default async function LoginPage() {
     <div className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-brand border border-ink font-heading">MN</span>
+          <Logo size={44} />
           <div>
             <p className="font-heading text-lg leading-tight">Manav Narula Realtor</p>
             <p className="text-xs text-muted">Staff console</p>

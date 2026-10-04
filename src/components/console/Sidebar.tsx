@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import BackButton from "@/components/BackButton";
 import { logoutAction } from "@/app/(console)/actions";
 import { fieldCls } from "./Form";
+import Logo from "@/components/Logo";
 
 type NavItem = { href: string; label: string; icon: string };
 type Props = { nav: NavItem[]; user: { name: string; role: string }; home: string; quick: { label: string; href: string }[]; notifications: { count: number; href: string } };
@@ -47,7 +48,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
           <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-brand hover:bg-bg"><Icon name="menu" size={22} /></button>
           {pathname !== home && <BackButton />}
           <Link href={home} className="ml-1 flex min-w-0 items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-brand border border-ink font-heading text-xs">MN</span>
+            <Logo size={32} />
             <span className="truncate font-heading text-sm">Manav Narula Realtor</span>
           </Link>
         </div>
@@ -93,7 +94,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
       {/* Desktop sidebar */}
       <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-white transition-[width] md:flex ${collapsed ? "w-14" : "w-56"}`}>
         <div className="flex h-14 items-center gap-2 border-b border-line px-3">
-          <Link href={home} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-brand border border-ink font-heading text-xs" aria-label="Home">MN</Link>
+          <Link href={home} className="shrink-0" aria-label="Home"><Logo size={32} /></Link>
           {!collapsed && <span className="truncate font-heading text-sm">Manav Narula Realtor</span>}
         </div>
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Console">

@@ -25,6 +25,7 @@ function DescriptionBlock({ text }: { text: string }) {
   return <p>{text}</p>;
 }
 import { formatArea, formatPrice, pricePerSqft, unsplash } from "@/lib/format";
+import Logo from "@/components/Logo";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const p = await getPropertyBySlug((await params).slug);
@@ -151,7 +152,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                 <EnquiryForm variant="visit" subject={`${p.title}, ${p.locality}`} propertyId={p.id} />
               </div>
               <div className="flex items-center gap-4 rounded-brand border border-line bg-white p-5">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-brand border border-ink font-heading">MN</span>
+                <Logo size={48} />
                 <div className="text-sm">
                   <p>Manav Narula</p>
                   <p className="text-muted">Principal advisor</p>

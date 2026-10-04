@@ -4,6 +4,7 @@ import { getBusiness, getFoundedYear, phoneHref, whatsappHref, withFoundedYear }
 import { q } from "@/lib/db";
 import Icon from "./Icon";
 import { Container } from "./ui";
+import Logo from "@/components/Logo";
 
 const heading = "mb-4 text-xs font-medium uppercase tracking-[0.12em] text-white/50";
 const link = "text-sm text-white/85 hover:text-accent";
@@ -18,7 +19,7 @@ export default async function Footer() {
       {/* Top row: brand and the two fastest ways to reach us */}
       <Container className="flex flex-col gap-6 border-b border-white/10 py-10 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-brand border border-white/60 font-heading">{site.monogram}</span>
+          <Logo size={48} className="ring-1 ring-white/30" />
           <div>
             <p className="font-heading text-xl leading-tight">{site.name}</p>
             <p className="text-sm text-white/60">{withFoundedYear(b.tagline, foundedYear)}</p>

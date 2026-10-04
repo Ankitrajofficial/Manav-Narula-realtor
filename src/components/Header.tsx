@@ -6,6 +6,7 @@ import { nav, site } from "@/data/site";
 import BackButton from "./BackButton";
 import Icon from "./Icon";
 import { Container } from "./ui";
+import Logo from "@/components/Logo";
 
 export default function Header({ phone = site.phone }: { phone?: string }) {
   const tel = `tel:${phone.replace(/[^\d+]/g, "")}`;
@@ -17,7 +18,7 @@ export default function Header({ phone = site.phone }: { phone?: string }) {
         <div className="flex min-w-0 items-center">
           {pathname !== "/" && <BackButton className="-ml-2.5 mr-0.5" />}
           <Link href="/" className="flex min-w-0 items-center gap-3" aria-label={`${site.name} home`} onClick={() => setOpen(false)}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-brand border border-ink font-heading text-sm">{site.monogram}</span>
+            <Logo size={40} />
             <span className="truncate font-heading text-lg leading-none md:text-xl">{site.name}</span>
           </Link>
         </div>
