@@ -17,14 +17,12 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   await requireUser("admin");
   const sp = await searchParams;
   const board = sp.view === "board";
-  const employees = await listEmployees(true);
-  const data = await listTasks(sp, { all: true });
-  const qs = queryString(sp, { quick: undefined, leads: undefined, prospects: undefined });
-  const back = `/admin/tasks${qs ? `?${qs}` : ""}`;
   const ids = (v?: string) => (v ?? "").split(",").map(Number).filter((n) => n > 0);
   const linked = { leadIds: ids(sp.leads), prospectIds: ids(sp.prospects) };
+  const [employees, data, linkedInfo] = await Promise.all([listEmployees(true), listTasks(sp, { all: true }), linkedOwners(linked.leadIds, linked.prospectIds)]);
+  const qs = queryString(sp, { quick: undefined, leads: undefined, prospects: undefined });
+  const back = `/admin/tasks${qs ? `?${qs}` : ""}`;
   const staff = employees.filter((u) => u.role === "employee").map((u) => ({ id: u.id, name: u.name }));
-  const linkedInfo = await linkedOwners(linked.leadIds, linked.prospectIds);
 
   return (
     <>

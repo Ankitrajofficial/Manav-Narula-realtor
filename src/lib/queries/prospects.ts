@@ -39,8 +39,9 @@ export async function listProspects(sp: SP, scope: Scope = {}, pageSize = 20) {
   const { where, params, meta } = prospectFilters(sp, scope);
   const sort = sortOf(sp, SORTS, "created");
   const { page, size, offset } = pageOf(sp, pageSize);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to LEFT JOIN users a ON a.id = p.added_by ${where}`, params))?.n ?? 0);
-  const rows = await q<ProspectRow>(`${SELECT} ${where} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to LEFT JOIN users a ON a.id = p.added_by ${where}`, params), q<ProspectRow>(`${SELECT} ${where} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort, meta };
 }
 

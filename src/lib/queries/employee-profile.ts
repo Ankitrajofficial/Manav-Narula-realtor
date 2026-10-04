@@ -53,10 +53,10 @@ export const assignedLeads = (userId: number, limit = 50) =>
   q<ProfileRecord>(`SELECT id, name, phone, status, locality, interest, next_follow_up_at, updated_at, (next_follow_up_at < now() AND status NOT IN ('Closed won','Closed lost')) AS overdue FROM leads WHERE assigned_to = $1 ORDER BY (status IN ('Closed won','Closed lost')), next_follow_up_at NULLS LAST, updated_at DESC LIMIT ${Number(limit)}`, [userId]);
 export const assignedProspects = (userId: number, limit = 50) =>
   q<ProfileRecord>(`SELECT id, name, phone, status, locality, interest, next_follow_up_at, updated_at, (next_follow_up_at < now() AND status NOT IN ('Closed won','Closed lost')) AS overdue FROM prospects WHERE assigned_to = $1 ORDER BY (status IN ('Closed won','Closed lost')), next_follow_up_at NULLS LAST, updated_at DESC LIMIT ${Number(limit)}`, [userId]);
-export const countAssigned = async (userId: number) => ({
-  leads: await num("SELECT count(*)::int AS n FROM leads WHERE assigned_to = $1", [userId]),
-  prospects: await num("SELECT count(*)::int AS n FROM prospects WHERE assigned_to = $1", [userId]),
-});
+export const countAssigned = async (userId: number) => {
+  const [leads, prospects] = await Promise.all([num("SELECT count(*)::int AS n FROM leads WHERE assigned_to = $1", [userId]), num("SELECT count(*)::int AS n FROM prospects WHERE assigned_to = $1", [userId])]);
+  return { leads, prospects };
+};
 
 /** Unassigned records the admin can hand to this person straight from the profile. */
 export const unassignedLeads = (limit = 30) =>

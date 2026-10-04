@@ -50,10 +50,10 @@ export async function listTasks(sp: Record<string, string | undefined>, opts: { 
   const sort = sortOf(sp, SORTS, "created_at");
   const { page, size, offset } = pageOf(sp, 20);
   const orderSql = sp.sort ? sort.sql : "t.status = 'Done' ASC, t.due_date ASC NULLS LAST, t.created_at DESC";
-  const countRow = await one<{ n: number }>(`SELECT count(*)::int AS n FROM tasks t LEFT JOIN users u ON u.id = t.assigned_to LEFT JOIN leads l ON l.id = t.lead_id LEFT JOIN prospects p ON p.id = t.prospect_id ${w.sql}`, w.params);
-  const rows = opts.all
-    ? await q<TaskRow>(`${SELECT} ${w.sql} ORDER BY ${orderSql}`, w.params)
-    : await q<TaskRow>(`${SELECT} ${w.sql} ORDER BY ${orderSql} LIMIT ${size} OFFSET ${offset}`, w.params);
+  const [countRow, rows] = await Promise.all([
+    one<{ n: number }>(`SELECT count(*)::int AS n FROM tasks t LEFT JOIN users u ON u.id = t.assigned_to LEFT JOIN leads l ON l.id = t.lead_id LEFT JOIN prospects p ON p.id = t.prospect_id ${w.sql}`, w.params),
+    q<TaskRow>(`${SELECT} ${w.sql} ORDER BY ${orderSql}${opts.all ? "" : ` LIMIT ${size} OFFSET ${offset}`}`, w.params),
+  ]);
   return { rows, total: Number(countRow?.n ?? 0), page, size, sortKey: sort.key, sortDir: sort.dir };
 }
 
@@ -64,8 +64,7 @@ export const prospectOptions = (assignedTo?: number) => q<{ id: number; name: st
 
 /** Every lead and prospect attached to a task: the employee's call sheet. */
 export async function listTaskRecords(taskId: number): Promise<SheetRecord[]> {
-  const leads = await q<SheetRecord>(`SELECT 'lead' AS kind, l.id, l.name, l.phone, l.locality, l.status, l.interest, u.name AS assignee_name, l.next_follow_up_at FROM task_records r JOIN leads l ON l.id = r.lead_id LEFT JOIN users u ON u.id = l.assigned_to WHERE r.task_id = $1 ORDER BY l.name`, [taskId]);
-  const prospects = await q<SheetRecord>(`SELECT 'prospect' AS kind, p.id, p.name, p.phone, p.locality, p.status, p.interest, u.name AS assignee_name, p.next_follow_up_at FROM task_records r JOIN prospects p ON p.id = r.prospect_id LEFT JOIN users u ON u.id = p.assigned_to WHERE r.task_id = $1 ORDER BY p.name`, [taskId]);
+  const [leads, prospects] = await Promise.all([q<SheetRecord>(`SELECT 'lead' AS kind, l.id, l.name, l.phone, l.locality, l.status, l.interest, u.name AS assignee_name, l.next_follow_up_at FROM task_records r JOIN leads l ON l.id = r.lead_id LEFT JOIN users u ON u.id = l.assigned_to WHERE r.task_id = $1 ORDER BY l.name`, [taskId]), q<SheetRecord>(`SELECT 'prospect' AS kind, p.id, p.name, p.phone, p.locality, p.status, p.interest, u.name AS assignee_name, p.next_follow_up_at FROM task_records r JOIN prospects p ON p.id = r.prospect_id LEFT JOIN users u ON u.id = p.assigned_to WHERE r.task_id = $1 ORDER BY p.name`, [taskId])]);
   return [...leads, ...prospects];
 }
 

@@ -13,7 +13,10 @@ async function connect(): Promise<Client> {
   let client: Client;
   if (process.env.DATABASE_URL) {
     const { Pool } = await import("pg");
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false } });
+    // Keep connections open between clicks: opening a new TLS connection to the database costs several round trips.
+    // pg's default closes an idle connection after 10 s, so almost every click paid that cost again.
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false }, max: 10, idleTimeoutMillis: 5 * 60_000, keepAlive: true });
+    pool.on("error", (e) => console.error("[db] idle connection error", e.message));
     client = { query: (t, p) => pool.query(t, p as never[]) as unknown as Promise<{ rows: never[] }> };
   } else {
     const { PGlite } = await import("@electric-sql/pglite");

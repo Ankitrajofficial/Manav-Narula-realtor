@@ -27,8 +27,9 @@ export async function listAudit(sp: Record<string, string | undefined>) {
   if (sp.to) { params.push(sp.to); where.push(`a.created_at < ($${params.length}::date + interval '1 day')`); }
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const { page, size, offset } = pageOf(sp, 30);
-  const rows = await q<AuditRow>(`SELECT a.*, u.name AS user_name FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ${w} ORDER BY a.created_at DESC LIMIT ${size} OFFSET ${offset}`, params);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ${w}`, params))?.n ?? 0);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ${w}`, params), q<AuditRow>(`SELECT a.*, u.name AS user_name FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ${w} ORDER BY a.created_at DESC LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size };
 }
 export const allAudit = (sp: Record<string, string | undefined>) => listAudit({ ...sp, page: "1" }).then(async (r) => r.total <= r.size ? r.rows : q<AuditRow>("SELECT a.*, u.name AS user_name FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ORDER BY a.created_at DESC LIMIT 5000"));

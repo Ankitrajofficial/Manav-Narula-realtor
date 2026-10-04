@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { one, q } from "./db";
 import { verifyPassword } from "./password";
@@ -12,7 +13,8 @@ const COOKIE = "mn_session";
 const secret = () => process.env.SESSION_SECRET || "dev-only-secret-change-me";
 const sign = (v: string) => createHmac("sha256", secret()).update(v).digest("hex");
 
-export async function getSession(): Promise<SessionUser | null> {
+/** Cached per request: the layout and the page both check the session, but the database is asked once. */
+export const getSession = cache(async function getSession(): Promise<SessionUser | null> {
   const raw = (await cookies()).get(COOKIE)?.value;
   if (!raw) return null;
   const [id, exp, sig] = raw.split(".");
@@ -20,7 +22,7 @@ export async function getSession(): Promise<SessionUser | null> {
   const user = await one<SessionUser>("SELECT id, name, email, role, status, must_reset FROM users WHERE id = $1", [Number(id)]);
   if (!user || user.status !== "active") return null;
   return user;
-}
+});
 
 /**
  * Redirects to /login when signed out, to /change-password while a temporary password is still in use,

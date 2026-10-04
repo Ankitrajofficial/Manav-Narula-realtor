@@ -35,8 +35,9 @@ export async function listProperties(sp: SP) {
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const sort = sortOf(sp, PROPERTY_SORT, "updated_at");
   const { page, size, offset } = pageOf(sp);
-  const rows = await q<PropertyRow>(`SELECT p.*, ${COVER} FROM properties p ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM properties p ${w}`, params))?.n ?? 0);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM properties p ${w}`, params), q<PropertyRow>(`SELECT p.*, ${COVER} FROM properties p ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort };
 }
 
@@ -120,8 +121,9 @@ export async function listProjects(sp: SP) {
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const sort = sortOf(sp, PROJECT_SORT, "updated_at");
   const { page, size, offset } = pageOf(sp);
-  const rows = await q<ProjectRow>(`SELECT p.*, ${PROGRESS} FROM projects p ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM projects p ${w}`, params))?.n ?? 0);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM projects p ${w}`, params), q<ProjectRow>(`SELECT p.*, ${PROGRESS} FROM projects p ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort };
 }
 export const getProjectById = (id: number) => one<ProjectRow>(`SELECT p.*, ${PROGRESS} FROM projects p WHERE p.id = $1`, [id]);
@@ -195,8 +197,9 @@ export async function listBlogPosts(sp: SP) {
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const sort = sortOf(sp, BLOG_SORT, "updated_at");
   const { page, size, offset } = pageOf(sp);
-  const rows = await q<BlogRow>(`SELECT * FROM blog_posts ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM blog_posts ${w}`, params))?.n ?? 0);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM blog_posts ${w}`, params), q<BlogRow>(`SELECT * FROM blog_posts ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort };
 }
 export const getBlogPost = (id: number) => one<BlogRow>("SELECT * FROM blog_posts WHERE id = $1", [id]);

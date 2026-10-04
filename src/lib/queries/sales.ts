@@ -38,11 +38,10 @@ export async function listSales(sp: Record<string, string | undefined>, opts: { 
   const sort = sortOf(sp, SORTS, "sale_date");
   const { page, size, offset } = pageOf(sp, 20);
   const joins = "FROM sales s LEFT JOIN users u ON u.id = s.employee_id LEFT JOIN leads l ON l.id = s.lead_id LEFT JOIN prospects p ON p.id = s.prospect_id LEFT JOIN properties pr ON pr.id = s.property_id";
-  const totals = await one<{ n: number; value: string | number; commission: string | number }>(`SELECT count(*)::int AS n, COALESCE(sum(s.deal_value),0) AS value, COALESCE(sum(s.commission),0) AS commission ${joins} ${w.sql}`, w.params);
-  const rows = opts.all
-    ? await q<SaleRow>(`${SELECT} ${w.sql} ORDER BY ${sort.sql}, s.id DESC`, w.params)
-    : await q<SaleRow>(`${SELECT} ${w.sql} ORDER BY ${sort.sql}, s.id DESC LIMIT ${size} OFFSET ${offset}`, w.params);
-  const months = await q<{ month: string; n: number; value: string | number; commission: string | number }>(`SELECT to_char(date_trunc('month', s.sale_date), 'Mon YYYY') AS month, count(*)::int AS n, COALESCE(sum(s.deal_value),0) AS value, COALESCE(sum(s.commission),0) AS commission ${joins} ${w.sql} GROUP BY date_trunc('month', s.sale_date) ORDER BY date_trunc('month', s.sale_date) DESC LIMIT 12`, w.params);
+  const [totals, rows, months] = await Promise.all([one<{ n: number; value: string | number; commission: string | number }>(`SELECT count(*)::int AS n, COALESCE(sum(s.deal_value),0) AS value, COALESCE(sum(s.commission),0) AS commission ${joins} ${w.sql}`, w.params),
+    q<SaleRow>(`${SELECT} ${w.sql} ORDER BY ${sort.sql}, s.id DESC${opts.all ? "" : ` LIMIT ${size} OFFSET ${offset}`}`, w.params),
+    q<{ month: string; n: number; value: string | number; commission: string | number }>(`SELECT to_char(date_trunc('month', s.sale_date), 'Mon YYYY') AS month, count(*)::int AS n, COALESCE(sum(s.deal_value),0) AS value, COALESCE(sum(s.commission),0) AS commission ${joins} ${w.sql} GROUP BY date_trunc('month', s.sale_date) ORDER BY date_trunc('month', s.sale_date) DESC LIMIT 12`, w.params),
+  ]);
   return { rows, total: Number(totals?.n ?? 0), totalValue: Number(totals?.value ?? 0), totalCommission: Number(totals?.commission ?? 0), months, page, size, sortKey: sort.key, sortDir: sort.dir, from: w.from, to: w.to };
 }
 

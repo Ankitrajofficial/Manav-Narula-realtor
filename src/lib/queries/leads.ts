@@ -42,8 +42,9 @@ export async function listLeads(sp: SP, scope: Scope = {}, pageSize = 20) {
   const { where, params, meta } = leadFilters(sp, scope);
   const sort = sortOf(sp, SORTS, "created");
   const { page, size, offset } = pageOf(sp, pageSize);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM leads l LEFT JOIN users u ON u.id = l.assigned_to ${where}`, params))?.n ?? 0);
-  const rows = await q<LeadRow>(`${SELECT} ${where} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM leads l LEFT JOIN users u ON u.id = l.assigned_to ${where}`, params), q<LeadRow>(`${SELECT} ${where} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort, meta };
 }
 

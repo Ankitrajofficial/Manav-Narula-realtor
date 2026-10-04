@@ -14,8 +14,9 @@ export async function listEmployeeRows(sp: Record<string, string | undefined>) {
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const sort = sortOf(sp, SORT, "name");
   const { page, size, offset } = pageOf(sp);
-  const rows = await q<EmployeeRow>(`SELECT u.id,u.name,u.email,u.phone,u.role,u.status,u.last_login_at,u.created_at, ${OPEN} FROM users u ${w} ORDER BY ${sort.sql.replace("desc NULLS LAST", "asc NULLS LAST").replace("asc NULLS LAST", sort.dir + " NULLS LAST")} LIMIT ${size} OFFSET ${offset}`, params);
-  const total = Number((await one<{ n: number }>(`SELECT count(*)::int AS n FROM users u ${w}`, params))?.n ?? 0);
+  // Count and page rows in parallel: one round trip to the database instead of two.
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM users u ${w}`, params), q<EmployeeRow>(`SELECT u.id,u.name,u.email,u.phone,u.role,u.status,u.last_login_at,u.created_at, ${OPEN} FROM users u ${w} ORDER BY ${sort.sql.replace("desc NULLS LAST", "asc NULLS LAST").replace("asc NULLS LAST", sort.dir + " NULLS LAST")} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort };
 }
 export const getEmployee = (id: number) => one<EmployeeRow>(`SELECT u.id,u.name,u.email,u.phone,u.role,u.status,u.last_login_at,u.created_at, ${OPEN} FROM users u WHERE u.id = $1`, [id]);
