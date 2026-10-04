@@ -15,7 +15,8 @@ export interface WebhookLead {
  */
 export async function forwardLeads(ids: number[]): Promise<void> {
   const url = process.env.CRM_WEBHOOK_URL?.trim();
-  if (!url || !ids.length) return;
+  // Hosting panels sometimes insist on a value: anything that is not an http(s) URL (e.g. "none") means "off".
+  if (!url || !/^https?:\/\//i.test(url) || !ids.length) return;
   try {
     const leads = await q<WebhookLead>(
       `SELECT l.id, l.created_at, l.name, l.phone, l.email, l.interest, l.budget, l.locality, p.title AS property, j.name AS project,
