@@ -8,7 +8,7 @@ export const site = {
   phone: "+91 90122 90522",
   phoneHref: "tel:+919012290522",
   whatsappHref: "https://wa.me/919012290522?text=Hello%2C%20I%20want%20to%20enquire%20about%20a%20property.",
-  email: "hello@manavnarularealtor.com",
+  email: "realtormanavnarula@gmail.com",
   hours: "Mon to Sat, 10:00 am to 7:00 pm · Sunday by appointment",
   rera: "PBRERA-JAL-AGT-2024-0119",
   rating: 4.8,
