@@ -43,3 +43,6 @@ next-env.d.ts
 /public/uploads/*
 !/public/uploads/.gitkeep
 !.env.example
+
+# MySQL export with real data (leads, password hashes): never commit
+/db-mysql/data.sql
