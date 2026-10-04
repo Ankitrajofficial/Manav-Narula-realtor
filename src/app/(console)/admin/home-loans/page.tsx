@@ -28,7 +28,7 @@ export default async function HomeLoansAdminPage({ searchParams }: { searchParam
       </nav>
       {tab === "banks" ? (
         <>
-          <p className="mb-3 text-sm text-muted">The first four are shown in one row on desktop. Partner Bank 1 to 4 are placeholders: replace each with the real bank name and logo.</p>
+          <p className="mb-3 text-sm text-muted">Up to five are shown in one row on desktop; more wrap onto the next row.</p>
           <BanksManager banks={banks} />
         </>
       ) : (

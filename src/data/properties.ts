@@ -32,6 +32,10 @@ export interface Property {
   rera?: string;
   nearby: { name: string; distance: string }[];
   featured?: boolean;
+  masterPlan?: string;
+  floorPlans?: { url: string; label: string }[];
+  metaTitle?: string;
+  metaDescription?: string;
 }
 
 export const properties: Property[] = [

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { q, one } from "@/lib/db";
 import { audit, slugify } from "@/lib/records";
-import { saveUploads } from "@/lib/upload";
+import { saveUpload, saveUploads } from "@/lib/upload";
 import { getPropertyById, getPropertyImages, insertProperty, replacePropertyImages, uniqueSlug, updateProperty, type PropertyInput } from "@/lib/queries/content";
 
 export interface PropertyFormState { errors?: Record<string, string>; message?: string }
@@ -12,6 +12,14 @@ export interface PropertyFormState { errors?: Record<string, string>; message?: 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const n = (fd: FormData, k: string) => { const v = s(fd, k); if (!v) return null; const x = Number(v.replace(/,/g, "")); return Number.isFinite(x) ? x : null; };
 const opt = (v: string) => (v ? v : null);
+const file = (fd: FormData, k: string) => { const f = fd.get(k); return f instanceof File && f.size > 0 ? f : null; };
+
+/** Resolve a single-file field: new upload wins, else the kept current URL, else null (cleared). */
+async function single(fd: FormData, k: string): Promise<string | null> {
+  const f = file(fd, k);
+  if (f) return saveUpload(f, "properties");
+  return opt(s(fd, `${k}_current`));
+}
 
 async function parse(fd: FormData, id: number | null): Promise<{ input?: PropertyInput; errors?: Record<string, string> }> {
   const errors: Record<string, string> = {};
@@ -30,6 +38,13 @@ async function parse(fd: FormData, id: number | null): Promise<{ input?: Propert
   const price = n(fd, "price"); if (!price || price <= 0) errors.price = "Enter the price in rupees.";
   const area = n(fd, "area"); if (!area || area <= 0) errors.area = "Enter the area.";
   const status = s(fd, "status") || "Ready";
+  let master_plan: string | null = null, floor_plan: string | null = null;
+  try {
+    master_plan = await single(fd, "master_plan");
+    floor_plan = await single(fd, "floor_plan");
+  } catch (e) {
+    errors.master_plan = e instanceof Error ? e.message : "Upload failed.";
+  }
   if (Object.keys(errors).length) return { errors };
   const base = slugify(s(fd, "slug") || title);
   const slug = await uniqueSlug("properties", base, id);
@@ -47,7 +62,7 @@ async function parse(fd: FormData, id: number | null): Promise<{ input?: Propert
       super_area: n(fd, "super_area"), floor: opt(s(fd, "floor")), facing: opt(s(fd, "facing")), furnishing: opt(s(fd, "furnishing")), parking: opt(s(fd, "parking")), possession: opt(s(fd, "possession")), status,
       description: opt(s(fd, "description")), long_description: opt(s(fd, "long_description")), amenities: fd.getAll("amenities").map(String), trust, rera, nearby,
       featured: !!fd.get("featured"), published: s(fd, "intent") === "publish", meta_title: opt(s(fd, "meta_title")), meta_description: opt(s(fd, "meta_description")),
-      address_line: opt(s(fd, "address_line").slice(0, 80)), street: opt(street), city, pincode: opt(pincode), maps_url: opt(maps_url),
+      address_line: opt(s(fd, "address_line").slice(0, 80)), street: opt(street), city, pincode: opt(pincode), maps_url: opt(maps_url), master_plan, floor_plan,
     },
   };
 }
@@ -113,7 +128,7 @@ export async function duplicateProperty(id: number) {
     slug, title: `${p.title} (copy)`, type: p.type, purpose: p.purpose, locality: p.locality, project_id: p.project_id, price: Number(p.price), bhk: p.bhk, baths: p.baths, area: p.area == null ? null : Number(p.area), area_unit: p.area_unit,
     super_area: p.super_area == null ? null : Number(p.super_area), floor: p.floor, facing: p.facing, furnishing: p.furnishing, parking: p.parking, possession: p.possession, status: p.status, description: p.description, long_description: p.long_description,
     amenities: p.amenities ?? [], trust: p.trust ?? [], rera: p.rera, nearby: p.nearby ?? [], featured: false, published: false, meta_title: p.meta_title, meta_description: p.meta_description,
-    address_line: null, street: p.street, city: p.city ?? "Jalandhar", pincode: p.pincode, maps_url: null,
+    address_line: null, street: p.street, city: p.city ?? "Jalandhar", pincode: p.pincode, maps_url: null, master_plan: p.master_plan, floor_plan: p.floor_plan,
   });
   const imgs = await getPropertyImages(id);
   await replacePropertyImages(newId, imgs.map((i) => i.url), imgs.find((i) => i.is_cover)?.url ?? null);

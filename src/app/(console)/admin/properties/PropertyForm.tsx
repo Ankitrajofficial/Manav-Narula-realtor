@@ -5,6 +5,7 @@ import { Field, FormError, Input, Section, Select, SubmitButton, Textarea, input
 import LocalitySelect from "@/components/LocalitySelect";
 import type { LocalityOption } from "@/lib/localities";
 import ImageUploader from "@/components/console/ImageUploader";
+import ImageField from "@/components/console/ImageField";
 import RowsEditor from "@/components/console/RowsEditor";
 import ConfirmButton from "@/components/console/ConfirmButton";
 import { AMENITY_OPTIONS, PROPERTY_STATUSES } from "@/lib/console";
@@ -85,12 +86,18 @@ export default function PropertyForm({ property: p, images = [], cover, localiti
 
       <Section title="Amenities">
         <div className="grid grid-cols-2 gap-2 md:col-span-2 md:grid-cols-4">
-          {AMENITY_OPTIONS.map((a) => <label key={a} className="flex items-center gap-2 text-sm"><input type="checkbox" name="amenities" value={a} defaultChecked={p?.amenities?.includes(a)} className="accent-[#00BF63]" />{a}</label>)}
+          {[...AMENITY_OPTIONS, ...(p?.amenities ?? []).filter((x) => !AMENITY_OPTIONS.includes(x))].map((a) => <label key={a} className="flex items-center gap-2 text-sm"><input type="checkbox" name="amenities" value={a} defaultChecked={p?.amenities?.includes(a)} className="accent-[#00BF63]" />{a}</label>)}
         </div>
       </Section>
 
       <Section title="Images" description="First image or the one marked Cover is used on cards. 4:3 crops look best.">
         <div className="md:col-span-2"><ImageUploader name="images" initial={images} initialCover={cover} /></div>
+      </Section>
+
+      <Section title="Plans" description="Shown in their own sections on the property page.">
+        <ImageField name="master_plan" label="Master plan" initial={p?.master_plan} />
+        <ImageField name="floor_plan" label="Floor plans" initial={p?.floor_plan} />
+        {e.master_plan && <p className="text-sm text-red-700 md:col-span-2">{e.master_plan}</p>}
       </Section>
 
       <Section title="Trust">

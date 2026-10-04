@@ -7,7 +7,7 @@ import { Tag, TrustRow } from "./ui";
 function specLine(p: Property) {
   const parts: string[] = [];
   if (p.bhk) parts.push(`${p.bhk} BHK`);
-  parts.push(formatArea(p.area, p.areaUnit));
+  if (p.area > 0) parts.push(formatArea(p.area, p.areaUnit));
   if (!p.bhk) parts.unshift(p.type);
   parts.push(p.locality);
   return parts.join(" · ");

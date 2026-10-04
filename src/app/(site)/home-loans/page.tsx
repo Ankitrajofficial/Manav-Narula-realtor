@@ -53,7 +53,7 @@ export default async function HomeLoansPage() {
       {banks.length > 0 && (
         <Section>
           <SectionTitle title="Partner banks" intro="We compare offers from each of these and recommend the one that suits your income and property." />
-          <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-brand border border-line bg-line md:grid-cols-4">
+          <ul className={`grid grid-cols-2 gap-px overflow-hidden rounded-brand border border-line bg-line [&>li:last-child:nth-child(odd)]:col-span-2 ${banks.length === 5 ? "md:grid-cols-5" : banks.length === 3 ? "md:grid-cols-3" : "md:grid-cols-4"} md:[&>li:last-child:nth-child(odd)]:col-span-1`}>
             {banks.map((b) => (
               <li key={b.id} className="group flex flex-col items-start bg-white p-5">
                 <div className="relative flex h-12 w-full items-center">

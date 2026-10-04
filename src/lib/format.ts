@@ -1,4 +1,5 @@
 export function formatPrice(rupees: number, purpose: "Buy" | "Rent" = "Buy"): string {
+  if (!(rupees > 0)) return "Price on request";
   if (purpose === "Rent") return `₹${rupees.toLocaleString("en-IN")}/mo`;
   if (rupees >= 1_00_00_000) {
     const cr = rupees / 1_00_00_000;

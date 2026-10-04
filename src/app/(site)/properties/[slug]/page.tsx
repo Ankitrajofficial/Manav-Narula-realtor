@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Gallery from "@/components/Gallery";
@@ -17,12 +16,20 @@ function similarProperties(all: Property[], p: Property, n = 3) {
   return all.filter((x) => x.slug !== p.slug).sort((a, b) => score(b) - score(a)).slice(0, n);
 }
 import { site } from "@/data/site";
+
+/** A description paragraph: "## " starts a sub-heading, and a block of "- " lines is a bullet list. */
+function DescriptionBlock({ text }: { text: string }) {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 1 && lines[0].startsWith("## ")) return <h3 className="mb-3 mt-8 text-xl">{lines[0].slice(3)}</h3>;
+  if (lines.every((l) => l.startsWith("- "))) return <ul className="mb-5 list-disc space-y-1 pl-5">{lines.map((l) => <li key={l}>{l.slice(2)}</li>)}</ul>;
+  return <p>{text}</p>;
+}
 import { formatArea, formatPrice, pricePerSqft, unsplash } from "@/lib/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const p = await getPropertyBySlug((await params).slug);
   if (!p) return {};
-  return { title: `${p.title}, ${p.locality}`, description: p.description, openGraph: { images: [unsplash(p.images[0], 1200, 900)] } };
+  return { title: p.metaTitle ? { absolute: p.metaTitle } : `${p.title}, ${p.locality}`, description: p.metaDescription || p.description, openGraph: { images: [unsplash(p.images[0], 1200, 900)] } };
 }
 
 export default async function PropertyPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -32,12 +39,12 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
   const specs = [
     p.bhk && { icon: "bed", label: "BHK", value: `${p.bhk} BHK` },
     p.baths && { icon: "bath", label: "Baths", value: String(p.baths) },
-    { icon: "area", label: "Area", value: formatArea(p.area, p.areaUnit) },
+    p.area > 0 && { icon: "area", label: "Area", value: formatArea(p.area, p.areaUnit) },
     p.floor && { icon: "layers", label: "Floor", value: p.floor },
-    { icon: "compass", label: "Facing", value: p.facing },
+    p.facing && { icon: "compass", label: "Facing", value: p.facing },
     p.furnishing && { icon: "sofa", label: "Furnishing", value: p.furnishing },
     p.parking && { icon: "car", label: "Parking", value: p.parking },
-    { icon: "calendar", label: "Possession", value: p.possession },
+    p.possession && { icon: "calendar", label: "Possession", value: p.possession },
   ].filter(Boolean) as { icon: string; label: string; value: string }[];
   const schema = {
     "@context": "https://schema.org",
@@ -65,7 +72,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold tabular">{formatPrice(p.price, p.purpose)}</p>
-                {p.purpose === "Buy" && <p className="text-sm tabular text-muted">{pricePerSqft(p.price, p.area, p.areaUnit)}</p>}
+                {p.purpose === "Buy" && p.price > 0 && p.area > 0 && <p className="text-sm tabular text-muted">{pricePerSqft(p.price, p.area, p.areaUnit)}</p>}
               </div>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-y border-line py-4">
@@ -84,7 +91,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
             <section className="mt-12">
               <h2 className="text-2xl">About this property</h2>
-              <div className="prose-article mt-4 text-ink/85">{p.longDescription.map((t, i) => <p key={i}>{t}</p>)}</div>
+              <div className="prose-article mt-4 text-justify hyphens-auto text-ink/85">{p.longDescription.map((t, i) => <DescriptionBlock key={i} text={t} />)}</div>
             </section>
 
             <section className="mt-12">
@@ -94,22 +101,41 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               </ul>
             </section>
 
-            {p.type !== "Plot" && (
+            {p.masterPlan && (
               <section className="mt-12">
-                <h2 className="text-2xl">Floor plan</h2>
-                <div className="relative mt-4 aspect-[4/3] max-w-xl overflow-hidden rounded-brand border border-line bg-white">
-                  <Image src={unsplash(p.images[p.images.length - 1], 800, 600)} alt={`Floor plan reference for ${p.title}`} fill sizes="600px" className="object-cover opacity-90" />
-                </div>
-                <p className="mt-2 text-xs text-muted">Detailed floor plan shared on request after a site visit.</p>
+                <h2 className="text-2xl">Master plan</h2>
+                <a href={p.masterPlan} target="_blank" rel="noopener" className="mt-4 block overflow-hidden rounded-brand border border-line bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.masterPlan} alt={`Master plan of ${p.title}`} loading="lazy" className="mx-auto h-auto max-h-[80vh] w-auto max-w-full" />
+                </a>
+                <p className="mt-2 text-xs text-muted">Tap to open full size.</p>
               </section>
             )}
 
-            <section className="mt-12">
+            {!!p.floorPlans?.length && (
+              <section className="mt-12">
+                <h2 className="text-2xl">Floor plans</h2>
+                <div className={`mt-4 grid gap-6 ${p.floorPlans.length > 1 ? "sm:grid-cols-2" : ""}`}>
+                  {p.floorPlans.map((fp) => (
+                    <figure key={fp.url}>
+                      <a href={fp.url} target="_blank" rel="noopener" className="block overflow-hidden rounded-brand border border-line bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={fp.url} alt={fp.label ? `${fp.label} floor plan, ${p.title}` : `Floor plan of ${p.title}`} loading="lazy" className="h-auto w-full" />
+                      </a>
+                      {fp.label && <figcaption className="mt-2 text-sm">{fp.label}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted">Tap a plan to open it full size.</p>
+              </section>
+            )}
+
+            {p.nearby.length > 0 && <section className="mt-12">
               <h2 className="text-2xl">Nearby</h2>
               <ul className="mt-4 divide-y divide-line border-y border-line text-sm">
                 {p.nearby.map((n) => <li key={n.name} className="flex justify-between py-3"><span>{n.name}</span><span className="tabular text-muted">{n.distance}</span></li>)}
               </ul>
-            </section>
+            </section>}
 
             <section className="mt-12 text-xs text-muted">
               <p>Listed by {site.name}.</p>

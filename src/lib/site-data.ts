@@ -17,7 +17,7 @@ interface PropertyRow {
   bhk: number | null; baths: number | null; area: string | number; area_unit: Property["areaUnit"]; floor: string | null; facing: string | null;
   furnishing: string | null; parking: string | null; possession: string | null; status: Property["status"]; description: string | null;
   long_description: string | null; amenities: string[]; trust: Property["trust"]; rera: string | null; nearby: { name: string; distance: string }[];
-  featured: boolean; images: string[] | null;
+  featured: boolean; images: string[] | null; master_plan: string | null; floor_plan: string | null; floor_plans: { url: string; label: string }[] | null; meta_title: string | null; meta_description: string | null;
 }
 
 const PROPERTY_SELECT = `SELECT p.*, (SELECT json_agg(url ORDER BY is_cover DESC, sort_order) FROM property_images i WHERE i.property_id = p.id) AS images FROM properties p`;
@@ -29,6 +29,7 @@ function mapProperty(r: PropertyRow): Property {
     furnishing: r.furnishing ?? undefined, parking: r.parking ?? undefined, possession: r.possession ?? "", status: r.status, description: r.description ?? "",
     longDescription: (r.long_description ?? "").split(/\n{2,}/).filter(Boolean), amenities: r.amenities ?? [], trust: (r.trust ?? []).filter((t) => t !== "rera"), rera: undefined,
     nearby: r.nearby ?? [], featured: r.featured, images: r.images && r.images.length ? r.images : ["photo-1600596542815-ffad4c1539a9"],
+    masterPlan: r.master_plan ?? undefined, floorPlans: [...(r.floor_plans ?? []), ...(r.floor_plan ? [{ url: r.floor_plan, label: "" }] : [])], metaTitle: r.meta_title ?? undefined, metaDescription: r.meta_description ?? undefined,
   };
 }
 
