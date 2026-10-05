@@ -11,6 +11,8 @@ const g = globalThis as unknown as { __mnDb?: Promise<Client> };
 
 async function connect(): Promise<Client> {
   let client: Client;
+  /** Runs the schema, seed and migrations. With Postgres it runs on one connection holding a lock (see below). */
+  let prepare: (run: (c: Client) => Promise<void>) => Promise<void> = (run) => run(client);
   if (process.env.DATABASE_URL) {
     const { Pool } = await import("pg");
     // Keep connections open between clicks: opening a new TLS connection to the database costs several round trips.
@@ -18,6 +20,20 @@ async function connect(): Promise<Client> {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false }, max: 10, idleTimeoutMillis: 5 * 60_000, keepAlive: true });
     pool.on("error", (e) => console.error("[db] idle connection error", e.message));
     client = { query: (t, p) => pool.query(t, p as never[]) as unknown as Promise<{ rows: never[] }> };
+    // A production build renders pages in several processes at once, and each one connects and brings the schema up to
+    // date. Two of them creating the same new table at the same moment makes Postgres fail with a duplicate-key error,
+    // which fails the whole build. An advisory lock lets one process do it while the others wait, then find it done.
+    prepare = async (run) => {
+      const conn = await pool.connect();
+      const one: Client = { query: (t, p) => conn.query(t, p as never[]) as unknown as Promise<{ rows: never[] }> };
+      try {
+        await conn.query("SELECT pg_advisory_lock(73517001)");
+        await run(one);
+      } finally {
+        await conn.query("SELECT pg_advisory_unlock(73517001)").catch(() => undefined);
+        conn.release();
+      }
+    };
   } else {
     const { PGlite } = await import("@electric-sql/pglite");
     const dir = path.join(process.cwd(), ".data", "pglite");
@@ -41,32 +57,34 @@ async function connect(): Promise<Client> {
     if (!db) throw new Error(`The embedded database in ${dir} could not start (${(lastErr as Error)?.message}). Stop every other dev server or build using it, or delete web/.data to reset to seed data.`);
     client = { query: (t, p) => db.query(t, p as never[]) as Promise<{ rows: never[] }> };
   }
-  const statements = (sql: string) => sql.split(/;\s*\n/).map((s) => s.trim()).filter(Boolean);
-  const schema = fs.readFileSync(path.join(process.cwd(), "src", "db", "schema.sql"), "utf8");
-  for (const stmt of statements(schema)) await client.query(stmt);
+  await prepare(async (c) => {
+    const statements = (sql: string) => sql.split(/;\s*\n/).map((s) => s.trim()).filter(Boolean);
+    const schema = fs.readFileSync(path.join(process.cwd(), "src", "db", "schema.sql"), "utf8");
+    for (const stmt of statements(schema)) await c.query(stmt);
 
-  // A brand-new database gets the demo data before the migrations, the order every existing database went through,
-  // so the migrations' data fixes apply to it and the listings they add are the newest.
-  const { rows } = await client.query<{ n: number | string }>("SELECT count(*)::int AS n FROM users");
-  if (Number(rows[0].n) === 0) {
-    const { seed } = await import("@/db/seed");
-    await seed(client);
-  }
+    // A brand-new database gets the demo data before the migrations, the order every existing database went through,
+    // so the migrations' data fixes apply to it and the listings they add are the newest.
+    const { rows } = await c.query<{ n: number | string }>("SELECT count(*)::int AS n FROM users");
+    if (Number(rows[0].n) === 0) {
+      const { seed } = await import("@/db/seed");
+      await seed(c);
+    }
 
-  // Numbered migrations in src/db/migrations run once each, in file-name order.
-  await client.query("CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
-  const migrationsDir = path.join(process.cwd(), "src", "db", "migrations");
-  const applied = new Set((await client.query<{ name: string }>("SELECT name FROM schema_migrations")).rows.map((r) => r.name));
-  for (const file of fs.existsSync(migrationsDir) ? fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort() : []) {
-    if (applied.has(file)) continue;
-    console.log(`[db] applying migration ${file}`);
-    // Statements are written to be safe to re-run, so a migration interrupted part-way can simply run again.
-    for (const stmt of statements(fs.readFileSync(path.join(migrationsDir, file), "utf8"))) await client.query(stmt);
-    await client.query("INSERT INTO schema_migrations (name) VALUES ($1)", [file]);
-  }
+    // Numbered migrations in src/db/migrations run once each, in file-name order.
+    await c.query("CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
+    const migrationsDir = path.join(process.cwd(), "src", "db", "migrations");
+    const applied = new Set((await c.query<{ name: string }>("SELECT name FROM schema_migrations")).rows.map((r) => r.name));
+    for (const file of fs.existsSync(migrationsDir) ? fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort() : []) {
+      if (applied.has(file)) continue;
+      console.log(`[db] applying migration ${file}`);
+      // Statements are written to be safe to re-run, so a migration interrupted part-way can simply run again.
+      for (const stmt of statements(fs.readFileSync(path.join(migrationsDir, file), "utf8"))) await c.query(stmt);
+      await c.query("INSERT INTO schema_migrations (name) VALUES ($1)", [file]);
+    }
 
-  const { ensureAdmins } = await import("@/db/admins");
-  await ensureAdmins(client);
+    const { ensureAdmins } = await import("@/db/admins");
+    await ensureAdmins(c);
+  });
   return client;
 }
 
