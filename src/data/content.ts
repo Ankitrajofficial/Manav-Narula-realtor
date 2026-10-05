@@ -5,29 +5,15 @@ export interface Article {
   category: string;
   date: string;
   author: string;
+  /** Staff posts: the writer's designation (Intern, Employee, Executive) and passport-size photo. */
+  authorTitle?: string;
+  authorPhoto?: string | null;
   cover: string;
   excerpt: string;
   body: string[];
 }
 
 export const articles: Article[] = [
-  {
-    slug: "kothi-prices-jalandhar-2026",
-    title: "What a kothi costs in Jalandhar in 2026, locality by locality",
-    category: "Market",
-    date: "2026-09-12",
-    author: "Manav Narula",
-    cover: "photo-1600596542815-ffad4c1539a9",
-    excerpt: "Registry data from the last six months across Model Town, Urban Estate, Cantt and Green Model Town, and what it means if you are buying this year.",
-    body: [
-      "We pulled the registries our office handled or benchmarked between March and August 2026 and grouped them by locality. The numbers below are per sq.yd of plot area for built kothis, not for bare plots.",
-      "Model Town and Green Model Town remain the most expensive, at ₹95,000 to ₹1.2 L per sq.yd for a well-kept kothi on a 250 to 500 sq.yd plot. Urban Estate Phase 1 and 2 sit between ₹70,000 and ₹85,000. Jalandhar Cantt is ₹55,000 to ₹70,000 depending on distance from the gate. Mithapur and Paragpur are ₹40,000 to ₹55,000.",
-      "## What moved the market",
-      "Two things pushed prices up 6 to 8% over last year: NRI buyers returning after the rupee softened, and the shortage of ready kothis under ₹1 Cr. Under-construction and new-build kothis on 150 to 200 sq.yd plots are where most first-time buyers are landing.",
-      "## If you are buying this year",
-      "Set the budget on the plot size and locality first, then the built-up quality. A 2019 build in Urban Estate with clean papers will hold value better than a newer build on an unapproved lane. Ask for the sanctioned plan and the completion certificate before the token, not after.",
-    ],
-  },
   {
     slug: "documents-to-check-before-buying-a-plot",
     title: "Nine documents to check before you pay a token for a plot",

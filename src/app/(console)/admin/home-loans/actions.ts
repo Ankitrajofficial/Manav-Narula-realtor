@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { flash } from "@/lib/flash";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
 import { saveUpload } from "@/lib/upload";
@@ -29,6 +30,7 @@ export async function saveBank(id: number | null, _p: ItemFormState, fd: FormDat
   }
   await audit(user.id, id ? "update" : "create", "partner_bank", bankId, { name });
   refresh();
+  await flash(id ? "Bank saved" : "Bank added");
   return { ok: Date.now() };
 }
 
@@ -37,6 +39,7 @@ export async function deleteBank(id: number) {
   const b = await one<{ name: string }>("SELECT name FROM partner_banks WHERE id=$1", [id]);
   await q("DELETE FROM partner_banks WHERE id=$1", [id]);
   await audit(user.id, "delete", "partner_bank", id, { name: b?.name });
+  await flash(`${b?.name ?? "Bank"} removed`);
   refresh();
 }
 
@@ -44,6 +47,7 @@ export async function toggleBank(id: number, value: boolean) {
   const user = await requireUser("admin");
   await q("UPDATE partner_banks SET is_active=$1, updated_at=now() WHERE id=$2", [value, id]);
   await audit(user.id, value ? "activate" : "deactivate", "partner_bank", id);
+  await flash(value ? "Bank shown on the website" : "Bank hidden from the website");
   refresh();
 }
 
@@ -51,6 +55,7 @@ export async function reorderBanks(ids: number[]) {
   const user = await requireUser("admin");
   for (const [i, id] of ids.entries()) await q("UPDATE partner_banks SET sort_order=$1 WHERE id=$2", [i, Number(id)]);
   await audit(user.id, "reorder", "partner_bank", null, { ids });
+  await flash("Bank order saved");
   refresh();
 }
 
@@ -90,6 +95,7 @@ export async function saveVideo(id: number | null, _p: ItemFormState, fd: FormDa
   }
   await audit(user.id, id ? "update" : "create", "page_video", videoId, { youtube_id: vid, title });
   refresh();
+  await flash(id ? "Video saved" : "Video added");
   return { ok: Date.now() };
 }
 
@@ -97,6 +103,7 @@ export async function deleteVideo(id: number) {
   const user = await requireUser("admin");
   await q("DELETE FROM page_videos WHERE id=$1", [id]);
   await audit(user.id, "delete", "page_video", id);
+  await flash("Video removed");
   refresh();
 }
 
@@ -104,6 +111,7 @@ export async function toggleVideo(id: number, value: boolean) {
   const user = await requireUser("admin");
   await q("UPDATE page_videos SET is_active=$1, updated_at=now() WHERE id=$2", [value, id]);
   await audit(user.id, value ? "activate" : "deactivate", "page_video", id);
+  await flash(value ? "Video shown on the website" : "Video hidden from the website");
   refresh();
 }
 
@@ -111,5 +119,6 @@ export async function reorderVideos(ids: number[]) {
   const user = await requireUser("admin");
   for (const [i, id] of ids.entries()) await q("UPDATE page_videos SET sort_order=$1 WHERE id=$2", [i, Number(id)]);
   await audit(user.id, "reorder", "page_video", null, { ids });
+  await flash("Video order saved");
   refresh();
 }

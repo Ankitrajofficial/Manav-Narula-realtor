@@ -4,6 +4,8 @@ import DataTable from "@/components/console/DataTable";
 import FilterBar from "@/components/console/FilterBar";
 import Pill from "@/components/console/Pill";
 import Icon from "@/components/Icon";
+import Stars from "@/components/console/Stars";
+import { canPromote, levelLabel, starsDue } from "@/lib/growth";
 import { requireUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { listEmployeeRows, type EmployeeRow } from "@/lib/queries/employees";
@@ -17,7 +19,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Employees" description="Who can sign in to the consoles. Blocked accounts keep their records but cannot log in." actions={<Link href="/admin/employees/new" className="inline-flex items-center gap-1.5 rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="plus" size={16} />Create employee</Link>} />
       <FilterBar searchPlaceholder="Search name, email or phone" filters={[
-        { key: "role", label: "Role", options: [{ value: "employee", label: "Employee" }, { value: "admin", label: "Admin" }] },
+        { key: "role", label: "Role", options: [{ value: "intern", label: "Intern" }, { value: "employee", label: "Employee" }, { value: "executive", label: "Executive" }, { value: "admin", label: "Admin" }] },
         { key: "status", label: "Status", options: [{ value: "active", label: "Active" }, { value: "blocked", label: "Blocked" }] },
       ]} />
       <DataTable<EmployeeRow>
@@ -27,7 +29,14 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
           { key: "name", label: "Name", sortable: true, render: (r) => <Link href={`/admin/employees/${r.id}`} className="font-medium hover:text-accent-ink">{r.name}{r.id === me.id && <span className="ml-2 text-xs text-muted">(you)</span>}</Link> },
           { key: "email", label: "Email", sortable: true },
           { key: "phone", label: "Phone", className: "tabular", render: (r) => r.phone ?? "—" },
-          { key: "role", label: "Role", sortable: true, render: (r) => (r.role === "admin" ? "Admin" : "Employee") },
+          { key: "role", label: "Role", sortable: true, render: (r) => <Pill value={levelLabel(r.role, r.level)} /> },
+          { key: "stars", label: "Stars", sortable: true, render: (r) => r.role === "admin" ? <span className="text-muted">—</span> : (
+            <Link href={`/admin/employees/${r.id}?tab=growth`} className="flex flex-col items-start gap-1">
+              <Stars count={r.stars} size={14} />
+              {canPromote(r.role, r.level, r.stars) ? <Pill value="Ready for promotion" /> : starsDue(r.sales) > r.stars ? <Pill value="Star due" /> : null}
+            </Link>
+          ) },
+          { key: "sales", label: "Sales", sortable: true, className: "tabular", render: (r) => (r.role === "admin" ? "—" : r.sales) },
           { key: "status", label: "Status", sortable: true, render: (r) => <Pill value={r.status === "blocked" ? "Blocked" : "Active"} /> },
           { key: "open_leads", label: "Open leads", sortable: true, className: "tabular" },
           { key: "last_login_at", label: "Last login", sortable: true, className: "whitespace-nowrap text-muted", render: (r) => formatDateTime(r.last_login_at) || "Never" },

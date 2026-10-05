@@ -74,7 +74,7 @@ export const banners = [
 export const offer = {
   image: "photo-1600607687939-ce8a6c25118c",
   headline: "Zero brokerage on home loans arranged through us",
-  line: "Sanction letters from 4 partner banks, usually within 7 working days.",
+  line: "Sanction letters from our partner banks, usually within 7 working days.",
   cta: { label: "Check loan eligibility", href: "/home-loans" },
 };
 
@@ -111,42 +111,36 @@ export const services = [
     title: "Buying",
     description: "We shortlist only properties whose title, approvals and pricing we have verified ourselves, then accompany you on every visit and negotiate on your behalf.",
     points: ["Verified shortlist matched to your budget and locality", "Accompanied site visits and price benchmarking", "Negotiation, token, agreement and registry support"],
-    fee: "Fee: 1% of the sale value, agreed in writing before the token. No charge until the deal closes.",
   },
   {
     id: "selling",
     title: "Selling and valuation",
     description: "A written valuation based on recent registries in your locality, professional photography, listing across portals and screening of every buyer before a visit.",
     points: ["Written valuation within 48 hours of the site visit", "Photography, listing and buyer screening", "Offer management and registry coordination"],
-    fee: "Fee: 1% of the sale value on completion. Valuation is free and carries no obligation.",
   },
   {
     id: "renting",
     title: "Renting and leasing",
     description: "For owners and tenants: verified listings, police verification, registered rent agreements and a clear handover checklist.",
     points: ["Tenant or property shortlist within 7 days", "Police verification and registered rent agreement", "Inventory checklist at move-in and move-out"],
-    fee: "Fee: half a month's rent from each side for residential, one month's rent for commercial leases.",
   },
   {
     id: "legal",
     title: "Legal and documentation",
     description: "Our empanelled advocates check the title chain, encumbrances, building approvals and dues so that nothing surfaces after you have paid.",
     points: ["Title search and encumbrance report", "Sale deed drafting, stamp duty and registry", "Mutation, NOCs and society transfer"],
-    fee: "Fee: fixed per document, quoted upfront. Included free with any purchase or sale through us.",
   },
   {
     id: "loans",
     title: "Home loans",
     description: "We compare offers from partner banks and NBFCs, assemble the file and follow up until sanction, at no cost to you.",
-    points: ["Eligibility check and rate comparison from 4 partner banks", "Document collection and file submission", "Follow-up until sanction and disbursement"],
-    fee: "Fee: none. The bank pays us a standard referral fee, which never affects your rate.",
+    points: ["Eligibility check and rate comparison across our partner banks", "Document collection and file submission", "Follow-up until sanction and disbursement"],
   },
   {
     id: "nri",
     title: "NRI services",
     description: "For owners abroad: we act on a registered power of attorney, keep you updated on video and remit proceeds through the correct channels.",
     points: ["Power of attorney guidance and video site visits", "Sale, rental or purchase handled end to end", "Repatriation and tax documentation support"],
-    fee: "Fee: same as the underlying service. Video updates and monthly statements are included.",
   },
 ];
 

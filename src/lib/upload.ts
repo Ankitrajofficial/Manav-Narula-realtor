@@ -11,11 +11,17 @@ const MAX = 16 * 1024 * 1024;
  * Files are kept in the database, not public/uploads: Next.js only serves files that were in public/ at build time,
  * and redeploys replace the app folder.
  */
+/** Throws the same user-facing errors as saveUpload without saving anything. */
+export function checkUpload(file: File): string {
+  const ext = ALLOWED[file.type];
+  if (!ext) throw new Error(`${file.name}: only JPG, PNG, WebP images, PDF files and MP4 videos are allowed.`);
+  if (file.size > MAX) throw new Error(`${file.name} is larger than 16 MB.`);
+  return ext;
+}
+
 export async function saveUpload(file: File | null | undefined, folder: string): Promise<string | null> {
   if (!file || typeof file === "string" || file.size === 0) return null;
-  const ext = ALLOWED[file.type];
-  if (!ext) throw new Error("Only JPG, PNG, WebP images, PDF files and MP4 videos are allowed.");
-  if (file.size > MAX) throw new Error("File is larger than 16 MB.");
+  const ext = checkUpload(file);
   const safeFolder = folder.replace(/[^a-z0-9-]/gi, "").toLowerCase() || "file";
   const name = `${safeFolder}-${Date.now()}-${randomBytes(4).toString("hex")}${ext}`;
   await q("INSERT INTO media (name, content_type, size, data) VALUES ($1, $2, $3, $4)", [name, file.type, file.size, Buffer.from(await file.arrayBuffer())]);

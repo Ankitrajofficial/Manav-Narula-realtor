@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { flash } from "@/lib/flash";
 import { q, one } from "@/lib/db";
 import { audit, slugify } from "@/lib/records";
 import { saveUpload, saveUploads } from "@/lib/upload";
@@ -35,7 +36,10 @@ async function parse(fd: FormData, id: number | null): Promise<{ input?: Propert
   if (pincode && !/^[1-9]\d{5}$/.test(pincode)) errors.pincode = "Enter a 6-digit pincode.";
   const maps_url = s(fd, "maps_url");
   if (maps_url && !/^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(maps_url)) errors.maps_url = "Paste a Google Maps link (https://maps.app.goo.gl/… or https://www.google.com/maps/…).";
-  const price = n(fd, "price"); if (!price || price <= 0) errors.price = "Enter the price in rupees.";
+  // Blank or 0 is "Price on request" (the website shows it that way); only a negative or non-numeric price is wrong.
+  const priceRaw = s(fd, "price");
+  const price = priceRaw ? n(fd, "price") : 0;
+  if (price == null || price < 0) errors.price = "Enter the price in whole rupees, or leave it blank for \"Price on request\".";
   const area = n(fd, "area"); if (!area || area <= 0) errors.area = "Enter the area.";
   const status = s(fd, "status") || "Ready";
   let master_plan: string | null = null, floor_plan: string | null = null;
@@ -58,7 +62,7 @@ async function parse(fd: FormData, id: number | null): Promise<{ input?: Propert
   if (fd.get("trust_visit")) trust.push("visit");
   return {
     input: {
-      slug, title, type, purpose, locality, project_id: n(fd, "project_id"), price: price!, bhk: n(fd, "bhk"), baths: n(fd, "baths"), area, area_unit: s(fd, "area_unit") === "sq.yd" ? "sq.yd" : "sq.ft",
+      slug, title, type, purpose, locality, project_id: n(fd, "project_id"), price: price ?? 0, bhk: n(fd, "bhk"), baths: n(fd, "baths"), area, area_unit: s(fd, "area_unit") === "sq.yd" ? "sq.yd" : "sq.ft",
       super_area: n(fd, "super_area"), floor: opt(s(fd, "floor")), facing: opt(s(fd, "facing")), furnishing: opt(s(fd, "furnishing")), parking: opt(s(fd, "parking")), possession: opt(s(fd, "possession")), status,
       description: opt(s(fd, "description")), long_description: opt(s(fd, "long_description")), amenities: fd.getAll("amenities").map(String), trust, rera, nearby,
       featured: !!fd.get("featured"), published: s(fd, "intent") === "publish", meta_title: opt(s(fd, "meta_title")), meta_description: opt(s(fd, "meta_description")),
@@ -115,6 +119,7 @@ export async function togglePropertyFlag(id: number, flag: "published" | "featur
   const user = await requireUser("admin");
   await q(`UPDATE properties SET ${flag} = $1, updated_at = now() WHERE id = $2`, [value, id]);
   await audit(user.id, value ? `${flag}_on` : `${flag}_off`, "property", id);
+  await flash(flag === "published" ? (value ? "Property published" : "Property unpublished") : (value ? "Property featured on the home page" : "Property removed from featured"));
   revalidatePath("/", "layout");
   revalidatePath("/admin/properties");
 }

@@ -1,7 +1,7 @@
 import PageHeader from "@/components/console/PageHeader";
 import { requireUser } from "@/lib/auth";
 import { blogCategories } from "@/lib/queries/content";
-import BlogForm from "../BlogForm";
+import BlogForm from "@/components/console/BlogForm";
 import { upsertPost } from "../actions";
 
 export default async function NewPostPage() {

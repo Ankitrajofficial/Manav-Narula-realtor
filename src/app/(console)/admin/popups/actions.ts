@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { flash } from "@/lib/flash";
 import { q } from "@/lib/db";
 import { audit } from "@/lib/records";
 import { saveUpload } from "@/lib/upload";
@@ -60,6 +61,7 @@ export async function togglePopupActive(id: number, value: boolean) {
   const user = await requireUser("admin");
   await q("UPDATE popups SET active = $1, updated_at = now() WHERE id = $2", [value, id]);
   await audit(user.id, value ? "activate" : "deactivate", "popup", id);
+  await flash(value ? "Pop-up is live on the website" : "Pop-up switched off");
   revalidatePath("/", "layout");
   revalidatePath("/admin/popups");
 }

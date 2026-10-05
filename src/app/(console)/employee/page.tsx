@@ -7,14 +7,24 @@ import Icon from "@/components/Icon";
 import { requireUser } from "@/lib/auth";
 import { formatDateTime, formatPrice, formatShortDate } from "@/lib/format";
 import { employeeStats, tasksDueThisWeek, todaysFollowUps } from "@/lib/queries/dashboard";
+import Stars from "@/components/console/Stars";
+import { myBatch, runAutoAssign } from "@/lib/auto-assign";
+import { getGrowth } from "@/lib/queries/growth";
 
 export default async function EmployeeDashboard() {
   const user = await requireUser("employee");
-  const [stats, followUps, tasks] = await Promise.all([employeeStats(user.id), todaysFollowUps(user.id), tasksDueThisWeek(user.id)]);
+  // Opening the console is also when a newly signed-in person picks up their first batch.
+  await runAutoAssign();
+  const [stats, followUps, tasks, growth, batch] = await Promise.all([employeeStats(user.id), todaysFollowUps(user.id), tasksDueThisWeek(user.id), getGrowth(user.id), myBatch(user.id)]);
+  const contacted = batch ? batch.leads.filter((l) => l.status !== "New").length : 0;
   const now = new Date();
   return (
     <>
       <PageHeader title="My Dashboard" description={`Hello ${user.name.split(" ")[0]}. Your follow-ups and tasks for today.`} />
+      <Link href="/employee/growth" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-brand border border-line bg-white px-5 py-3 text-sm hover:border-ink">
+        <span className="flex items-center gap-3"><Stars count={growth?.stars ?? 0} size={18} /><span className="text-muted">{growth?.sales ?? 0} approved {growth?.sales === 1 ? "sale" : "sales"}</span></span>
+        <span>{batch ? `Lead batch: ${contacted} of ${batch.leads.length} contacted` : "No open lead batch"}</span>
+      </Link>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatTile label="Assigned leads" value={stats.assigned} href="/employee/leads" hint="Open, not yet closed" />
         <StatTile label="Follow-ups due today" value={stats.followUpsToday} href="/employee/notifications" />

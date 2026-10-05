@@ -7,5 +7,5 @@ export async function employeeCreateSale(_prev: SaleFormState, fd: FormData): Pr
   const user = await requireUser("employee");
   const r = await saveSaleRecord(user, fd);
   if (!("id" in r)) return r;
-  redirect(`/employee/sales?toast=${encodeURIComponent("Sale recorded, pending admin approval")}`);
+  redirect(`/employee/sales/${r.id}?toast=${encodeURIComponent("Sale recorded, pending admin approval")}`);
 }

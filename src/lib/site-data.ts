@@ -7,6 +7,7 @@ import { MAX_ACTIVE_STATS, type TrustStat } from "./trust-stats";
 import type { Property } from "@/data/properties";
 import type { Project } from "@/data/projects";
 import type { Article } from "@/data/content";
+import { levelLabel } from "@/lib/growth";
 import { faqGroups as staticFaqs } from "@/data/content";
 import { banners as staticBanners, offer as staticOffer, site } from "@/data/site";
 
@@ -98,13 +99,21 @@ export async function getActiveOffers(): Promise<Offer[]> {
   return rows.map((r) => ({ id: r.id, title: r.title, image: r.image, text: r.text, href: r.pslug ? `/properties/${r.pslug}` : r.jslug ? `/projects/${r.jslug}` : r.link || "/contact" }));
 }
 
-interface ArticleRow { id: number; slug: string; title: string; category: string | null; author: string | null; cover: string | null; excerpt: string | null; body: string; published_at: Date | null }
-const mapArticle = (r: ArticleRow): Article => ({ id: r.id, slug: r.slug, title: r.title, category: r.category ?? "General", date: (r.published_at ? new Date(r.published_at) : new Date()).toISOString(), author: r.author ?? site.name, cover: r.cover ?? "photo-1600596542815-ffad4c1539a9", excerpt: r.excerpt ?? "", body: [r.body] });
+interface ArticleRow { id: number; slug: string; title: string; category: string | null; author: string | null; cover: string | null; excerpt: string | null; body: string; published_at: Date | null; writer_name: string | null; writer_role: string | null; writer_level: string | null; writer_photo: string | null }
+// Staff posts take the writer's current name, designation and photo from their account.
+const ARTICLE = `SELECT b.id, b.slug, b.title, b.category, b.author, b.cover, b.excerpt, b.body, b.published_at,
+  u.name AS writer_name, u.role AS writer_role, u.level AS writer_level, u.photo AS writer_photo
+  FROM blog_posts b LEFT JOIN users u ON u.id = b.author_id`;
+const mapArticle = (r: ArticleRow): Article => ({
+  id: r.id, slug: r.slug, title: r.title, category: r.category ?? "General", date: (r.published_at ? new Date(r.published_at) : new Date()).toISOString(),
+  author: r.writer_name ?? r.author ?? site.name, authorTitle: r.writer_name ? levelLabel(r.writer_role ?? "employee", r.writer_level) : undefined, authorPhoto: r.writer_photo,
+  cover: r.cover ?? "photo-1600596542815-ffad4c1539a9", excerpt: r.excerpt ?? "", body: [r.body],
+});
 export async function getArticles(): Promise<Article[]> {
-  return (await q<ArticleRow>("SELECT id, slug, title, category, author, cover, excerpt, body, published_at FROM blog_posts WHERE status = 'Published' ORDER BY published_at DESC")).map(mapArticle);
+  return (await q<ArticleRow>(`${ARTICLE} WHERE b.status = 'Published' ORDER BY b.published_at DESC`)).map(mapArticle);
 }
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  const r = await one<ArticleRow>("SELECT id, slug, title, category, author, cover, excerpt, body, published_at FROM blog_posts WHERE slug = $1 AND status = 'Published'", [slug]);
+  const r = await one<ArticleRow>(`${ARTICLE} WHERE b.slug = $1 AND b.status = 'Published'`, [slug]);
   return r ? mapArticle(r) : null;
 }
 

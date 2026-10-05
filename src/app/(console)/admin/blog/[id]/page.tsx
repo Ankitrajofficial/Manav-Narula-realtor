@@ -4,7 +4,7 @@ import PageHeader from "@/components/console/PageHeader";
 import Pill from "@/components/console/Pill";
 import { requireUser } from "@/lib/auth";
 import { blogCategories, getBlogPost } from "@/lib/queries/content";
-import BlogForm from "../BlogForm";
+import BlogForm from "@/components/console/BlogForm";
 import { deletePost, upsertPost } from "../actions";
 
 export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {

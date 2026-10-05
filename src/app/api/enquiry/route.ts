@@ -3,6 +3,7 @@ import { one, q } from "@/lib/db";
 import { toE164 } from "@/lib/records";
 import { suggestProperties } from "@/lib/site-data";
 import { forwardLeads } from "@/lib/lead-webhook";
+import { runAutoAssign } from "@/lib/auto-assign";
 
 const SOURCES = ["home_loan", "popup_consultation"];
 
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
     await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, `${source === "home_loan" ? "Home loan enquiry" : source === "popup_consultation" ? "Free consultation pop-up" : "Enquiry from website"}${body.page ? ` (${body.page})` : ""}`]);
     console.log("[lead]", lead!.id, name, phone);
     void forwardLeads([lead!.id]);
+    await runAutoAssign();
     const suggestions = source === "popup_consultation" ? await suggestProperties({ interest, budget: body.budget ? String(body.budget) : null, locality }).catch(() => []) : undefined;
     return NextResponse.json({ ok: true, id: lead!.id, suggestions });
   } catch (err) {

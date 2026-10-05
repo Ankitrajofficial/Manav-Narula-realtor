@@ -73,7 +73,7 @@ export default function PropertyForm({ property: p, images = [], cover, localiti
       </Section>
 
       <Section title="Pricing">
-        <Field label={purpose === "Rent" ? "Monthly rent (₹)" : "Price (₹)"} htmlFor="price" error={e.price} hint={Number(price) > 0 ? `Shown as ${purpose === "Rent" ? `₹${Number(price).toLocaleString("en-IN")}/mo` : Number(price) >= 1e7 ? `₹${(Number(price) / 1e7).toFixed(2).replace(/\.?0+$/, "")} Cr` : `₹${(Number(price) / 1e5).toFixed(1).replace(/\.0$/, "")} L`}` : "Whole rupees, e.g. 8500000 for ₹85 L"}>
+        <Field label={purpose === "Rent" ? "Monthly rent (₹)" : "Price (₹)"} htmlFor="price" error={e.price} hint={Number(price) > 0 ? `Shown as ${purpose === "Rent" ? `₹${Number(price).toLocaleString("en-IN")}/mo` : Number(price) >= 1e7 ? `₹${(Number(price) / 1e7).toFixed(2).replace(/\.?0+$/, "")} Cr` : `₹${(Number(price) / 1e5).toFixed(1).replace(/\.0$/, "")} L`}` : "Whole rupees, e.g. 8500000 for ₹85 L. Leave blank or 0 to show \"Price on request\"."}>
           <Input id="price" name="price" inputMode="numeric" value={price} onChange={(ev) => setPrice(ev.target.value)} />
         </Field>
         <div className="rounded-brand border border-line bg-bg px-3 py-2 text-sm"><p className="text-xs text-muted">Price per sq.ft (auto)</p><p className="mt-1 tabular">{perSqft ? `₹${perSqft.toLocaleString("en-IN")}/sq.ft` : "Enter price and area"}</p></div>

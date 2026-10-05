@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * login page, so staff bookmark that address. Without CONSOLE_PATH (local development) the console is open as before.
  * The pages still check the sign-in themselves; this only keeps the console out of sight.
  */
-const CONSOLE_PREFIXES = ["/admin", "/employee", "/login", "/change-password", "/forgot-password"];
+const CONSOLE_PREFIXES = ["/admin", "/employee", "/login", "/change-password", "/forgot-password", "/certificate"];
 const SESSION_COOKIE = "mn_session";
 const GATE_COOKIE = "mn_console";
 

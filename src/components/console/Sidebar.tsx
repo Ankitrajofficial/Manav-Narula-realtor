@@ -66,7 +66,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
             <div className="flex h-14 items-center justify-between border-b border-line px-3">
               <div>
                 <p className="text-sm">{user.name}</p>
-                <p className="text-xs capitalize text-muted">{user.role}</p>
+                <p className="text-xs text-muted">{user.role}</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="flex h-10 w-10 items-center justify-center rounded-brand hover:bg-bg"><Icon name="close" size={20} /></button>
             </div>
@@ -104,7 +104,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
           {!collapsed && (
             <div className="px-2 py-1.5">
               <p className="truncate text-sm">{user.name}</p>
-              <p className="text-xs capitalize text-muted">{user.role}</p>
+              <p className="text-xs text-muted">{user.role}</p>
             </div>
           )}
           <Link href="/change-password" title="Change password" className="flex items-center gap-2 rounded-brand px-2.5 py-2 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />{!collapsed && "Change password"}</Link>

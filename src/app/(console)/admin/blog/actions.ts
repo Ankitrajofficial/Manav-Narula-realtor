@@ -7,7 +7,8 @@ import { audit, slugify } from "@/lib/records";
 import { saveUpload } from "@/lib/upload";
 import { getBlogPost, saveBlogPost, uniqueSlug, type BlogInput } from "@/lib/queries/content";
 
-export interface BlogFormState { errors?: Record<string, string>; message?: string }
+export type { BlogFormState } from "@/components/console/BlogForm";
+import type { BlogFormState } from "@/components/console/BlogForm";
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const opt = (v: string) => (v ? v : null);
 
@@ -21,7 +22,7 @@ export async function upsertPost(id: number | null, _p: BlogFormState, fd: FormD
   if (status === "Published" && body.length < 50) errors.body = "Write at least a few sentences before publishing.";
   let cover: string | null = null;
   try { const f = fd.get("cover"); cover = f instanceof File && f.size > 0 ? await saveUpload(f, "blog") : opt(s(fd, "cover_current")); } catch (e) { errors.cover = e instanceof Error ? e.message : "Upload failed."; }
-  if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
+  if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields.", values: Object.fromEntries(["category", "author", "excerpt", "meta_title", "meta_description"].map((k) => [k, s(fd, k)])) };
   const slug = await uniqueSlug("blog_posts", slugify(s(fd, "slug") || title), id);
   const input: BlogInput = { slug, title, category: opt(s(fd, "category")), author: opt(s(fd, "author")) ?? user.name, cover, excerpt: opt(s(fd, "excerpt")), body, meta_title: opt(s(fd, "meta_title")), meta_description: opt(s(fd, "meta_description")), status };
   const newId = await saveBlogPost(id, input);

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Icon from "@/components/Icon";
 import type { LinkedOwner } from "@/lib/queries/tasks";
@@ -173,6 +174,7 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
 }) {
   const [optimistic, setOptimistic] = useState<Record<number, string>>({});
   const [editor, setEditor] = useState<Editor>(null);
+  const router = useRouter();
   const [draft, setDraft] = useState("");
   const [, start] = useTransition();
   const toast = useToast();
@@ -199,7 +201,10 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
   function save(id: number, patch: Parameters<NonNullable<typeof update>>[1]) {
     if (!update) return;
     setEditor(null);
-    start(async () => { const r = await update(id, patch); if (!r.ok) toast.show({ text: r.error, kind: "error" }); else if (r.message) toast.show({ text: r.message, kind: "ok" }); });
+    // Every inline change confirms itself; a server note (records moved with the task) is added on.
+    const who = patch.assigned_to != null ? employees.find((u) => u.id === patch.assigned_to)?.name.split(" ")[0] : null;
+    const did = patch.title !== undefined ? "Task renamed" : who ? `Task reassigned to ${who}` : patch.due === "none" ? "Due date removed" : patch.due ? "Due date changed" : "Task saved";
+    start(async () => { const r = await update(id, patch); if (!r.ok) toast.show({ text: r.error, kind: "error" }); else toast.show({ text: r.message ? `${did}. ${r.message}` : did, kind: "ok" }); });
   }
 
   // Group by the server status so a ticked row stays put (struck through) until the save lands.
@@ -216,7 +221,9 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
     const overdue = !isDone && t.due && t.due < today;
     const editing = editor?.id === t.id ? editor.field : null;
     return (
-      <li key={t.id} className="flex items-start gap-1 py-1 pr-2">
+      // The whole row opens the task; the tick box, edit buttons, links and inputs inside it keep their own job.
+      <li key={t.id} className="flex cursor-pointer items-start gap-1 py-1 pr-2 transition-colors hover:bg-bg"
+        onClick={(e) => { if (!editing && !(e.target as HTMLElement).closest("a, button, input, select, textarea, label, [role=group]")) router.push(t.href); }}>
         <button type="button" role="checkbox" aria-checked={isDone} aria-label={isDone ? `Reopen ${t.title}` : `Mark ${t.title} done`} onClick={() => tick(t)}
           className="flex h-11 w-11 shrink-0 items-center justify-center">
           <span className={`flex h-6 w-6 items-center justify-center rounded-brand border-2 transition-colors ${isDone ? "border-accent bg-accent text-white" : "border-line bg-white hover:border-accent"}`}>
@@ -229,10 +236,14 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(t.id, { title: draft }); } if (e.key === "Escape") setEditor(null); }}
               onBlur={() => (draft.trim() && draft !== t.title ? save(t.id, { title: draft }) : setEditor(null))}
               className="w-full rounded-brand border border-ink bg-white px-2 py-1 text-base md:text-sm" />
-          ) : update ? (
-            <button type="button" onClick={() => { setEditor({ id: t.id, field: "title" }); setDraft(t.title); }} className={`text-left text-sm transition-colors ${isDone ? "text-muted line-through" : "text-ink hover:text-accent-ink"}`}>{t.title}</button>
           ) : (
-            <Link href={t.href} className={`text-sm transition-colors ${isDone ? "text-muted line-through" : "text-ink hover:text-accent-ink"}`}>{t.title}</Link>
+            <span className="flex items-start gap-1.5">
+              <Link href={t.href} className={`text-sm transition-colors ${isDone ? "text-muted line-through" : "text-ink hover:text-accent-ink"}`}>{t.title}</Link>
+              {update && (
+                <button type="button" onClick={() => { setEditor({ id: t.id, field: "title" }); setDraft(t.title); }} aria-label={`Rename ${t.title}`} title="Rename"
+                  className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-brand text-muted hover:bg-white hover:text-ink"><Icon name="edit" size={13} /></button>
+              )}
+            </span>
           )}
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
             {showAssignee && (update ? (
@@ -257,7 +268,6 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
             </div>
           )}
         </div>
-        <Link href={t.href} aria-label={`Open ${t.title}`} className="flex h-11 w-9 shrink-0 items-center justify-center text-muted hover:text-ink"><Icon name="chevronRight" size={16} /></Link>
       </li>
     );
   };

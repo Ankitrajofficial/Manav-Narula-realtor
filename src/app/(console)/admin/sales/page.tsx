@@ -27,10 +27,11 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
     { key: "commission", label: "Commission", sortable: true, className: "text-right", render: (s) => <span className="tabular">{formatINR(s.commission)}</span> },
     { key: "employee", label: "Employee", sortable: true, render: (s) => s.employee_name ?? "—" },
     { key: "status", label: "Status", sortable: true, render: (s) => <Pill value={s.status} /> },
-    { key: "document", label: "Document", render: (s) => s.document_url ? <a href={s.document_url} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-accent-ink hover:underline"><Icon name="file" size={14} />Agreement</a> : <span className="text-muted">—</span> },
+    { key: "document", label: "Documents", render: (s) => <Link href={`/admin/sales/${s.id}`} className="inline-flex items-center gap-1 text-accent-ink hover:underline"><Icon name="file" size={14} />{s.doc_count ? `${s.doc_count} ${s.doc_count === 1 ? "file" : "files"}` : "Add"}</Link> },
     { key: "actions", label: "", render: (s) => s.status === "Pending approval" ? (
       <form action={approveSale}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="back" value={back} /><button type="submit" className="rounded-brand border border-line px-2 py-1 text-xs hover:border-ink">Approve</button></form>
     ) : null },
+    { key: "view", label: "", render: (s) => <Link href={`/admin/sales/${s.id}`} className="rounded-brand border border-line px-2 py-1 text-xs hover:border-ink">View</Link> },
   ];
   return (
     <>

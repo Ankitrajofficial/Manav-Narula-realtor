@@ -36,7 +36,7 @@ export default function EmployeeForm({ employee: u, isSelf, action }: { employee
         <Field label="Name" htmlFor="name" error={e.name}><Input id="name" name="name" defaultValue={u?.name} required /></Field>
         <Field label="Email" htmlFor="email" error={e.email}><Input id="email" name="email" type="email" defaultValue={u?.email} required /></Field>
         <Field label="Phone" htmlFor="phone" error={e.phone}><Input id="phone" name="phone" inputMode="tel" defaultValue={u?.phone ?? ""} placeholder="10-digit mobile" /></Field>
-        <Field label="Role" htmlFor="role" error={e.role} hint={isSelf ? "You cannot change your own role." : undefined}><Select id="role" name="role" defaultValue={u?.role ?? "employee"} disabled={isSelf}><option value="employee">Employee</option><option value="admin">Admin</option></Select>{isSelf && <input type="hidden" name="role" value="admin" />}</Field>
+        <Field label="Role" htmlFor="role" error={e.role} hint={isSelf ? "You cannot change your own role." : "Interns, employees and executives use the employee console and get leads automatically."}><Select id="role" name="role" defaultValue={u ? (u.role === "admin" ? "admin" : u.level) : "employee"} disabled={isSelf}><option value="intern">Intern</option><option value="employee">Employee</option><option value="executive">Executive</option><option value="admin">Admin</option></Select>{isSelf && <input type="hidden" name="role" value="admin" />}</Field>
         {!u && (
           <>
             <Field label="Temporary password" htmlFor="password" error={e.password} hint="Leave blank to generate one. It is shown once after saving."><Input id="password" name="password" minLength={8} autoComplete="new-password" /></Field>

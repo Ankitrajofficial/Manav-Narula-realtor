@@ -53,12 +53,12 @@ export default async function HomeLoansPage() {
       {banks.length > 0 && (
         <Section>
           <SectionTitle title="Partner banks" intro="We compare offers from each of these and recommend the one that suits your income and property." />
-          <ul className={`grid grid-cols-2 gap-px overflow-hidden rounded-brand border border-line bg-line [&>li:last-child:nth-child(odd)]:col-span-2 ${banks.length === 5 ? "md:grid-cols-5" : banks.length === 3 ? "md:grid-cols-3" : "md:grid-cols-4"} md:[&>li:last-child:nth-child(odd)]:col-span-1`}>
+          <ul className={`grid grid-cols-2 gap-px overflow-hidden rounded-brand border border-line bg-line [&>li:last-child:nth-child(odd)]:col-span-2 ${banks.length === 5 ? "md:grid-cols-5" : banks.length === 6 ? "md:grid-cols-3 lg:grid-cols-6" : banks.length === 3 ? "md:grid-cols-3" : "md:grid-cols-4"} md:[&>li:last-child:nth-child(odd)]:col-span-1`}>
             {banks.map((b) => (
               <li key={b.id} className="group flex flex-col items-start bg-white p-5">
                 <div className="relative flex h-12 w-full items-center">
                   {b.logo ? (
-                    <Image src={b.logo} alt={`${b.name} logo`} fill sizes="200px" className="object-contain object-left grayscale transition-[filter] duration-300 group-hover:grayscale-0" />
+                    <Image src={b.logo} alt={`${b.name} logo`} fill sizes="200px" className="object-contain object-left" />
                   ) : (
                     <span className="flex h-12 w-12 items-center justify-center rounded-brand border border-line text-muted"><Icon name="bank" size={22} /></span>
                   )}

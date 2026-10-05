@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import EmptyState from "./EmptyState";
+import SelectAllBox from "./SelectAllBox";
 
 export interface Column<T> { key: string; label: string; sortable?: boolean; className?: string; /** Leave this column out of the stacked phone layout. */ hideOnMobile?: boolean; render?: (row: T) => React.ReactNode }
 
@@ -49,7 +50,7 @@ export default function DataTable<T extends object>({ columns, rows, total, page
           <table className="rtable w-full text-left md:min-w-[720px]">
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-line text-xs text-muted">
-                {selectable && <th className="w-10 px-3"><span className="sr-only">Select</span></th>}
+                {selectable && <th className="w-10 px-3"><SelectAllBox /></th>}
                 {columns.map((c) => (
                   <th key={c.key} className={`whitespace-nowrap px-3 font-medium ${c.className ?? ""}`}>
                     {c.sortable ? (

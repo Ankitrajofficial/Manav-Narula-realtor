@@ -22,11 +22,18 @@ import { bulkAssignAction } from "@/app/(console)/records/actions";
 import { quickCreateTask, toggleTaskDone, updateTaskInline } from "../../tasks/actions";
 import EmployeeForm from "../EmployeeForm";
 import ResetPassword from "../ResetPassword";
-import { deleteEmployee, resetPassword, setEmployeeStatus, updateEmployee } from "../actions";
+import { awardStar, deleteEmployee, promoteToExecutive, removeStar, resetPassword, setEmployeeStatus, updateEmployee } from "../actions";
+import { togglePersonAutoAssign } from "../../auto-assign/actions";
+import GrowthPanel from "@/components/console/GrowthPanel";
+import Stars from "@/components/console/Stars";
+import { levelLabel } from "@/lib/growth";
+import { getGrowth, listCertificates, listStarAwards } from "@/lib/queries/growth";
+import { myBatch } from "@/lib/auto-assign";
 import { mailConfigured } from "@/lib/mailer";
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "growth", label: "Stars & growth" },
   { key: "tasks", label: "Tasks" },
   { key: "leads", label: "Leads" },
   { key: "prospects", label: "Prospects" },
@@ -116,7 +123,8 @@ export default async function EmployeeProfilePage({ params, searchParams }: { pa
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-heading text-2xl">{u.name}{isSelf && <span className="ml-2 align-middle text-xs text-muted">(you)</span>}</h1>
-              <Pill value={u.role === "admin" ? "Admin" : "Employee"} />
+              <Pill value={levelLabel(u.role, u.level)} />
+              {u.role !== "admin" && <Link href={`${base}?tab=growth`} aria-label="Stars and growth"><Stars count={u.stars} size={16} /></Link>}
               <Pill value={u.status === "blocked" ? "Blocked" : "Active"} />
             </div>
             <p className="mt-1 truncate text-sm text-muted">{u.email}{u.phone ? ` · ${u.phone}` : ""}</p>
@@ -142,6 +150,7 @@ export default async function EmployeeProfilePage({ params, searchParams }: { pa
       </nav>
 
       {tab === "overview" && <Overview userId={u.id} base={base} stats={stats} />}
+      {tab === "growth" && <GrowthTab userId={u.id} base={base} autoAssign={u.auto_assign} />}
       {tab === "tasks" && <TasksTab userId={u.id} name={u.name} />}
       {tab === "leads" && <LeadsTab userId={u.id} name={u.name} base={base} total={counts.leads} />}
       {tab === "prospects" && <ProspectsTab userId={u.id} name={u.name} base={base} total={counts.prospects} />}
@@ -196,6 +205,17 @@ async function Overview({ userId, base, stats }: { userId: number; base: string;
         </section>
       </div>
     </div>
+  );
+}
+
+async function GrowthTab({ userId, base, autoAssign }: { userId: number; base: string; autoAssign: boolean }) {
+  const [g, awards, batch, certificates] = await Promise.all([getGrowth(userId), listStarAwards(userId), myBatch(userId), listCertificates(userId)]);
+  if (!g) return null;
+  return (
+    <GrowthPanel g={g} awards={awards} batch={batch} certificates={certificates} leadBase="/admin" admin={{
+      award: awardStar.bind(null, userId), remove: removeStar.bind(null, userId), promote: promoteToExecutive.bind(null, userId),
+      toggleAutoAssign: togglePersonAutoAssign.bind(null, userId, `${base}?tab=growth`), autoAssign,
+    }} />
   );
 }
 

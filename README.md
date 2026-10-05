@@ -49,7 +49,21 @@ A free consultation pop-up (`src/components/ConsultationPopup.tsx`) appears once
 
 ## Tasks
 
-Admin > Tasks opens with a quick-add bar: type the title, tap the employee, tap a due shortcut (Today, Tomorrow, This week = coming Saturday, or Pick date), optionally High, press Enter. "+ New > Task" and "Create task from selected" open the same bar, with the selected leads or prospects shown as a removable "Linked" chip. The list is grouped Overdue / Today / Upcoming / Done; the tick box closes a task (with Undo) and unticking reopens it. Admins rename, reassign and re-date inline by tapping. Employees see the same list under My Tasks and can tick only their own tasks. Task priority is `normal` or `high`; the description column is kept in the database but no longer used.
+Admin > Tasks opens with a quick-add bar: type the title, tap the employee, tap a due shortcut (Today, Tomorrow, This week = coming Saturday, or Pick date), optionally High, press Enter. "+ New > Task" and "Create task from selected" open the same bar, with the selected leads or prospects shown as a removable "Linked" chip. The list is grouped Overdue / Today / Upcoming / Done; the tick box closes a task (with Undo) and unticking reopens it. Clicking anywhere on a task row opens it. Admins rename with the pencil next to the title, and reassign or re-date by tapping the name or date. Employees see the same list under My Tasks and can tick only their own tasks. Task priority is `normal` or `high`; the description column is kept in the database but no longer used.
+
+## Interns, stars and auto-assign
+
+Employees > Role is Intern, Employee, Executive or Admin. The first three sign in to the employee console; the level is `users.level`.
+
+**Auto-assign** (Admin > Auto-assign, `src/lib/auto-assign.ts`). Starts switched off. When on, every active intern, employee and executive who has set their own password gets a batch of unassigned "New" leads (5 by default, oldest first) plus a task "Contact your new leads (batch N)" listing them. Once every lead in the batch has moved past "New" (Called, Follow up, Site visit...) the batch closes, its task is ticked done and the next batch goes out. A batch that started short is topped up as enquiries arrive. It runs after website enquiries, CSV imports, status changes, assignments and when someone opens their dashboard; "Run now" forces a pass. Each person can be paused, and an admin can close a stuck batch by hand.
+
+**Stars** (profile > Stars & growth). Approved sales unlock stars at 1, 5, 10, 20 and 30 sales: Bronze, Silver, Gold, Sapphire, Ruby, each in its own colour (`src/lib/growth.ts`). The admin awards each star by hand once it is due ("Star due" shows on the Employees list); "Remove last star" undoes a mistake. At five stars the person shows "Ready for promotion" and the admin clicks Promote to Executive. Employees see their stars, progress and current batch under My Stars.
+
+**Certificates** (Admin > Certificates). The admin keeps the skills list and issues a certificate to an intern with the skills ticked, internship dates and an optional remark. Each gets a number (MNR-YYYY-NNNN) and a printable page at `/certificate/<id>` that the admin and that intern can open (print or save as PDF). Revoked certificates are marked and hidden from the intern's list.
+
+## Team blog
+
+Interns, employees and executives write posts under **My Blog** in the employee console (`src/app/(console)/employee/blog/`). Drafts stay private; publishing puts the post on /blog straight away, with the writer's name and designation on the card and byline, and a small author card with their passport-size photo at the end of the article (`src/components/AuthorCard.tsx`). A photo is required before publishing (drafts can be saved without one) and is kept on the account (`users.photo`), so one upload covers every post. Writers can edit, unpublish or delete only their own posts. Admin > Blog lists every post with its writer (filter "Written by: Team members"); the admin can edit, unpublish or delete any of them. Staff posts are linked by `blog_posts.author_id`, so the website always shows the writer's current name, designation and photo.
 
 ## Mobile back arrow
 

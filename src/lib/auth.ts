@@ -7,7 +7,7 @@ import { one, q } from "./db";
 import { verifyPassword } from "./password";
 
 export type Role = "admin" | "employee";
-export interface SessionUser { id: number; name: string; email: string; role: Role; status: string; must_reset?: boolean }
+export interface SessionUser { id: number; name: string; email: string; role: Role; status: string; must_reset?: boolean; level?: string }
 
 const COOKIE = "mn_session";
 const secret = () => process.env.SESSION_SECRET || "dev-only-secret-change-me";
@@ -19,7 +19,7 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
   if (!raw) return null;
   const [id, exp, sig] = raw.split(".");
   if (!id || !exp || sig !== sign(`${id}.${exp}`) || Number(exp) < Date.now()) return null;
-  const user = await one<SessionUser>("SELECT id, name, email, role, status, must_reset FROM users WHERE id = $1", [Number(id)]);
+  const user = await one<SessionUser>("SELECT id, name, email, role, status, must_reset, level FROM users WHERE id = $1", [Number(id)]);
   if (!user || user.status !== "active") return null;
   return user;
 });

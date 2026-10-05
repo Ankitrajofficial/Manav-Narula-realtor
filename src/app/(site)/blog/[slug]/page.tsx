@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumbs, Container } from "@/components/ui";
 import Markdown from "@/components/console/Markdown";
+import AuthorCard from "@/components/AuthorCard";
 import { getArticleBySlug, getArticles } from "@/lib/site-data";
 
 export const revalidate = 60;
@@ -21,7 +22,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   if (!a) notFound();
   const articles = await getArticles();
   const related = articles.filter((x) => x.slug !== a.slug).slice(0, 2);
-  const schema = { "@context": "https://schema.org", "@type": "Article", headline: a.title, datePublished: a.date, author: { "@type": "Person", name: a.author }, publisher: { "@type": "Organization", name: site.name }, image: unsplash(a.cover) };
+  const schema = { "@context": "https://schema.org", "@type": "Article", headline: a.title, datePublished: a.date, author: { "@type": "Person", name: a.author, ...(a.authorTitle ? { jobTitle: a.authorTitle } : {}) }, publisher: { "@type": "Organization", name: site.name }, image: unsplash(a.cover) };
   return (
     <Container className="py-8 md:py-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
@@ -29,9 +30,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       <article className="mt-8 max-w-3xl">
         <span className="text-xs text-accent-ink">{a.category}</span>
         <h1 className="mt-2 text-4xl leading-tight md:text-5xl">{a.title}</h1>
-        <p className="mt-4 text-sm text-muted">By {a.author} · {formatDate(a.date)}</p>
+        <p className="mt-4 text-sm text-muted">By {a.author}{a.authorTitle ? `, ${a.authorTitle}` : ""} · {formatDate(a.date)}</p>
         <div className="relative mt-8 aspect-[4/3] overflow-hidden rounded-brand border border-line bg-line"><Image src={unsplash(a.cover, 1200, 900)} alt="" fill priority sizes="800px" className="object-cover" /></div>
         <Markdown source={a.body.join("\n\n")} className="prose-article mt-10 text-lg leading-relaxed text-ink/90" />
+        {a.authorTitle && <AuthorCard name={a.author} title={a.authorTitle} photo={a.authorPhoto} />}
         <div className="mt-12 rounded-brand border border-line bg-white p-6">
           <p className="text-xl">Have a question about this?</p>
           <p className="mt-1 text-sm text-muted">Send us your situation and an advisor will call you back within working hours.</p>

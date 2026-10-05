@@ -1,6 +1,7 @@
 import "server-only";
 import { json, one, q } from "@/lib/db";
 import { pageOf, sortOf } from "@/lib/console";
+import { levelLabel } from "@/lib/growth";
 
 type SP = Record<string, string | undefined>;
 const like = (s: string) => `%${s.trim()}%`;
@@ -187,29 +188,42 @@ export async function saveOffer(id: number | null, o: OfferInput): Promise<numbe
 }
 
 /* ---------------- Blog ---------------- */
-export interface BlogRow { [key: string]: unknown; id: number; slug: string; title: string; category: string | null; author: string | null; cover: string | null; excerpt: string | null; body: string; meta_title: string | null; meta_description: string | null; status: string; published_at: Date | null; created_at: Date; updated_at: Date }
+export interface BlogRow { [key: string]: unknown; id: number; slug: string; title: string; category: string | null; author: string | null; cover: string | null; excerpt: string | null; body: string; meta_title: string | null; meta_description: string | null; status: string; published_at: Date | null; created_at: Date; updated_at: Date; author_id: number | null; writer_role: string | null; writer_level: string | null; writer_photo: string | null }
+/** The linked writer (staff posts) without a JOIN, so the list's unqualified WHERE and ORDER BY columns stay unambiguous. */
+const WRITER = "(SELECT u.role FROM users u WHERE u.id = blog_posts.author_id) AS writer_role, (SELECT u.level FROM users u WHERE u.id = blog_posts.author_id) AS writer_level, (SELECT u.photo FROM users u WHERE u.id = blog_posts.author_id) AS writer_photo";
 const BLOG_SORT: Record<string, string> = { title: "title", category: "category", author: "author", status: "status", updated_at: "updated_at", published_at: "published_at" };
 export async function listBlogPosts(sp: SP) {
   const where: string[] = []; const params: unknown[] = [];
   if (sp.q) { params.push(like(sp.q)); where.push(`(title ILIKE $${params.length} OR author ILIKE $${params.length})`); }
   if (sp.category) { params.push(sp.category); where.push(`category = $${params.length}`); }
   if (sp.status) { params.push(sp.status); where.push(`status = $${params.length}`); }
+  if (sp.writer === "staff") where.push("author_id IS NOT NULL");
+  else if (sp.writer === "office") where.push("author_id IS NULL");
+  else if (sp.writer && /^\d+$/.test(sp.writer)) { params.push(Number(sp.writer)); where.push(`author_id = $${params.length}`); }
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const sort = sortOf(sp, BLOG_SORT, "updated_at");
   const { page, size, offset } = pageOf(sp);
   // Count and page rows in parallel: one round trip to the database instead of two.
-  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM blog_posts ${w}`, params), q<BlogRow>(`SELECT * FROM blog_posts ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
+  const [countRow, rows] = await Promise.all([one<{ n: number }>(`SELECT count(*)::int AS n FROM blog_posts ${w}`, params), q<BlogRow>(`SELECT *, ${WRITER} FROM blog_posts ${w} ORDER BY ${sort.sql} LIMIT ${size} OFFSET ${offset}`, params)]);
   const total = Number(countRow?.n ?? 0);
   return { rows, total, page, size, sort };
 }
-export const getBlogPost = (id: number) => one<BlogRow>("SELECT * FROM blog_posts WHERE id = $1", [id]);
+export const getBlogPost = (id: number) => one<BlogRow>(`SELECT *, ${WRITER} FROM blog_posts WHERE id = $1`, [id]);
 export const blogCategories = async () => (await q<{ category: string }>("SELECT DISTINCT category FROM blog_posts WHERE category IS NOT NULL ORDER BY category")).map((r) => r.category);
-export interface BlogInput { slug: string; title: string; category: string | null; author: string | null; cover: string | null; excerpt: string | null; body: string; meta_title: string | null; meta_description: string | null; status: string }
+export interface BlogInput { slug: string; title: string; category: string | null; author: string | null; cover: string | null; excerpt: string | null; body: string; meta_title: string | null; meta_description: string | null; status: string; /** Set on create for staff posts; an edit never changes the writer. */ author_id?: number | null }
 export async function saveBlogPost(id: number | null, b: BlogInput): Promise<number> {
   if (id) {
     await q("UPDATE blog_posts SET slug=$1,title=$2,category=$3,author=$4,cover=$5,excerpt=$6,body=$7,meta_title=$8,meta_description=$9,status=$10,published_at=CASE WHEN $10='Published' THEN COALESCE(published_at, now()) ELSE published_at END,updated_at=now() WHERE id=$11", [b.slug, b.title, b.category, b.author, b.cover, b.excerpt, b.body, b.meta_title, b.meta_description, b.status, id]);
     return id;
   }
-  const r = await one<{ id: number }>("INSERT INTO blog_posts (slug,title,category,author,cover,excerpt,body,meta_title,meta_description,status,published_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $10='Published' THEN now() ELSE NULL END) RETURNING id", [b.slug, b.title, b.category, b.author, b.cover, b.excerpt, b.body, b.meta_title, b.meta_description, b.status]);
+  const r = await one<{ id: number }>("INSERT INTO blog_posts (slug,title,category,author,cover,excerpt,body,meta_title,meta_description,status,published_at,author_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $10='Published' THEN now() ELSE NULL END,$11) RETURNING id", [b.slug, b.title, b.category, b.author, b.cover, b.excerpt, b.body, b.meta_title, b.meta_description, b.status, b.author_id ?? null]);
   return r!.id;
 }
+
+/** A staff writer's byline: name, designation and passport photo. */
+export async function getWriter(userId: number) {
+  const u = await one<{ name: string; role: string; level: string; photo: string | null }>("SELECT name, role, level, photo FROM users WHERE id = $1", [userId]);
+  return u ? { name: u.name, title: levelLabel(u.role, u.level), photo: u.photo } : null;
+}
+export const listMyPosts = (userId: number) => q<{ id: number; slug: string; title: string; status: string; category: string | null; updated_at: Date; published_at: Date | null }>(
+  "SELECT id, slug, title, status, category, updated_at, published_at FROM blog_posts WHERE author_id = $1 ORDER BY updated_at DESC", [userId]);

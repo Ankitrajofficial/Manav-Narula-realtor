@@ -7,6 +7,9 @@ const nextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }, { protocol: "https", hostname: "i.ytimg.com" }],
   },
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  // Forms with an upload (sale documents, images, brochures) post through server actions, which Next caps at 1 MB.
+  // Match the 16 MB file limit in src/lib/upload.ts, plus room for the multipart overhead.
+  experimental: { serverActions: { bodySizeLimit: "17mb" } },
 };
 
 export default nextConfig;

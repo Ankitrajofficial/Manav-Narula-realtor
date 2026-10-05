@@ -30,7 +30,13 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
                 <span className="text-xs text-accent-ink">{a.category}</span>
                 <h2 className="mt-1 text-lg leading-snug group-hover:text-accent-ink">{a.title}</h2>
                 <p className="mt-2 line-clamp-2 text-sm text-muted">{a.excerpt}</p>
-                <p className="mt-3 text-sm text-muted">{formatDate(a.date)}</p>
+                <p className="mt-3 flex items-center gap-2 text-sm text-muted">
+                  {a.authorPhoto && (
+                    // eslint-disable-next-line @next/next/no-img-element -- tiny uploaded headshot
+                    <img src={a.authorPhoto} alt="" className="h-7 w-7 shrink-0 rounded-full border border-line object-cover object-top" />
+                  )}
+                  <span className="min-w-0 truncate">{a.authorTitle ? <><span className="text-ink">{a.author}</span>, {a.authorTitle} · </> : null}{formatDate(a.date)}</span>
+                </p>
               </div>
             </Link>
           </li>

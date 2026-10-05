@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { flash } from "@/lib/flash";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
 import { LOCALITY_ORDER, ZONES } from "@/lib/localities";
@@ -82,7 +83,7 @@ export async function moveLocality(id: number, dir: -1 | 1) {
   for (const [k, lid] of ids.entries()) await q("UPDATE localities SET sort_order = $1 WHERE id = $2", [Number(base) + k, lid]);
   await audit(user.id, "reorder", "settings_localities", id);
   revalidatePath("/", "layout");
-  redirect("/admin/settings#localities");
+  redirect("/admin/settings?toast=Locality+order+saved#localities");
 }
 
 /** Renames a locality everywhere it is used (properties, projects, leads, prospects), so filters and records stay matched. */
@@ -115,6 +116,7 @@ export async function toggleLocality(id: number, value: boolean) {
   const user = await requireUser("admin");
   await q("UPDATE localities SET is_active = $1 WHERE id = $2", [value, id]);
   await audit(user.id, value ? "activate" : "deactivate", "settings_localities", id);
+  await flash(value ? "Locality shown" : "Locality hidden");
   revalidatePath("/", "layout");
 }
 

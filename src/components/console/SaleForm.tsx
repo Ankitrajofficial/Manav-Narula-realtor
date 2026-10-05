@@ -1,6 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { Field, FormError, Input, Select, SubmitButton, Textarea } from "./Form";
+import DocumentPicker from "./DocumentPicker";
 import type { SaleFormState } from "@/lib/queries/sales";
 
 export interface SaleFormValues { sale_date?: string; lead_id?: number | null; prospect_id?: number | null; property_id?: number | null; property_title?: string | null; client_name?: string | null; deal_value?: number | string; commission?: number | string; employee_id?: number | null; notes?: string | null; document_url?: string | null }
@@ -45,10 +46,11 @@ export default function SaleForm({ action, values = {}, leads, prospects, proper
           <Field label="Deal value (₹)" htmlFor="deal_value" error={e.deal_value}><Input id="deal_value" name="deal_value" inputMode="numeric" defaultValue={values.deal_value ?? ""} required error={e.deal_value} placeholder="e.g. 8500000" /></Field>
           <Field label="Commission (₹)" htmlFor="commission" error={e.commission}><Input id="commission" name="commission" inputMode="numeric" defaultValue={values.commission ?? ""} error={e.commission} placeholder="e.g. 85000" /></Field>
           <Field label="Notes" htmlFor="notes" className="md:col-span-2"><Textarea id="notes" name="notes" rows={3} defaultValue={values.notes ?? ""} /></Field>
-          <Field label="Agreement (PDF or image)" htmlFor="document" error={e.document} hint={values.document_url ? "Uploading a new file replaces the current one" : "Optional, up to 15 MB"} className="md:col-span-2">
-            <Input id="document" name="document" type="file" accept=".pdf,image/*" error={e.document} className="py-1.5" />
-            {values.document_url && <a href={values.document_url} target="_blank" rel="noopener" className="mt-1 inline-block text-xs text-accent-ink hover:underline">View current agreement</a>}
-          </Field>
+          <div className="md:col-span-2">
+            <p className="mb-1 block text-xs font-medium text-ink">{values.document_url ? "Add more documents" : "Documents"}</p>
+            <DocumentPicker error={e.documents} />
+            <p className="mt-1 text-xs text-muted">Agreement, receipts, ID proofs, site photos. Optional, up to 16 MB per save.{values.document_url ? " Files already on this sale stay; remove them from the sale page." : ""}</p>
+          </div>
         </div>
       </div>
       <FormError message={state.error} />

@@ -5,12 +5,29 @@ import { json, one, q } from "@/lib/db";
 import { audit, logActivity, toE164 } from "@/lib/records";
 import { LEAD_STATUSES } from "@/lib/console";
 import { forwardLeads } from "@/lib/lead-webhook";
+import { describeAssign, runAutoAssign } from "@/lib/auto-assign";
+import { leadFilters } from "@/lib/queries/leads";
+import { prospectFilters } from "@/lib/queries/prospects";
 
 type Kind = "lead" | "prospect";
 const table = (k: Kind) => (k === "lead" ? "leads" : "prospects");
 const base = (u: SessionUser) => (u.role === "admin" ? "/admin" : "/employee");
 const kindOf = (v: unknown): Kind => (v === "prospect" ? "prospect" : "lead");
 const ids = (fd: FormData) => fd.getAll("ids").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+const MAX_BULK = 5000;
+
+/**
+ * The rows a bulk action applies to: the ticked ids, or with "select all matching" every row that fits the list's
+ * current filters (sent as its query string), on every page. Bulk actions are admin-only, so no owner scope applies.
+ */
+async function bulkIds(fd: FormData, kind: Kind): Promise<number[]> {
+  if (fd.get("all_matching") !== "1") return ids(fd);
+  const sp = Object.fromEntries(new URLSearchParams(String(fd.get("filter") ?? ""))) as Record<string, string>;
+  const f = kind === "lead" ? leadFilters(sp) : prospectFilters(sp);
+  const from = kind === "lead" ? "leads l LEFT JOIN users u ON u.id = l.assigned_to" : "prospects p LEFT JOIN users u ON u.id = p.assigned_to LEFT JOIN users a ON a.id = p.added_by";
+  const rows = await q<{ id: number }>(`SELECT ${kind === "lead" ? "l" : "p"}.id FROM ${from} ${f.where} ORDER BY 1 LIMIT ${MAX_BULK}`, f.params);
+  return rows.map((r) => r.id);
+}
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const toastTo = (path: string, msg: string) => `${path}${path.includes("?") ? "&" : "?"}toast=${encodeURIComponent(msg)}`;
 const errorTo = (path: string, msg: string) => `${path}${path.includes("?") ? "&" : "?"}error=${encodeURIComponent(msg)}`;
@@ -25,12 +42,20 @@ async function accessible(kind: Kind, id: number, user: SessionUser): Promise<Re
   return row;
 }
 
-async function changeStatus(kind: Kind, rec: Rec, status: string, user: SessionUser) {
-  if (rec.status === status) return;
+/** Returns the auto-assign note ("Batch complete: 5 leads assigned to you") when the change handed out leads, else "". */
+async function changeStatus(kind: Kind, rec: Rec, status: string, user: SessionUser, assignAfter = true): Promise<string> {
+  if (rec.status === status) return "";
   const extra = kind === "prospect" ? ", last_contacted_at = now()" : "";
   await q(`UPDATE ${table(kind)} SET status = $1, updated_at = now()${extra} WHERE id = $2`, [status, rec.id]);
   await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: rec.id, userId: user.id, type: "status", body: `Status changed to ${status}`, fromStatus: rec.status, toStatus: status });
+  // A lead leaving "New" may finish someone's batch, which hands them the next one.
+  if (assignAfter && kind === "lead" && rec.status === "New") return describeAssign(await runAutoAssign(), { me: user.name, quiet: true });
+  return "";
 }
+/** Joins an action's own message with an optional auto-assign note. */
+const withNote = (msg: string, note: string) => (note ? `${msg}. ${note}` : msg);
+/** Auto-assign after an admin change to leads; "" when nothing was handed out. */
+const assignNote = async (kind: Kind, user: SessionUser) => (kind === "lead" ? describeAssign(await runAutoAssign(), { me: user.name, quiet: true }) : "");
 
 export async function setStatusAction(fd: FormData) {
   const user = await requireUser();
@@ -40,8 +65,8 @@ export async function setStatusAction(fd: FormData) {
   if (!(LEAD_STATUSES as readonly string[]).includes(status)) redirect(errorTo(path, "Unknown status"));
   const rec = await accessible(kind, id, user);
   if (!rec) redirect(errorTo(`${base(user)}/${table(kind)}`, "Record not found"));
-  await changeStatus(kind, rec, status, user);
-  redirect(toastTo(path, back ? `${rec.name}: ${status}` : `Status set to ${status}`));
+  const note = await changeStatus(kind, rec, status, user);
+  redirect(toastTo(path, withNote(back ? `${rec.name}: ${status}` : `Status set to ${status}`, note)));
 }
 
 export async function addNoteAction(fd: FormData) {
@@ -77,9 +102,9 @@ export async function scheduleFollowUpAction(fd: FormData) {
   if (!rec) redirect(errorTo(`${base(user)}/${table(kind)}`, "Record not found"));
   const at = new Date(`${date}T${time}:00`);
   await q(`UPDATE ${table(kind)} SET next_follow_up_at = $1, updated_at = now() WHERE id = $2`, [at.toISOString(), id]);
-  if (rec.status === "New") await changeStatus(kind, rec, "Follow up", user);
+  const assigned = rec.status === "New" ? await changeStatus(kind, rec, "Follow up", user) : "";
   await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "follow_up", body: note ? `Follow-up scheduled: ${note}` : "Follow-up scheduled", scheduledAt: at.toISOString() });
-  redirect(toastTo(path, "Follow-up scheduled"));
+  redirect(toastTo(path, withNote("Follow-up scheduled", assigned)));
 }
 
 
@@ -105,45 +130,52 @@ export async function assignAction(fd: FormData) {
   await q(`UPDATE ${table(kind)} SET assigned_to = $1, updated_at = now() WHERE id = $2`, [toId, id]);
   await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "assign", body: emp ? `Assigned to ${emp.name}` : "Unassigned" });
   await audit(user.id, "assign", kind, id, { assigned_to: toId });
+  const auto = await assignNote(kind, user);
   const note = await otherOwnersTasks(kind, [id], toId);
-  redirect(toastTo(path, `${emp ? `Assigned to ${emp.name}` : "Unassigned"}${note}`));
+  redirect(toastTo(path, withNote(`${emp ? `Assigned to ${emp.name}` : "Unassigned, back in the pool"}${note}`, auto)));
 }
 
 export async function bulkAssignAction(fd: FormData) {
   const user = await requireUser("admin");
-  const kind = kindOf(fd.get("kind")); const list = ids(fd); const to = str(fd, "assigned_to");
+  const kind = kindOf(fd.get("kind")); const to = str(fd, "assigned_to");
   const back = str(fd, "return") || `/admin/${table(kind)}`;
-  if (!list.length) redirect(errorTo(back, "Select at least one row"));
   if (!to) redirect(errorTo(back, "Choose an employee"));
+  const list = await bulkIds(fd, kind);
+  if (!list.length) redirect(errorTo(back, "Select at least one row"));
   const emp = await one<{ name: string }>("SELECT name FROM users WHERE id = $1 AND status = 'active'", [Number(to)]);
   if (!emp) redirect(errorTo(back, "Employee not found"));
-  for (const id of list) {
-    await q(`UPDATE ${table(kind)} SET assigned_to = $1, updated_at = now() WHERE id = $2`, [Number(to), id]);
-    await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "assign", body: `Assigned to ${emp.name}` });
-  }
-  await audit(user.id, "bulk_assign", kind, null, { ids: list, assigned_to: Number(to) });
+  // One statement each, so "all matching" with thousands of rows stays quick.
+  const col = kind === "lead" ? "lead_id" : "prospect_id";
+  await q(`UPDATE ${table(kind)} SET assigned_to = $1, updated_at = now()${kind === "lead" ? ", last_activity_at = now()" : ""} WHERE id = ANY($2::int[])`, [Number(to), list]);
+  await q(`INSERT INTO lead_activities (${col}, user_id, type, body) SELECT x, $2, 'assign', $3 FROM unnest($1::int[]) AS x`, [list, user.id, `Assigned to ${emp.name}`]);
+  await audit(user.id, "bulk_assign", kind, null, { count: list.length, ids: list.slice(0, 200), all_matching: fd.get("all_matching") === "1", assigned_to: Number(to) });
+  const auto = await assignNote(kind, user);
   const note = await otherOwnersTasks(kind, list, Number(to));
-  redirect(toastTo(back, `${list.length} assigned to ${emp.name}${note}`));
+  redirect(toastTo(back, withNote(`${list.length} assigned to ${emp.name}${note}`, auto)));
 }
 
 /** Admin ticks rows in the Leads or Prospects table and opens a new task with them already on the call sheet. */
 export async function bulkCreateTaskAction(fd: FormData) {
   await requireUser("admin");
-  const kind = kindOf(fd.get("kind")); const list = ids(fd);
+  const kind = kindOf(fd.get("kind"));
   const back = str(fd, "return") || `/admin/${table(kind)}`;
+  const list = await bulkIds(fd, kind);
   if (!list.length) redirect(errorTo(back, "Select at least one row"));
+  if (list.length > 500) redirect(errorTo(back, `A task's call sheet holds up to 500 records; ${list.length} are selected. Narrow the filters first`));
   redirect(`/admin/tasks/new?${kind === "lead" ? "leads" : "prospects"}=${list.join(",")}`);
 }
 
 export async function bulkStatusAction(fd: FormData) {
   const user = await requireUser("admin");
-  const kind = kindOf(fd.get("kind")); const list = ids(fd); const status = str(fd, "status");
+  const kind = kindOf(fd.get("kind")); const status = str(fd, "status");
   const back = str(fd, "return") || `/admin/${table(kind)}`;
-  if (!list.length) redirect(errorTo(back, "Select at least one row"));
   if (!(LEAD_STATUSES as readonly string[]).includes(status)) redirect(errorTo(back, "Choose a status"));
-  for (const id of list) { const rec = await accessible(kind, id, user); if (rec) await changeStatus(kind, rec, status, user); }
-  await audit(user.id, "bulk_status", kind, null, { ids: list, status });
-  redirect(toastTo(back, `${list.length} set to ${status}`));
+  const list = await bulkIds(fd, kind);
+  if (!list.length) redirect(errorTo(back, "Select at least one row"));
+  for (const id of list) { const rec = await accessible(kind, id, user); if (rec) await changeStatus(kind, rec, status, user, false); }
+  const auto = await assignNote(kind, user);
+  await audit(user.id, "bulk_status", kind, null, { count: list.length, ids: list.slice(0, 200), all_matching: fd.get("all_matching") === "1", status });
+  redirect(toastTo(back, withNote(`${list.length} set to ${status}`, auto)));
 }
 
 export async function deleteRecordAction(fd: FormData) {
@@ -153,7 +185,8 @@ export async function deleteRecordAction(fd: FormData) {
   if (!rec) redirect(errorTo(`/admin/${table(kind)}`, "Record not found"));
   await q(`DELETE FROM ${table(kind)} WHERE id = $1`, [id]);
   await audit(user.id, "delete", kind, id, { name: rec.name });
-  redirect(toastTo(`/admin/${table(kind)}`, `${kind === "lead" ? "Lead" : "Prospect"} deleted`));
+  const auto = await assignNote(kind, user);
+  redirect(toastTo(`/admin/${table(kind)}`, withNote(`${kind === "lead" ? "Lead" : "Prospect"} deleted`, auto)));
 }
 
 /* ---------- create / edit ---------- */
@@ -192,7 +225,8 @@ export async function saveLeadAction(prev: RecordFormState, fd: FormData): Promi
       await logActivity({ leadId: id, userId: user.id, type: "assign", body: emp ? `Assigned to ${emp.name}` : "Unassigned" });
     }
     await audit(user.id, "update", "lead", id);
-    redirect(toastTo(`${base(user)}/leads/${id}`, "Lead saved"));
+    const auto = assigned !== undefined && assigned !== rec.assigned_to ? await assignNote("lead", user) : "";
+    redirect(toastTo(`${base(user)}/leads/${id}`, withNote("Lead saved", auto)));
   }
   const row = await one<{ id: number }>("INSERT INTO leads (name, phone, email, interest, budget, locality, source, notes, property_id, project_id, assigned_to, created_by, whatsapp_opt_in, tags) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb) RETURNING id",
     [v.name, phone, v.email || null, v.interest || null, v.budget || null, v.locality || null, v.source || "Walk-in", v.notes || null, v.property_id ? Number(v.property_id) : null, v.project_id ? Number(v.project_id) : null, assigned ?? user.id, user.id, v.whatsapp_opt_in, json(v.tags)]);
@@ -272,7 +306,8 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
     imported++;
   }
   await audit(user.id, "import", kind, null, { imported, skipped });
+  const auto = importedLeads.length ? await assignNote(kind, user) : "";
   void forwardLeads(importedLeads);
   const dest = user.role === "admin" ? `/admin/${table(kind)}` : `/employee/${table(kind)}`;
-  return { imported, skipped, reasons, redirect: toastTo(dest, `Imported ${imported}, skipped ${skipped}`) };
+  return { imported, skipped, reasons, redirect: toastTo(dest, withNote(`Imported ${imported}, skipped ${skipped}`, auto)) };
 }

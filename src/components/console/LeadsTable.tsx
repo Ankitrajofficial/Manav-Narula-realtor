@@ -46,7 +46,7 @@ export default async function LeadsTable({ sp, base, userId }: { sp: SP; base: "
         <form>
           <input type="hidden" name="kind" value="lead" />
           <input type="hidden" name="return" value={`/admin/leads${qs ? `?${qs}` : ""}`} />
-          <BulkBar>
+          <BulkBar total={data.total} filter={qs}>
             <select name="assigned_to" className={`${inputCls} w-auto py-1`} aria-label="Assign to employee" defaultValue=""><option value="">Assign to…</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select>
             <button type="submit" formAction={bulkAssignAction} className="rounded-brand border border-line px-3 py-1 text-sm hover:border-ink">Assign</button>
             <select name="status" className={`${inputCls} w-auto py-1`} aria-label="Change status" defaultValue=""><option value="">Change status…</option>{LEAD_STATUSES.map((s) => <option key={s}>{s}</option>)}</select>

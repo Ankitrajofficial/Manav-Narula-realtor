@@ -10,13 +10,13 @@ import Icon from "@/components/Icon";
 import { Container, GoogleRating, Section, SectionTitle } from "@/components/ui";
 import { servicesShort, site, testimonials, workEthics } from "@/data/site";
 import TrustStats from "@/components/TrustStats";
-import { getActiveOffers, getArticles, getBanners, getBusiness, getFoundedYear, getTrustStats, withFoundedYear, getFaqGroups, getFeaturedProperties, getOfferBanner, getLocalitiesServed, getProjects, offerCta } from "@/lib/site-data";
+import { getActiveOffers, getArticles, getBanners, getBusiness, getFoundedYear, getTrustStats, withFoundedYear, getFaqGroups, getFeaturedProperties, getOfferBanner, getLocalitiesServed, getProjects, getPartnerBanks, offerCta } from "@/lib/site-data";
 
 export const revalidate = 60;
 import { formatDate, unsplash } from "@/lib/format";
 
 export default async function HomePage() {
-  const [localitiesServed, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs, trustStats, foundedYear, business] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups(), getTrustStats(), getFoundedYear(), getBusiness()]);
+  const [localitiesServed, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs, trustStats, foundedYear, business, banks] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups(), getTrustStats(), getFoundedYear(), getBusiness(), getPartnerBanks()]);
   const offers: OfferSlide[] = activeOffers.length
     ? activeOffers.map((o) => ({ id: String(o.id), image: o.image ?? fallbackOffer.image, headline: o.title, line: o.text ?? "", cta: { label: offerCta(o.href), href: o.href } }))
     : [{ ...fallbackOffer, id: `banner-${fallbackOffer.id}` }];
@@ -83,6 +83,25 @@ export default async function HomePage() {
           ))}
         </ul>
       </Section>
+
+      {/* 5b. Partner banks for home loans, logos in full colour */}
+      {banks.length > 0 && (
+        <Section className="border-y border-line bg-white">
+          <SectionTitle title="Home loans from partner banks" intro="We compare offers from these banks and handle the file until sanction, with zero brokerage." action={{ label: "Home loans", href: "/home-loans" }} />
+          <ul className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${banks.length % 6 === 0 ? "lg:grid-cols-6" : "lg:grid-cols-5"} [&>li:last-child:nth-child(odd)]:col-span-2 sm:[&>li:last-child:nth-child(odd)]:col-span-1`}>
+            {banks.map((b) => (
+              <li key={b.id}>
+                <Link href="/home-loans" className="flex h-full flex-col items-center justify-center gap-3 rounded-brand border border-[#c9c9c6] bg-white px-4 py-5 text-center transition-colors hover:border-ink">
+                  <span className="relative flex h-12 w-full items-center justify-center">
+                    {b.logo ? <Image src={b.logo} alt={`${b.name} logo`} fill sizes="(min-width: 1024px) 200px, 45vw" className="object-contain" /> : <Icon name="bank" size={28} className="text-accent" />}
+                  </span>
+                  <span className="text-sm">{b.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
       {/* 6. Offer banner slot: every active offer, as a carousel */}
       {offers.length > 0 && (

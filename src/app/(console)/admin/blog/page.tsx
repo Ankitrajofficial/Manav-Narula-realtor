@@ -7,6 +7,7 @@ import Icon from "@/components/Icon";
 import { requireUser } from "@/lib/auth";
 import { formatShortDate } from "@/lib/format";
 import { blogCategories, listBlogPosts, type BlogRow } from "@/lib/queries/content";
+import { levelLabel } from "@/lib/growth";
 
 export default async function BlogAdminPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser("admin");
@@ -14,10 +15,11 @@ export default async function BlogAdminPage({ searchParams }: { searchParams: Pr
   const [{ rows, total, page, size, sort }, cats] = await Promise.all([listBlogPosts(sp), blogCategories()]);
   return (
     <>
-      <PageHeader title="Blog" description="Articles on the website. Drafts are only visible here." actions={<Link href="/admin/blog/new" className="inline-flex items-center gap-1.5 rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="plus" size={16} />New post</Link>} />
+      <PageHeader title="Blog" description="Articles on the website, by the office and by team members from their own portal. You can edit, unpublish or delete any of them. Drafts are only visible here." actions={<Link href="/admin/blog/new" className="inline-flex items-center gap-1.5 rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="plus" size={16} />New post</Link>} />
       <FilterBar searchPlaceholder="Search title or author" filters={[
         { key: "category", label: "Category", options: cats.map((c) => ({ value: c, label: c })) },
         { key: "status", label: "Status", options: [{ value: "Draft", label: "Draft" }, { value: "Published", label: "Published" }] },
+        { key: "writer", label: "Written by", options: [{ value: "staff", label: "Team members" }, { value: "office", label: "Office (admin)" }] },
       ]} />
       <DataTable<BlogRow>
         rows={rows} total={total} page={page} pageSize={size} sp={sp} basePath="/admin/blog" sortKey={sort.key} sortDir={sort.dir} rowId={(r) => r.id}
@@ -25,7 +27,15 @@ export default async function BlogAdminPage({ searchParams }: { searchParams: Pr
         columns={[
           { key: "title", label: "Title", sortable: true, render: (r) => <Link href={`/admin/blog/${r.id}`} className="font-medium hover:text-accent-ink">{r.title}</Link> },
           { key: "category", label: "Category", sortable: true },
-          { key: "author", label: "Author", sortable: true },
+          { key: "author", label: "Author", sortable: true, render: (r) => (
+            <span className="flex items-center gap-2">
+              {r.writer_photo && (
+                // eslint-disable-next-line @next/next/no-img-element -- uploaded headshot
+                <img src={r.writer_photo} alt="" className="h-7 w-7 shrink-0 rounded-full border border-line object-cover object-top" />
+              )}
+              <span>{r.author ?? "—"}{r.author_id && <span className="block text-xs text-muted">{levelLabel(r.writer_role ?? "employee", r.writer_level)}</span>}</span>
+            </span>
+          ) },
           { key: "status", label: "Status", sortable: true, render: (r) => <Pill value={r.status} /> },
           { key: "published_at", label: "Published", sortable: true, className: "whitespace-nowrap text-muted", render: (r) => formatShortDate(r.published_at) || "—" },
           { key: "updated_at", label: "Updated", sortable: true, className: "whitespace-nowrap text-muted", render: (r) => formatShortDate(r.updated_at) },

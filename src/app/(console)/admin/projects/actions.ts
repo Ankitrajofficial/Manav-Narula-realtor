@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { flash } from "@/lib/flash";
 import { one, q } from "@/lib/db";
 import { audit, slugify } from "@/lib/records";
 import { saveUpload, saveUploads } from "@/lib/upload";
@@ -76,6 +77,7 @@ export async function toggleProjectPublished(id: number, value: boolean) {
   const user = await requireUser("admin");
   await q("UPDATE projects SET published = $1, updated_at = now() WHERE id = $2", [value, id]);
   await audit(user.id, value ? "publish" : "unpublish", "project", id);
+  await flash(value ? "Project published" : "Project unpublished");
   revalidatePath("/", "layout");
   revalidatePath("/admin/projects");
 }

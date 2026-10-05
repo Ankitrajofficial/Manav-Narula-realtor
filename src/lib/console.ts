@@ -36,6 +36,14 @@ export const PILL_COLORS: Record<string, string> = {
   Skipped: "var(--pill-amber)",
   Connected: "var(--pill-darkgreen)",
   "Not connected": "var(--pill-grey)",
+  Admin: "var(--ink)",
+  Employee: "var(--pill-blue)",
+  Intern: "var(--pill-amber)",
+  Executive: "var(--pill-darkgreen)",
+  "Star due": "var(--pill-amber)",
+  "Ready for promotion": "var(--pill-green)",
+  Valid: "var(--pill-darkgreen)",
+  Revoked: "var(--pill-red)",
 };
 
 export const INTERESTS = ["Buy", "Sell", "Rent"] as const;
@@ -62,6 +70,8 @@ export const adminNav = [
   { href: "/admin/home-loans", label: "Home Loans", icon: "bank" },
   { href: "/admin/blog", label: "Blog", icon: "file" },
   { href: "/admin/employees", label: "Employees", icon: "badge" },
+  { href: "/admin/auto-assign", label: "Auto-assign", icon: "manage" },
+  { href: "/admin/certificates", label: "Certificates", icon: "shield" },
   { href: "/admin/sales", label: "Sales", icon: "rupee" },
   { href: "/admin/reports", label: "Reports", icon: "chart" },
   { href: "/admin/settings", label: "Settings", icon: "settings" },
@@ -74,6 +84,8 @@ export const employeeNav = [
   { href: "/employee/data-entry", label: "Data Entry", icon: "edit" },
   { href: "/employee/tasks", label: "My Tasks", icon: "check" },
   { href: "/employee/sales", label: "My Sales", icon: "rupee" },
+  { href: "/employee/growth", label: "My Stars", icon: "star" },
+  { href: "/employee/blog", label: "My Blog", icon: "file" },
 ];
 
 /** Parse a "from,to" style filter into SQL-safe date strings. */

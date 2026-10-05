@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { flash } from "@/lib/flash";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
 import { saveUpload } from "@/lib/upload";
@@ -45,6 +46,7 @@ export async function toggleBannerActive(id: number, value: boolean) {
   const user = await requireUser("admin");
   await q("UPDATE banners SET active = $1, updated_at = now() WHERE id = $2", [value, id]);
   await audit(user.id, value ? "activate" : "deactivate", "banner", id);
+  await flash(value ? "Banner shown on the website" : "Banner hidden from the website");
   revalidatePath("/", "layout");
   revalidatePath("/admin/banners");
 }
@@ -59,6 +61,7 @@ export async function moveBanner(id: number, dir: -1 | 1) {
   [ids[i], ids[j]] = [ids[j], ids[i]];
   await reorderBanners(b.group, ids);
   await audit(user.id, "reorder", "banner", id, { order: ids });
+  await flash("Banner order saved");
   revalidatePath("/", "layout");
   revalidatePath("/admin/banners");
 }
@@ -67,6 +70,7 @@ export async function reorderBannerGroup(group: string, ids: number[]) {
   const user = await requireUser("admin");
   await reorderBanners(group === "offer" ? "offer" : "carousel", ids.map(Number).filter(Number.isInteger));
   await audit(user.id, "reorder", "banner", null, { group, order: ids });
+  await flash("Banner order saved");
   revalidatePath("/", "layout");
   revalidatePath("/admin/banners");
 }
