@@ -21,16 +21,23 @@ async function connect(): Promise<Client> {
     pool.on("error", (e) => console.error("[db] idle connection error", e.message));
     client = { query: (t, p) => pool.query(t, p as never[]) as unknown as Promise<{ rows: never[] }> };
     // A production build renders pages in several processes at once, and each one connects and brings the schema up to
-    // date. Two of them creating the same new table at the same moment makes Postgres fail with a duplicate-key error,
-    // which fails the whole build. An advisory lock lets one process do it while the others wait, then find it done.
+    // date. Two of them creating the same new table at the same moment fails with a duplicate error and fails the whole
+    // build. So the schema, seed and migrations run as one transaction holding a transaction-scoped advisory lock: the
+    // other processes wait, then find everything applied. It has to be transaction-scoped because DATABASE_URL may point
+    // at a pooler (Neon's "-pooler" host, PgBouncer in transaction mode), which can run each statement of a session on a
+    // different server connection; a session lock taken that way neither excludes the others nor reliably unlocks.
     prepare = async (run) => {
       const conn = await pool.connect();
       const one: Client = { query: (t, p) => conn.query(t, p as never[]) as unknown as Promise<{ rows: never[] }> };
       try {
-        await conn.query("SELECT pg_advisory_lock(73517001)");
+        await conn.query("BEGIN");
+        await conn.query("SELECT pg_advisory_xact_lock(73517002)");
         await run(one);
+        await conn.query("COMMIT");
+      } catch (e) {
+        await conn.query("ROLLBACK").catch(() => undefined);
+        throw e;
       } finally {
-        await conn.query("SELECT pg_advisory_unlock(73517001)").catch(() => undefined);
         conn.release();
       }
     };
