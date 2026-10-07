@@ -20,7 +20,7 @@ export default async function PopupsPage() {
     <>
       <PageHeader
         title="Pop-ups"
-        description="Pop-ups shown on the website. A visitor sees at most one per visit: the newest live pop-up for that page. Once closed, the same pop-up stays hidden for that visitor for 7 days."
+        description="Pop-ups shown on the website. A visitor sees at most one each time a page loads (a refresh shows it again): the newest live pop-up for that page. Once closed, the same pop-up stays hidden for that visitor for a day; once its form is sent, for 30 days."
         actions={<Link href="/admin/popups/new" className="inline-flex items-center gap-1.5 rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="plus" size={16} />New pop-up</Link>}
       />
       {popups.length === 0 ? <EmptyState text="No pop-ups yet." action={{ label: "New pop-up", href: "/admin/popups/new" }} /> : (

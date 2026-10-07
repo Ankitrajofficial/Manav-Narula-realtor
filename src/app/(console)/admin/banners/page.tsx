@@ -27,7 +27,7 @@ export default async function BannersPage() {
       <PageHeader title="Banners" description="Home page carousel and the offer strip. Order here is the order on the website; only Live banners are shown." />
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
-          <div><h2 className="text-base">Home carousel</h2><p className="text-xs text-muted">Full-width, 1920 x 800 px. Three to five banners work best.</p></div>
+          <div><h2 className="text-base">Home carousel</h2><p className="text-xs text-muted">Desktop image 16:7 (2400 x 1050 px), optional phone image 4:5 (1080 x 1350 px). Three to five banners work best.</p></div>
           <Link href="/admin/banners/new?group=carousel" className="inline-flex items-center gap-1.5 rounded-brand bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="plus" size={14} />Add carousel banner</Link>
         </div>
         <BannerCards group="carousel" items={carousel} onToggle={toggleBannerActive} onMove={moveBanner} onReorder={reorderBannerGroup} onDelete={deleteBanner} />

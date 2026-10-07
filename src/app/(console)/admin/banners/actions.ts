@@ -12,6 +12,8 @@ export interface BannerFormState { errors?: Record<string, string>; message?: st
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const opt = (v: string) => (v ? v : null);
 const isDate = (v: string) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v);
+/** Focal point from the form's 0 to 100 sliders, stored as 0 to 1. */
+const focal = (v: string) => { const n = Number(v); return Number.isFinite(n) && v !== "" ? Math.min(1, Math.max(0, n / 100)) : 0.5; };
 
 async function parse(fd: FormData): Promise<{ input?: BannerInput; errors?: Record<string, string> }> {
   const errors: Record<string, string> = {};
@@ -28,8 +30,13 @@ async function parse(fd: FormData): Promise<{ input?: BannerInput; errors?: Reco
     image = f instanceof File && f.size > 0 ? await saveUpload(f, "banners") : opt(s(fd, "image_current"));
   } catch (e) { errors.image = e instanceof Error ? e.message : "Upload failed."; }
   if (!image) errors.image = errors.image ?? "Upload a banner image.";
+  let mobileImage: string | null = null;
+  try {
+    const f = fd.get("mobile_image");
+    mobileImage = group === "offer" ? null : f instanceof File && f.size > 0 ? await saveUpload(f, "banners") : opt(s(fd, "mobile_image_current"));
+  } catch (e) { errors.mobile_image = e instanceof Error ? e.message : "Upload failed."; }
   if (Object.keys(errors).length) return { errors };
-  return { input: { group, image, headline, line: opt(s(fd, "line")), cta_label: opt(s(fd, "cta_label")), cta_href: opt(ctaHref), show_text: !fd.get("image_only"), active: !!fd.get("active"), start_date: opt(start), end_date: opt(end) } };
+  return { input: { group, image, mobile_image: mobileImage, eyebrow: opt(s(fd, "eyebrow")), focal_x: focal(s(fd, "focal_x")), focal_y: focal(s(fd, "focal_y")), theme: s(fd, "theme") === "light" ? "light" : "dark", headline, line: opt(s(fd, "line")), cta_label: opt(s(fd, "cta_label")), cta_href: opt(ctaHref), show_text: !fd.get("image_only"), active: !!fd.get("active"), start_date: opt(start), end_date: opt(end) } };
 }
 
 export async function upsertBanner(id: number | null, _p: BannerFormState, fd: FormData): Promise<BannerFormState> {

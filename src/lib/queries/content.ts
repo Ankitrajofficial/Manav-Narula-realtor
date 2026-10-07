@@ -251,17 +251,20 @@ export async function moveProjectToDeveloper(projectId: number, developerId: num
 }
 
 /* ---------------- Banners ---------------- */
-export interface BannerRow { [key: string]: unknown; id: number; group: string; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text: boolean; active: boolean; start_date: string | Date | null; end_date: string | Date | null; sort_order: number; updated_at: Date }
+export type BannerTheme = "dark" | "light";
+export interface BannerRow { [key: string]: unknown; id: number; group: string; image: string | null; mobile_image: string | null; eyebrow: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text: boolean; focal_x: number; focal_y: number; theme: BannerTheme; active: boolean; start_date: string | Date | null; end_date: string | Date | null; sort_order: number; updated_at: Date }
 export const listBanners = () => q<BannerRow>('SELECT * FROM banners ORDER BY "group", sort_order, id');
 export const getBanner = (id: number) => one<BannerRow>("SELECT * FROM banners WHERE id = $1", [id]);
-export interface BannerInput { group: string; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text: boolean; active: boolean; start_date: string | null; end_date: string | null }
+export interface BannerInput { group: string; image: string | null; mobile_image: string | null; eyebrow: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text: boolean; focal_x: number; focal_y: number; theme: BannerTheme; active: boolean; start_date: string | null; end_date: string | null }
+const BANNER_COLS = ["group", "image", "mobile_image", "eyebrow", "headline", "line", "cta_label", "cta_href", "show_text", "focal_x", "focal_y", "theme", "active", "start_date", "end_date"] as const;
 export async function saveBanner(id: number | null, b: BannerInput): Promise<number> {
+  const values = BANNER_COLS.map((c) => b[c]);
   if (id) {
-    await q('UPDATE banners SET "group"=$1,image=$2,headline=$3,line=$4,cta_label=$5,cta_href=$6,active=$7,start_date=$8,end_date=$9,show_text=$10,updated_at=now() WHERE id=$11', [b.group, b.image, b.headline, b.line, b.cta_label, b.cta_href, b.active, b.start_date, b.end_date, b.show_text, id]);
+    await q(`UPDATE banners SET ${BANNER_COLS.map((c, i) => `"${c}"=$${i + 1}`).join(",")},updated_at=now() WHERE id=$${values.length + 1}`, [...values, id]);
     return id;
   }
   const next = await one<{ n: number }>('SELECT COALESCE(max(sort_order),-1)+1 AS n FROM banners WHERE "group" = $1', [b.group]);
-  const r = await one<{ id: number }>('INSERT INTO banners ("group",image,headline,line,cta_label,cta_href,active,start_date,end_date,sort_order,show_text) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id', [b.group, b.image, b.headline, b.line, b.cta_label, b.cta_href, b.active, b.start_date, b.end_date, Number(next?.n ?? 0), b.show_text]);
+  const r = await one<{ id: number }>(`INSERT INTO banners (${BANNER_COLS.map((c) => `"${c}"`).join(",")},sort_order) VALUES (${values.map((_, i) => `$${i + 1}`).join(",")},$${values.length + 1}) RETURNING id`, [...values, Number(next?.n ?? 0)]);
   return r!.id;
 }
 export async function reorderBanners(group: string, ids: number[]) {

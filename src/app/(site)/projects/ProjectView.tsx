@@ -56,6 +56,8 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
   const url = `${site.url}/projects/${p.slug}${unit ? `/${unit.slug}` : ""}`;
   const title = unit ? `${unit.name} at ${p.name}` : p.name;
   const units = p.units ?? [];
+  // An announced launch with no plans or prices yet: the page collects interest instead of offering price lists.
+  const launch = p.status === "Upcoming" && !p.configurations.length && !units.length;
   // The developer's tab under Properties, for the breadcrumb and the back link.
   const dev = propertyDevelopers.find((d) => d.slug === p.developerSlug);
   const types = configSummary(p.configurations.map((c) => c.type));
@@ -98,7 +100,7 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       {/* Hero */}
       <div className="relative h-[420px] border-b border-line bg-line md:h-[520px]">
-        <ProjectImage src={heroSrc} alt={cover?.alt} name={p.name} developer={p.developer} sizes="100vw" priority bare />
+        <ProjectImage src={heroSrc} alt={cover?.alt} name={p.name} developer={p.developer} sizes="100vw" priority bare position={launch ? "object-[center_15%]" : ""} />
         {heroSrc && <div className="absolute inset-0 bg-ink/50" />}
         <Container className="relative flex h-full flex-col justify-end pb-10 text-white">
           <span className="flex flex-wrap items-center gap-3"><Tag>{p.status}</Tag>{!heroSrc && <span className="text-xs text-white/70">Photos coming soon</span>}</span>
@@ -110,7 +112,7 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
           <div className="mt-5 flex flex-wrap gap-2">
             <a href={phoneHref(business)} className="inline-flex items-center gap-2 rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="phone" size={16} />Call {business.phone}</a>
             <a href={whatsappHref(business)} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-brand border border-white px-5 py-3 text-sm text-white hover:bg-white hover:text-ink"><Icon name="whatsapp" size={16} />WhatsApp</a>
-            <a href="#enquire" className="inline-flex items-center gap-2 rounded-brand border border-white/60 px-5 py-3 text-sm text-white hover:border-white">Ask for price and plans</a>
+            <a href="#enquire" className="inline-flex items-center gap-2 rounded-brand border border-white/60 px-5 py-3 text-sm text-white hover:border-white">{launch ? "Register your interest" : "Ask for price and plans"}</a>
           </div>
         </Container>
       </div>
@@ -121,12 +123,14 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
           <div className="lg:col-span-8">
             {/* Key facts strip */}
             <div className="flex items-start justify-between gap-4">
-              <p className="text-2xl font-bold">{projectPrice(p)}</p>
+              <p className="text-2xl font-bold">{launch ? "Launching soon" : projectPrice(p)}</p>
               <ShareButtons title={p.name} />
             </div>
-            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 border-y border-line py-6 sm:grid-cols-3">
-              {facts.map((f) => <div key={f.label}><dt className="text-xs text-muted">{f.label}</dt><dd className="mt-0.5 text-sm tabular">{f.value}</dd></div>)}
-            </dl>
+            {!launch && (
+              <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 border-y border-line py-6 sm:grid-cols-3">
+                {facts.map((f) => <div key={f.label}><dt className="text-xs text-muted">{f.label}</dt><dd className="mt-0.5 text-sm tabular">{f.value}</dd></div>)}
+              </dl>
+            )}
 
             {unit && (
               <div className="mt-10">
@@ -177,7 +181,7 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
               </Section>
             )}
 
-            <Section title="Location">
+            {(!launch || p.address || p.locality || maps.length > 0) && <Section title="Location">
               {maps.map((m) => (
                 <a key={m.url} href={m.url} target="_blank" rel="noopener" className="mb-4 block overflow-hidden rounded-brand border border-line bg-white hover:border-ink">
                   <span className="relative block aspect-[16/9]"><Image src={m.url} alt={m.alt} fill sizes="(min-width: 1024px) 760px, 100vw" className="object-contain" /></span>
@@ -190,7 +194,7 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
                   <p className="mt-2 text-xs text-muted">Travel times as stated by the developer.</p>
                 </>
               )}
-            </Section>
+            </Section>}
 
             {plans.length > 0 && (
               <Section title="Floor plans" id="floor-plans">
@@ -249,9 +253,9 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
 
           <aside className="lg:col-span-4">
             <div id="enquire" className="sticky top-24 scroll-mt-24 rounded-brand border border-line bg-white p-5">
-              <h2 className="text-xl">Enquire about {title}</h2>
-              <p className="mb-4 mt-1 text-sm text-muted">Price list, floor plans, availability and a site visit.</p>
-              <EnquiryForm variant="project" subject={unit ? `${p.name} (${unit.label})` : p.name} submitLabel="Send enquiry" projectId={p.id} />
+              <h2 className="text-xl">{launch ? `Register your interest in ${title}` : `Enquire about ${title}`}</h2>
+              <p className="mb-4 mt-1 text-sm text-muted">{launch ? "Be the first to get the launch details, price list and floor plans when they are released." : "Price list, floor plans, availability and a site visit."}</p>
+              <EnquiryForm variant="project" subject={unit ? `${p.name} (${unit.label})` : p.name} submitLabel={launch ? "Register interest" : "Send enquiry"} projectId={p.id} />
               <p className="mt-4 border-t border-line pt-3 text-xs text-muted">Or call <a href={phoneHref(business)} className="text-ink hover:underline">{business.phone}</a> · Developed by {p.developerSlug ? <Link href={`/developers/${p.developerSlug}`} className="text-ink hover:underline">{p.developer}</Link> : p.developer}</p>
             </div>
           </aside>

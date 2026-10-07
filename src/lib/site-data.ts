@@ -156,13 +156,15 @@ export async function getDevelopersWithProjects(): Promise<Developer[]> {
   return q<Developer>("SELECT id, name, slug, website, description FROM developers d WHERE EXISTS (SELECT 1 FROM projects p WHERE p.developer_id = d.id AND p.published = true) ORDER BY name");
 }
 
-export interface Banner { id: string; image: string; headline: string; line: string; cta: { label: string; href: string }; showText?: boolean }
-interface BannerRow { id: number; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text?: boolean }
+/** A banner; home carousel slides also use the optional fields (see components/BannerCarousel). */
+export interface Banner { id: string; image: string; headline: string; line: string; cta: { label: string; href: string }; showText?: boolean; mobileImage?: string; eyebrow?: string; focalX?: number; focalY?: number; theme?: "dark" | "light" }
+interface BannerRow { id: number; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text?: boolean; mobile_image?: string | null; eyebrow?: string | null; focal_x?: number; focal_y?: number; theme?: string }
 const SCHEDULED = "active = true AND (start_date IS NULL OR start_date <= current_date) AND (end_date IS NULL OR end_date >= current_date)";
 export async function getBanners(): Promise<Banner[]> {
-  const rows = await q<BannerRow>(`SELECT id, image, headline, line, cta_label, cta_href, show_text FROM banners WHERE "group" = 'carousel' AND ${SCHEDULED} ORDER BY sort_order`);
+  const rows = await q<BannerRow>(`SELECT id, image, mobile_image, eyebrow, focal_x, focal_y, theme, headline, line, cta_label, cta_href, show_text FROM banners WHERE "group" = 'carousel' AND ${SCHEDULED} ORDER BY sort_order`);
   if (!rows.length) return staticBanners;
-  return rows.map((b) => ({ id: String(b.id), image: b.image ?? "", headline: b.headline, line: b.line ?? "", cta: { label: b.cta_label ?? "View properties", href: b.cta_href ?? "/properties" }, showText: b.show_text !== false }));
+  return rows.map((b) => ({ id: String(b.id), image: b.image ?? "", headline: b.headline, line: b.line ?? "", cta: { label: b.cta_label ?? "View properties", href: b.cta_href ?? "/properties" }, showText: b.show_text !== false, mobileImage: b.mobile_image || undefined,
+    eyebrow: b.eyebrow || undefined, focalX: Number(b.focal_x ?? 0.5), focalY: Number(b.focal_y ?? 0.5), theme: b.theme === "light" ? "light" : "dark" }));
 }
 export async function getOfferBanner(): Promise<Banner> {
   const b = await one<BannerRow>(`SELECT id, image, headline, line, cta_label, cta_href FROM banners WHERE "group" = 'offer' AND ${SCHEDULED} ORDER BY sort_order LIMIT 1`);

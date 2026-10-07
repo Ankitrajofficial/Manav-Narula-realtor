@@ -30,7 +30,7 @@ export default function CookieConsent() {
   if (!open) return null;
   return (
     <section role="region" aria-label="Cookie notice"
-      className="fixed inset-x-3 bottom-[60px] z-50 rounded-brand border border-line bg-white p-4 shadow-lg md:inset-x-auto md:bottom-4 md:left-4 md:max-w-md">
+      className="fixed inset-x-3 bottom-[calc(var(--bottom-bar-h)+10px)] z-50 rounded-brand border border-line bg-white p-4 shadow-lg md:inset-x-auto md:bottom-4 md:left-4 md:max-w-md">
       <h2 className="text-base">Cookies on this site</h2>
       <p className="mt-1 text-sm text-muted">
         We use essential cookies to keep forms working. With your permission we also use Google Analytics cookies to see which pages help visitors, never for ads.{" "}

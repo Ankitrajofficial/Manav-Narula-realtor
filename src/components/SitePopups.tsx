@@ -9,9 +9,11 @@ import Icon from "./Icon";
 import LocalitySelect from "./LocalitySelect";
 import { inputCls } from "./ui";
 
-const SNOOZE_PREFIX = "mn.popup.snoozeUntil.";
-const SESSION_KEY = "mn.popup.shown";
-const SNOOZE_DAYS = 7;
+// A new key, so 7-day snoozes saved under the old rule (mn.popup.snoozeUntil.<id>) no longer hide pop-ups.
+const SNOOZE_PREFIX = "mn.popup.hideUntil.";
+// Closing hides the pop-up for a day; sending the form hides it for 30 days.
+const CLOSE_SNOOZE_DAYS = 1;
+const SENT_SNOOZE_DAYS = 30;
 const INTERESTS = ["Buy", "Rent", "Sell"] as const;
 // Stored values match the budget list used on leads; labels are the short chip text.
 const BUDGETS = [
@@ -24,14 +26,14 @@ const BUDGETS = [
 type Suggestion = { slug: string; title: string; price: string; locality: string; image: string };
 const safe = <T,>(fn: () => T, fallback: T): T => { try { return fn(); } catch { return fallback; } };
 const snoozed = (id: number) => safe(() => Number(localStorage.getItem(SNOOZE_PREFIX + id) || 0) > Date.now(), false);
-const snooze = (id: number) => safe(() => localStorage.setItem(SNOOZE_PREFIX + id, String(Date.now() + SNOOZE_DAYS * 864e5)), undefined);
+const snooze = (id: number, days: number) => safe(() => localStorage.setItem(SNOOZE_PREFIX + id, String(Date.now() + days * 864e5)), undefined);
 
 const chip = (on: boolean) => `inline-flex min-h-10 items-center rounded-brand border px-3 text-sm transition-colors ${on ? "border-accent bg-accent text-white" : "border-line bg-white text-ink hover:border-ink"}`;
 
 /**
- * Website pop-ups managed under Admin → Pop-ups. At most one shows per visitor session: the newest live pop-up that suits
- * the current page and that this visitor has not closed in the last 7 days. It appears after that pop-up's delay or once the
- * visitor scrolls half-way down, never over another dialog.
+ * Website pop-ups managed under Admin → Pop-ups. At most one shows per page load (a refresh shows it again): the newest
+ * live pop-up that suits the current page and that this visitor has not closed in the last day or sent in the last 30 days.
+ * It appears after that pop-up's delay or once the visitor scrolls half-way down, never over another dialog.
  */
 export default function SitePopups({ popups, localities }: { popups: SitePopup[]; localities: LocalityOption[] }) {
   const pathname = usePathname();
@@ -48,7 +50,7 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
   const done = state === "done";
   useEffect(() => { pathRef.current = pathname; }, [pathname]);
 
-  // Admin preview: ?popup=<id> shows that live pop-up straight away, ignoring the once-per-visit and 7-day rules.
+  // Admin preview: ?popup=<id> shows that live pop-up straight away, ignoring the snooze rules.
   useEffect(() => {
     const want = Number(new URLSearchParams(window.location.search).get("popup"));
     const pick = want ? popups.find((p) => p.id === want) : undefined;
@@ -61,13 +63,11 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
   useEffect(() => {
     if (!popups.length || new URLSearchParams(window.location.search).get("popup")) return;
     const loadedAt = Date.now();
-    const shownThisVisit = () => safe(() => sessionStorage.getItem(SESSION_KEY) === "1", false);
-    if (shownThisVisit()) return;
     let fired = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     const later = (ms: number) => { clearTimeout(retry); retry = setTimeout(() => tryShow(false), ms); };
     const tryShow = (scrolled: boolean) => {
-      if (fired || shownThisVisit()) return;
+      if (fired) return;
       const pick = popups.find((p) => popupShowsOn(p, pathRef.current) && !snoozed(p.id));
       // Nothing for this page (yet), another dialog is open, or the cookie notice is still waiting for an answer:
       // look again shortly, the visitor may move on.
@@ -75,7 +75,6 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
       const wait = pick.delaySeconds * 1000 - (Date.now() - loadedAt);
       if (!scrolled && wait > 0) return later(wait);
       fired = true;
-      safe(() => sessionStorage.setItem(SESSION_KEY, "1"), undefined);
       lastFocus.current = document.activeElement;
       setPopup(pick);
       cleanup();
@@ -91,7 +90,7 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
   }, [popups]);
 
   const close = () => {
-    if (popup) snooze(popup.id);
+    if (popup && state !== "done") snooze(popup.id, CLOSE_SNOOZE_DAYS);
     setPopup(null);
     (lastFocus.current as HTMLElement | null)?.focus?.();
   };
@@ -136,7 +135,7 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
       if (!res.ok || !j.ok) throw new Error("failed");
       setSuggestions(j.suggestions ?? []);
       setState("done");
-      snooze(popup.id);
+      snooze(popup.id, SENT_SNOOZE_DAYS);
     } catch {
       setState("form");
       setError("Could not send. Please call or WhatsApp us instead.");

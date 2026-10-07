@@ -269,6 +269,13 @@ CREATE INDEX IF NOT EXISTS campaign_messages_campaign_idx ON campaign_messages(c
 
 -- false: the image carries its own text (a finished creative), so the site shows it without the tint, headline and button.
 ALTER TABLE banners ADD COLUMN IF NOT EXISTS show_text boolean NOT NULL DEFAULT true;
+-- Home hero slides: image is the desktop image (16:7), mobile_image the optional phone image (4:5). Without a phone image,
+-- phones crop the desktop image around the focal point (0 to 1 across and down). theme picks the text overlay.
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS mobile_image text;
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS eyebrow text;
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS focal_x real NOT NULL DEFAULT 0.5;
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS focal_y real NOT NULL DEFAULT 0.5;
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS theme text NOT NULL DEFAULT 'dark';
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS media_type text NOT NULL DEFAULT 'none';
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS media_url text;
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS media_filename text;

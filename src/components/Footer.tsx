@@ -16,7 +16,7 @@ export default async function Footer() {
   const localities = (await q<{ name: string }>(`SELECT l.name FROM localities l WHERE l.is_active AND (EXISTS (SELECT 1 FROM properties p WHERE p.published AND p.locality = l.name) OR NOT EXISTS (SELECT 1 FROM properties p JOIN localities x ON x.name = p.locality WHERE p.published AND x.is_active)) ORDER BY l.sort_order, l.name LIMIT 12`)).map((r) => r.name);
   const tel = phoneHref(b), wa = whatsappHref(b);
   return (
-    <footer className="bg-ink text-white pb-24 md:pb-0">
+    <footer className="bg-ink pb-(--bottom-bar-h) text-white">
       {/* Top row: brand and the two fastest ways to reach us */}
       <Container className="flex flex-col gap-6 border-b border-white/10 py-10 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">

@@ -11,7 +11,10 @@
   --font-heading: Georgia, "Times New Roman", serif;
   --font-body: Arial, Helvetica, sans-serif;
   --radius: 4px;
+  /* Height of the phone bottom bar (components/MobileBar), kept exact by the bar itself; this is the first-paint value. */
+  --bottom-bar-h: calc(50px + env(safe-area-inset-bottom));
 }
+@media (min-width: 768px) { :root { --bottom-bar-h: 0px; } }
 
 @theme inline {
   --color-bg: var(--bg);

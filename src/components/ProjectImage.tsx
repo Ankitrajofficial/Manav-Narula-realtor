@@ -5,8 +5,8 @@ import { unsplash } from "@/lib/format";
  * A project's photo, or a branded placeholder while we have no images we may use (e.g. Mexmon projects until the
  * developer gives permission). Fills its positioned parent.
  */
-export default function ProjectImage({ src, name, developer, sizes, priority = false, bare = false, alt }: { src: string | null; name: string; developer: string; sizes: string; priority?: boolean; /** Background only, for a hero that sets its own title. */ bare?: boolean; alt?: string }) {
-  if (src) return <Image src={unsplash(src, 1600, 900)} alt={alt || name} fill priority={priority} sizes={sizes} className="object-cover" />;
+export default function ProjectImage({ src, name, developer, sizes, priority = false, bare = false, alt, position = "" }: { src: string | null; name: string; developer: string; sizes: string; priority?: boolean; /** Background only, for a hero that sets its own title. */ bare?: boolean; alt?: string; /** Extra object-position class, to keep part of the photo in view when it is cropped. */ position?: string }) {
+  if (src) return <Image src={unsplash(src, 1600, 900)} alt={alt || name} fill priority={priority} sizes={sizes} className={`object-cover ${position}`} />;
   return (
     <div role="img" aria-label={`${name}: photos coming soon`} className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#13204a] px-6 text-center text-white">
       <svg aria-hidden="true" className="absolute inset-0 h-full w-full opacity-[0.12]" preserveAspectRatio="xMidYMax slice" viewBox="0 0 400 300">
