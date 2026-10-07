@@ -48,9 +48,18 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
   const done = state === "done";
   useEffect(() => { pathRef.current = pathname; }, [pathname]);
 
+  // Admin preview: ?popup=<id> shows that live pop-up straight away, ignoring the once-per-visit and 7-day rules.
+  useEffect(() => {
+    const want = Number(new URLSearchParams(window.location.search).get("popup"));
+    const pick = want ? popups.find((p) => p.id === want) : undefined;
+    if (!pick) return;
+    const t = setTimeout(() => { lastFocus.current = document.activeElement; setPopup(pick); }, 300);
+    return () => clearTimeout(t);
+  }, [popups]);
+
   // Arm the trigger once per page load; it survives client-side navigation.
   useEffect(() => {
-    if (!popups.length) return;
+    if (!popups.length || new URLSearchParams(window.location.search).get("popup")) return;
     const loadedAt = Date.now();
     const shownThisVisit = () => safe(() => sessionStorage.getItem(SESSION_KEY) === "1", false);
     if (shownThisVisit()) return;
@@ -60,8 +69,9 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
     const tryShow = (scrolled: boolean) => {
       if (fired || shownThisVisit()) return;
       const pick = popups.find((p) => popupShowsOn(p, pathRef.current) && !snoozed(p.id));
-      // Nothing for this page (yet), or another dialog is open: look again shortly, the visitor may move on.
-      if (!pick || document.querySelector('[aria-modal="true"]')) return later(3000);
+      // Nothing for this page (yet), another dialog is open, or the cookie notice is still waiting for an answer:
+      // look again shortly, the visitor may move on.
+      if (!pick || document.querySelector('[aria-modal="true"], [aria-label="Cookie notice"]')) return later(3000);
       const wait = pick.delaySeconds * 1000 - (Date.now() - loadedAt);
       if (!scrolled && wait > 0) return later(wait);
       fired = true;
@@ -118,7 +128,9 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
       const res = await fetch("/api/enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: data.name, phone: data.phone, interest, budget: budget || undefined, locality: locality || undefined, source: "popup_consultation", subject: popup.title, page: window.location.pathname }),
+        body: JSON.stringify(popup.kind === "enquiry"
+          ? { name: data.name, phone: data.phone, message: data.message || undefined, source: "popup_enquiry", subject: popup.title, projectId: popup.projectId ?? undefined, page: window.location.pathname }
+          : { name: data.name, phone: data.phone, interest, budget: budget || undefined, locality: locality || undefined, source: "popup_consultation", subject: popup.title, page: window.location.pathname }),
       });
       const j = (await res.json()) as { ok: boolean; suggestions?: Suggestion[] };
       if (!res.ok || !j.ok) throw new Error("failed");
@@ -133,18 +145,22 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
 
   if (!popup) return null;
   const external = !!popup.ctaHref && /^https?:\/\//i.test(popup.ctaHref);
+  const withImage = !!popup.image && state !== "done";
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center md:p-4">
       <button type="button" tabIndex={-1} aria-label="Close" className="absolute inset-0 cursor-default bg-ink/50" onClick={close} />
       <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="popup-title"
-        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-brand border-t border-line bg-bg p-5 pb-6 md:max-w-[480px] md:rounded-brand md:border md:p-6">
+        className={`relative max-h-[92vh] w-full overflow-y-auto rounded-t-brand border-t border-line bg-bg p-5 pb-6 md:rounded-brand md:border md:p-6 ${withImage ? "md:grid md:max-w-[820px] md:grid-cols-[300px_minmax(0,1fr)] md:gap-6" : "md:max-w-[480px]"}`}>
         <span className="mx-auto mb-3 block h-1 w-10 rounded-full bg-line md:hidden" aria-hidden="true" />
         <button type="button" onClick={close} aria-label="Close" className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-bg/80 text-muted hover:text-ink"><Icon name="close" size={20} /></button>
-        {popup.image && state !== "done" && (
-          // Admin uploads vary in size and shape: show the whole picture, never cropped.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={popup.image} alt="" className={`mb-4 w-full rounded-brand bg-white object-contain ${popup.kind === "promo" ? "max-h-[55vh]" : "max-h-44"}`} />
+        {withImage && (
+          // A 4:5 portrait frame: beside the text on larger screens, above it (smaller) on phones. Other shapes are cropped to fit.
+          <div className={`relative mx-auto mb-4 aspect-[4/5] overflow-hidden rounded-brand bg-line md:mx-0 md:mb-0 md:w-full md:max-w-none md:self-start ${popup.kind === "promo" ? "w-3/4 max-w-[300px]" : "w-1/2 max-w-[200px]"}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={popup.image!} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          </div>
         )}
+        <div className="min-w-0">
         {popup.kind === "promo" ? (
           <>
             <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
@@ -155,6 +171,30 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
               </Link>
             )}
           </>
+        ) : popup.kind === "enquiry" ? (
+          state !== "done" ? (
+            <>
+              <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
+              {popup.text && <p className="mt-1 whitespace-pre-line text-sm text-muted">{popup.text}</p>}
+              <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm"><span className="mb-1.5 block">Name</span><input name="name" autoComplete="name" required className={inputCls} placeholder="Your name" /></label>
+                  <label className="block text-sm"><span className="mb-1.5 block">Phone</span><input name="phone" inputMode="tel" autoComplete="tel" required className={inputCls} placeholder="10-digit mobile" /></label>
+                </div>
+                <label className="block text-sm"><span className="mb-1.5 block">Message (optional)</span><textarea name="message" rows={2} maxLength={500} className={inputCls} placeholder="What would you like to know?" /></label>
+                {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+                <button type="submit" disabled={state === "sending"} className="w-full rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-ink disabled:opacity-60">{state === "sending" ? "Sending…" : popup.ctaLabel || "Send enquiry"}</button>
+                <p className="text-center text-xs text-muted">We call only about your enquiry. No spam.</p>
+              </form>
+            </>
+          ) : (
+            <div role="status">
+              <Icon name="check" size={28} className="text-accent" />
+              <h2 id="popup-title" className="mt-2 pr-10 text-2xl">Thank you, we will call you shortly</h2>
+              <p className="mt-1 text-sm text-muted">An advisor will call you within working hours. For anything urgent, call or WhatsApp us.</p>
+              <button type="button" onClick={close} className="mt-5 w-full rounded-brand border border-ink px-5 py-3 text-sm hover:bg-ink hover:text-white">Close</button>
+            </div>
+          )
         ) : state !== "done" ? (
           <>
             <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
@@ -202,6 +242,7 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
             <button type="button" onClick={close} className="mt-5 w-full rounded-brand border border-ink px-5 py-3 text-sm hover:bg-ink hover:text-white">Close</button>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

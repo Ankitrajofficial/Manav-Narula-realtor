@@ -1,7 +1,8 @@
 import Link from "next/link";
 import PageHeader from "@/components/console/PageHeader";
 import Pill from "@/components/console/Pill";
-import { Field, Input, inputCls } from "@/components/console/Form";
+import { Field, Input } from "@/components/console/Form";
+import { inputCls } from "@/components/console/form-classes";
 import { requireUser } from "@/lib/auth";
 import { getWhatsAppConfig, isConfigured, maskToken, testConnection } from "@/lib/whatsapp";
 import { disconnectWhatsAppAction, saveWhatsAppAction, sendTestMessageAction } from "./actions";

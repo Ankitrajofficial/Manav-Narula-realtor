@@ -6,6 +6,8 @@
  * verifying ownership through Tag Manager or Analytics. Staff pages (console, login) are never tracked, so
  * visits by the team do not count as website traffic.
  */
+import { CONSENT_KEY } from "@/lib/cookie-consent";
+
 const GTM = /^GTM-[A-Z0-9]{4,12}$/;
 const GA = /^G-[A-Z0-9]{4,15}$/;
 const STAFF = "/^\\/(admin|employee|login|change-password|forgot-password)(\\/|$)/";
@@ -19,8 +21,15 @@ export function analyticsIds() {
 
 export function AnalyticsHead() {
   const { gtm, ga } = analyticsIds();
+  if (!gtm && !ga) return null;
   return (
     <>
+      {/* Consent first: analytics cookies stay off until the visitor accepts in the cookie notice (CookieConsent.tsx). */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}var c=null;try{c=localStorage.getItem('${CONSENT_KEY}')}catch(e){}gtag('consent','default',{analytics_storage:c==='granted'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});`,
+        }}
+      />
       {gtm && (
         <script
           dangerouslySetInnerHTML={{

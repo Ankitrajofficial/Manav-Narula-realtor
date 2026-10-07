@@ -117,7 +117,10 @@ const refreshTasks = () => { revalidatePath("/admin/tasks"); revalidatePath("/em
 /** Quick-add bar: title, one employee, a due shortcut and priority. Linked leads/prospects are optional. */
 export async function quickCreateTask(fd: FormData): Promise<QuickResult> {
   const user = await requireUser("admin");
-  const title = String(fd.get("title") ?? "").trim().slice(0, 200);
+  // How many unassigned new leads (oldest first) to hand to the person with this task.
+  const leadCount = Math.max(0, Math.min(50, Math.floor(Number(fd.get("lead_count")) || 0)));
+  let title = String(fd.get("title") ?? "").trim().slice(0, 200);
+  if (title.length < 2 && leadCount > 0) title = `Contact ${leadCount} new ${leadCount === 1 ? "lead" : "leads"}`;
   const assignedTo = Number(fd.get("assigned_to"));
   const priority = fd.get("priority") === "high" ? "high" : "normal";
   const due = dueFromChip(String(fd.get("due") ?? ""), String(fd.get("due_date") ?? ""));
@@ -125,7 +128,13 @@ export async function quickCreateTask(fd: FormData): Promise<QuickResult> {
   let leadIds = idList("lead_ids"), prospectIds = idList("prospect_ids");
   if (title.length < 2) return { ok: false, error: "Type what needs to be done." };
   const emp = assignedTo ? await one<{ name: string }>("SELECT name FROM users WHERE id = $1 AND status = 'active'", [assignedTo]) : null;
-  if (!emp) return { ok: false, error: "Tap the employee this task is for." };
+  if (!emp) return { ok: false, error: "Choose the intern or employee this task is for." };
+  if (leadCount > 0) {
+    const pool = await one<{ n: number }>("SELECT count(*)::int AS n FROM leads WHERE assigned_to IS NULL AND status = 'New'");
+    const available = Number(pool?.n ?? 0);
+    if (!available) return { ok: false, error: "There are no unassigned new leads to hand out. Set Leads to 0 or wait for new enquiries." };
+    if (leadCount > available) return { ok: false, error: `Only ${available} unassigned new ${available === 1 ? "lead is" : "leads are"} available. Lower the number of leads.` };
+  }
   if (String(fd.get("due") ?? "") === "date" && !due) return { ok: false, error: "Pick a due date." };
   // One owner per lead/prospect: records already with someone else must be moved or left off the task.
   const conflicts = ownedByOthers(await linkedOwners(leadIds, prospectIds), assignedTo);
@@ -139,15 +148,27 @@ export async function quickCreateTask(fd: FormData): Promise<QuickResult> {
     prospectIds = prospectIds.filter((i) => !off.has(`prospect:${i}`));
   }
   const row = await one<{ id: number }>("INSERT INTO tasks (title, assigned_to, created_by, due_date, priority, status) VALUES ($1,$2,$3,$4,$5,'Open') RETURNING id", [title, assignedTo, user.id, due, priority]);
-  let moved = 0;
+  let moved = 0, given = 0;
+  if (leadCount > 0) {
+    // Claimed in one statement; the "assigned_to IS NULL" guard keeps a lead from going to two people at once.
+    const claimed = (await q<{ id: number }>(
+      `WITH picked AS MATERIALIZED (SELECT id FROM leads WHERE assigned_to IS NULL AND status = 'New' ORDER BY created_at, id LIMIT $2 FOR UPDATE SKIP LOCKED)
+       UPDATE leads l SET assigned_to = $1, last_activity_at = now(), updated_at = now() FROM picked WHERE l.id = picked.id AND l.assigned_to IS NULL RETURNING l.id`,
+      [assignedTo, leadCount],
+    )).map((r) => r.id);
+    for (const id of claimed) await q("INSERT INTO lead_activities (lead_id, user_id, type, body) VALUES ($1, $2, 'assign', $3)", [id, user.id, `Assigned to ${emp.name} with the task "${title}"`]);
+    given = claimed.length;
+    leadIds = [...new Set([...leadIds, ...claimed])];
+  }
   if (leadIds.length || prospectIds.length) {
     await setTaskRecords(row!.id, leadIds, prospectIds);
     // Linked records end up owned by the task's employee (moved ones, and any that were unassigned).
     moved = await assignSheet(user.id, assignedTo, leadIds, prospectIds);
   }
-  await audit(user.id, "create", "task", row!.id, { title, assigned_to: assignedTo, due, priority, leads: leadIds.length, prospects: prospectIds.length, moved, conflicts: resolve || null });
+  await audit(user.id, "create", "task", row!.id, { title, assigned_to: assignedTo, due, priority, leads: leadIds.length, prospects: prospectIds.length, moved, given, conflicts: resolve || null });
   refreshTasks();
-  return { ok: true, id: row!.id, message: moved ? `${moved} linked ${moved === 1 ? "record" : "records"} now with ${emp.name}` : undefined };
+  const notes = [given ? `${given} new ${given === 1 ? "lead" : "leads"} given to ${emp.name}` : "", moved ? `${moved} linked ${moved === 1 ? "record" : "records"} now with ${emp.name}` : ""].filter(Boolean);
+  return { ok: true, id: row!.id, message: notes.join(". ") || undefined };
 }
 
 /** Inline edits from the task list: rename, reassign, change due date or priority. */

@@ -4,7 +4,7 @@ import Pill from "@/components/console/Pill";
 import ToggleForm from "@/components/console/ToggleForm";
 import ConfirmButton from "@/components/console/ConfirmButton";
 import Icon from "@/components/Icon";
-import { inputCls } from "@/components/console/Form";
+import { inputCls } from "@/components/console/form-classes";
 import { requireUser } from "@/lib/auth";
 import { todayIST } from "@/lib/dates";
 import { formatShortDate } from "@/lib/format";
@@ -27,16 +27,19 @@ export default async function CertificatesPage({ searchParams }: { searchParams:
           <form action={issueCertificate} className="rounded-brand border border-line bg-white p-5">
             <h2 className="text-base">Issue a certificate</h2>
             {interns.length === 0 ? (
-              <p className="mt-2 text-sm text-muted">No active interns. Set someone&apos;s role to Intern under <Link href="/admin/employees" className="text-accent-ink hover:underline">Employees</Link> first.</p>
+              <div className="mt-2">
+                <p className="text-sm text-muted">Certificates are issued to interns, and there are no active interns yet. Add one, or set an existing person&apos;s level to Intern under <Link href="/admin/employees" className="text-accent-ink hover:underline">Employees</Link>; the form appears here as soon as there is one.</p>
+                <Link href="/admin/employees/new" className="mt-3 inline-flex items-center gap-1.5 rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink">Add an intern</Link>
+              </div>
             ) : (
               <>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <label className="text-xs font-medium">Intern<select name="user_id" required defaultValue={preselect} className={`${inputCls} mt-1`}><option value="">Choose an intern</option>{interns.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
-                  <label className="text-xs font-medium">Title<input name="title" defaultValue="Certificate of Internship" maxLength={120} className={`${inputCls} mt-1`} /></label>
-                  <label className="text-xs font-medium">Internship from<input name="start_date" type="date" className={`${inputCls} mt-1`} /></label>
-                  <label className="text-xs font-medium">Internship to<input name="end_date" type="date" className={`${inputCls} mt-1`} /></label>
-                  <label className="text-xs font-medium">Issue date<input name="issue_date" type="date" defaultValue={todayIST()} className={`${inputCls} mt-1`} /></label>
-                  <label className="text-xs font-medium">Remarks (optional)<input name="remarks" maxLength={400} placeholder="e.g. Completed with distinction" className={`${inputCls} mt-1`} /></label>
+                  <label className="flex flex-col text-xs font-medium">Intern<select name="user_id" required defaultValue={preselect} className={`${inputCls} mt-1`}><option value="">Choose an intern</option>{interns.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></label>
+                  <label className="flex flex-col text-xs font-medium">Title<input name="title" defaultValue="Certificate of Internship" maxLength={120} className={`${inputCls} mt-1`} /></label>
+                  <label className="flex flex-col text-xs font-medium">Internship from<input name="start_date" type="date" className={`${inputCls} mt-1`} /></label>
+                  <label className="flex flex-col text-xs font-medium">Internship to<input name="end_date" type="date" className={`${inputCls} mt-1`} /></label>
+                  <label className="flex flex-col text-xs font-medium">Issue date<input name="issue_date" type="date" defaultValue={todayIST()} className={`${inputCls} mt-1`} /></label>
+                  <label className="flex flex-col text-xs font-medium">Remarks (optional)<input name="remarks" maxLength={400} placeholder="e.g. Completed with distinction" className={`${inputCls} mt-1`} /></label>
                 </div>
                 <fieldset className="mt-4">
                   <legend className="text-xs font-medium">Skills</legend>

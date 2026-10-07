@@ -16,7 +16,7 @@ export default function BusinessForm({ business: b, notificationEmail, action }:
         <Field label="Phone" htmlFor="phone" error={e.phone}><Input id="phone" name="phone" defaultValue={b.phone} placeholder="+91 90122 90522" /></Field>
         <Field label="WhatsApp number" htmlFor="whatsapp" hint="Digits with country code, e.g. +919012290522"><Input id="whatsapp" name="whatsapp" defaultValue={b.whatsapp} /></Field>
         <Field label="Email" htmlFor="email" error={e.email}><Input id="email" name="email" type="email" defaultValue={b.email} /></Field>
-        <Field label="RERA number" htmlFor="rera"><Input id="rera" name="rera" defaultValue={b.rera} /></Field>
+        <Field label="Agent RERA number" htmlFor="rera" hint="Not shown on the website yet. Leave empty until the number is confirmed."><Input id="rera" name="rera" defaultValue={b.rera} /></Field>
         <Field label="Address" htmlFor="address" className="md:col-span-2"><Textarea id="address" name="address" rows={2} defaultValue={b.address} /></Field>
         <Field label="Working hours" htmlFor="hours" className="md:col-span-2"><Input id="hours" name="hours" defaultValue={b.hours} /></Field>
         <Field label="Google rating" htmlFor="rating" error={e.rating}><Input id="rating" name="rating" type="number" step="0.1" min={0} max={5} defaultValue={b.rating} /></Field>

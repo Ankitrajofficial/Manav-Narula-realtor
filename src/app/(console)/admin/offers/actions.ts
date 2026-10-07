@@ -28,11 +28,12 @@ export async function upsertOffer(id: number | null, _p: OfferFormState, fd: For
   let image: string | null = null;
   try { const f = fd.get("image"); image = f instanceof File && f.size > 0 ? await saveUpload(f, "offers") : opt(s(fd, "image_current")); } catch (e) { errors.image = e instanceof Error ? e.message : "Upload failed."; }
   if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
-  const input: OfferInput = { title, image, text: opt(s(fd, "text")), link: linkType === "url" ? opt(link) : null, property_id, project_id, active: !!fd.get("active"), start_date: opt(start), end_date: opt(end) };
+  const section = s(fd, "section") === "home_loan" ? "home_loan" : "property";
+  const input: OfferInput = { section, title, image, text: opt(s(fd, "text")), link: linkType === "url" ? opt(link) : null, property_id, project_id, active: !!fd.get("active"), start_date: opt(start), end_date: opt(end) };
   const newId = await saveOffer(id, input);
   await audit(user.id, id ? "update" : "create", "offer", newId, { title });
   revalidatePath("/", "layout");
-  redirect("/admin/offers?toast=Offer+saved");
+  redirect(section === "home_loan" ? "/admin/home-loans?toast=Offer+saved" : "/admin/offers?toast=Offer+saved");
 }
 
 export async function toggleOfferActive(id: number, value: boolean) {
@@ -42,12 +43,13 @@ export async function toggleOfferActive(id: number, value: boolean) {
   await flash(value ? "Offer is live" : "Offer switched off");
   revalidatePath("/", "layout");
   revalidatePath("/admin/offers");
+  revalidatePath("/admin/home-loans");
 }
 
 export async function deleteOffer(id: number) {
   const user = await requireUser("admin");
-  await q("DELETE FROM offers WHERE id = $1", [id]);
+  const o = await q<{ section: string }>("DELETE FROM offers WHERE id = $1 RETURNING section", [id]);
   await audit(user.id, "delete", "offer", id);
   revalidatePath("/", "layout");
-  redirect("/admin/offers?toast=Offer+deleted");
+  redirect(o[0]?.section === "home_loan" ? "/admin/home-loans?toast=Offer+deleted" : "/admin/offers?toast=Offer+deleted");
 }

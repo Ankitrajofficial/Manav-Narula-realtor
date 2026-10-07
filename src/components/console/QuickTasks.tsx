@@ -6,7 +6,27 @@ import Icon from "@/components/Icon";
 import type { LinkedOwner } from "@/lib/queries/tasks";
 
 type Result = { ok: true; id: number; message?: string } | { ok: false; error: string };
-type Opt = { id: number; name: string };
+type Opt = { id: number; name: string; level?: string | null };
+/** The "For" dropdown groups people by level. */
+const LEVEL_GROUPS = [{ level: "intern", label: "Interns" }, { level: "employee", label: "Employees" }, { level: "executive", label: "Executives" }] as const;
+
+/** The select inside a Dropdown: the wrapper draws the border, icon and arrow. */
+const SELECT = "min-h-10 w-full cursor-pointer appearance-none bg-transparent py-2 pl-9 pr-9 text-sm text-ink focus:outline-none";
+
+/** A labelled select with an icon on the left and a chevron on the right; the border turns green when set, red for alerts. */
+function Dropdown({ label, icon, tone, className = "", children }: { label: string; icon: string; tone: "set" | "empty" | "alert"; className?: string; children: React.ReactNode }) {
+  const ring = tone === "alert" ? "border-red-300 bg-red-50/60 text-red-700 focus-within:border-red-500 focus-within:ring-red-200" : tone === "set" ? "border-accent/60 bg-white text-accent-ink focus-within:border-accent focus-within:ring-accent/25" : "border-line bg-white text-muted focus-within:border-accent focus-within:ring-accent/25";
+  return (
+    <label className={`flex flex-col ${className}`}>
+      <span className="mb-1 text-xs font-medium text-muted">{label}</span>
+      <span className={`relative flex items-center rounded-brand border shadow-sm transition hover:border-ink/40 focus-within:ring-2 ${ring}`}>
+        <Icon name={icon} size={15} className="pointer-events-none absolute left-3" />
+        {children}
+        <Icon name="chevron" size={15} className="pointer-events-none absolute right-3 text-muted" />
+      </span>
+    </label>
+  );
+}
 
 const chipCls = (on: boolean) =>
   `inline-flex min-h-10 items-center rounded-brand border px-3 text-sm transition-colors md:min-h-9 ${on ? "border-accent bg-accent text-white" : "border-line bg-white text-ink hover:border-ink"}`;
@@ -36,12 +56,14 @@ function useToast() {
 }
 
 /** One-line task entry: title, tap an employee, tap a due shortcut, Enter. */
-export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoFocus }: { employees: Opt[]; action: (fd: FormData) => Promise<Result>; linked?: { leadIds: number[]; prospectIds: number[] }; linkedInfo?: LinkedOwner[]; autoFocus?: boolean }) {
+export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoFocus, leadPool }: { employees: Opt[]; action: (fd: FormData) => Promise<Result>; linked?: { leadIds: number[]; prospectIds: number[] }; linkedInfo?: LinkedOwner[]; autoFocus?: boolean; /** Unassigned new leads that can be handed out with the task; omit to hide the Leads field. */ leadPool?: number }) {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState<number | null>(employees.length === 1 ? employees[0].id : null);
   const [due, setDue] = useState("today");
   const [date, setDate] = useState("");
   const [priority, setPriority] = useState<"normal" | "high">("normal");
+  const [leadCount, setLeadCount] = useState(0);
   const [links, setLinks] = useState(linked ?? { leadIds: [], prospectIds: [] });
   const [error, setError] = useState<string | null>(null);
   // What to do with linked records that already belong to another employee: move them, or not decided yet.
@@ -64,13 +86,14 @@ export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoF
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (title.trim().length < 2) { setError("Type what needs to be done."); input.current?.focus(); return; }
-    if (!assignee) { setError("Tap the employee this task is for."); return; }
+    if (title.trim().length < 2 && leadCount === 0) { setError("Type what needs to be done, or choose a number of leads."); input.current?.focus(); return; }
+    if (leadPool !== undefined && leadCount > leadPool) { setError(`Only ${leadPool} unassigned new ${leadPool === 1 ? "lead is" : "leads are"} available.`); return; }
+    if (!assignee) { setError("Choose the intern or employee this task is for."); return; }
     if (due === "date" && !date) { setError("Pick a due date."); return; }
     if (conflicts.length && !moving) { setError(`Some linked records already belong to another employee. Move them to ${assigneeName} or remove them from this task.`); return; }
     setError(null);
     const fd = new FormData();
-    fd.set("title", title); fd.set("assigned_to", String(assignee)); fd.set("due", due); fd.set("due_date", date); fd.set("priority", priority);
+    fd.set("title", title); fd.set("assigned_to", String(assignee)); fd.set("due", due); fd.set("due_date", date); fd.set("priority", priority); fd.set("lead_count", String(leadCount));
     fd.set("lead_ids", links.leadIds.join(",")); fd.set("prospect_ids", links.prospectIds.join(","));
     if (moving) fd.set("conflicts", "move");
     start(async () => {
@@ -78,7 +101,8 @@ export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoF
       if (!r.ok) { setError(r.error); return; }
       const who = employees.find((x) => x.id === assignee)?.name ?? "employee";
       toast.show({ text: `Task added for ${who}${r.message ? `. ${r.message}` : ""}`, kind: "ok" }, 4000);
-      setTitle(""); setLinks({ leadIds: [], prospectIds: [] });
+      setTitle(""); setLeadCount(0); setLinks({ leadIds: [], prospectIds: [] });
+      router.refresh();
       if (linked && (linked.leadIds.length || linked.prospectIds.length)) window.history.replaceState(null, "", window.location.pathname);
       input.current?.focus();
     });
@@ -90,29 +114,55 @@ export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoF
       const el = e.target as HTMLElement;
       if (e.key === "Enter" && !(el instanceof HTMLInputElement && el.type === "date") && !(el instanceof HTMLButtonElement && el.type === "submit")) { e.preventDefault(); e.currentTarget.requestSubmit(); }
     }} className="mb-6 rounded-brand border border-line bg-white p-3 md:p-4" aria-label="Quick add task">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <input ref={input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task, e.g. Call Harpreet about the site visit" aria-label="Task title" enterKeyHint="done" maxLength={200}
-          className="min-w-0 flex-1 rounded-brand border border-line bg-white px-3 py-2.5 text-base text-ink placeholder:text-muted focus:border-ink md:text-sm" />
-        <button type="submit" disabled={pending} className="hidden min-h-10 items-center justify-center gap-1.5 rounded-brand bg-accent px-5 text-sm font-medium text-white hover:bg-accent-ink disabled:opacity-60 md:inline-flex">
-          <Icon name="plus" size={16} />{pending ? "Adding…" : "Add"}
+      <label className="flex flex-col">
+        <span className="mb-1 text-xs font-medium text-muted">Task</span>
+        <input ref={input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={leadCount > 0 ? `Contact ${leadCount} new ${leadCount === 1 ? "lead" : "leads"}` : "e.g. Call Harpreet about the site visit"} aria-label="Task title" enterKeyHint="done" maxLength={200}
+          className="min-w-0 rounded-brand border border-line bg-white px-3 py-2.5 text-base text-ink shadow-sm placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 md:text-sm" />
+      </label>
+      <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-3">
+        <Dropdown label="For" icon="users" tone={assignee ? "set" : "empty"} className="w-full sm:w-60">
+          {employees.length === 0 ? <span className="flex min-h-10 items-center px-3 text-sm text-muted">No active interns or employees</span> : (
+            <select value={assignee ?? ""} onChange={(e) => setAssignee(e.target.value ? Number(e.target.value) : null)} aria-label="Assign to" className={SELECT}>
+              <option value="">Choose intern or employee</option>
+              {LEVEL_GROUPS.map((g) => {
+                const people = employees.filter((u) => (u.level ?? "employee") === g.level);
+                return people.length ? <optgroup key={g.level} label={g.label}>{people.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</optgroup> : null;
+              })}
+            </select>
+          )}
+        </Dropdown>
+        <Dropdown label="Due" icon="calendar" tone="set" className="w-[calc(50%-6px)] sm:w-44">
+          <select value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due" className={SELECT}>
+            {DUE_CHIPS.map((d) => <option key={d.key} value={d.key}>{d.key === "date" ? "Pick a date…" : d.label}</option>)}
+          </select>
+        </Dropdown>
+        {due === "date" && (
+          <label className="flex w-[calc(50%-6px)] flex-col sm:w-44">
+            <span className="mb-1 text-xs font-medium text-muted">Date</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Due date" autoFocus
+              className="min-h-10 rounded-brand border border-line bg-white px-3 text-sm shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25" />
+          </label>
+        )}
+        <Dropdown label="Priority" icon="info" tone={priority === "high" ? "alert" : "set"} className="w-[calc(50%-6px)] sm:w-36">
+          <select value={priority} onChange={(e) => setPriority(e.target.value === "high" ? "high" : "normal")} aria-label="Priority" className={SELECT}>
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+          </select>
+        </Dropdown>
+        {leadPool !== undefined && (
+          <label className="flex w-[calc(50%-6px)] flex-col sm:w-40">
+            <span className="mb-1 text-xs font-medium text-muted">Leads <span className="font-normal">({leadPool} available)</span></span>
+            <span className={`relative flex items-center rounded-brand border bg-white shadow-sm transition focus-within:ring-2 focus-within:ring-accent/25 ${leadCount > 0 ? "border-accent/60 text-accent-ink" : "border-line text-muted"}`}>
+              <Icon name="userPlus" size={15} className="pointer-events-none absolute left-3" />
+              <input type="number" min={0} max={Math.min(50, leadPool)} value={leadCount} disabled={leadPool === 0}
+                onChange={(e) => setLeadCount(Math.max(0, Math.min(50, Math.floor(Number(e.target.value) || 0))))} aria-label="Number of leads"
+                className="min-h-10 w-full rounded-brand bg-transparent py-2 pl-9 pr-2 text-sm text-ink tabular focus:outline-none disabled:text-muted" />
+            </span>
+          </label>
+        )}
+        <button type="submit" disabled={pending} className="ml-auto hidden min-h-10 items-center justify-center gap-1.5 rounded-brand bg-accent px-6 text-sm font-medium text-white shadow-sm hover:bg-accent-ink disabled:opacity-60 md:inline-flex">
+          <Icon name="plus" size={16} />{pending ? "Assigning…" : "Assign task"}
         </button>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Assign to">
-          <span className="mr-1 text-xs text-muted">For</span>
-          {employees.map((u) => <Chip key={u.id} on={assignee === u.id} onClick={() => setAssignee(u.id)}>{u.name.split(" ")[0]}</Chip>)}
-          {employees.length === 0 && <span className="text-xs text-muted">No active employees</span>}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Due">
-          <span className="mr-1 text-xs text-muted">Due</span>
-          {DUE_CHIPS.map((d) => <Chip key={d.key} on={due === d.key} onClick={() => setDue(d.key)}>{d.key === "date" && date && due === "date" ? new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : d.label}</Chip>)}
-          {due === "date" && <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Due date" className="min-h-10 rounded-brand border border-line bg-white px-2 text-sm md:min-h-9" />}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Priority">
-          <span className="mr-1 text-xs text-muted">Priority</span>
-          <Chip on={priority === "normal"} onClick={() => setPriority("normal")}>Normal</Chip>
-          <Chip on={priority === "high"} onClick={() => setPriority("high")}>High</Chip>
-        </div>
         {linkedParts.length > 0 && (
           <span className="inline-flex min-h-9 items-center gap-1 rounded-brand border border-accent bg-accent/10 pl-3 text-sm text-accent-ink">
             Linked: {linkedParts.join(" · ")}
@@ -145,7 +195,7 @@ export function QuickTaskBar({ employees, action, linked, linkedInfo = [], autoF
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
       {/* Phones: full-width Add that stays in reach while the chips scroll. */}
       <button type="submit" disabled={pending} className="sticky bottom-3 z-10 mt-3 flex min-h-12 w-full items-center justify-center gap-1.5 rounded-brand bg-accent text-sm font-medium text-white disabled:opacity-60 md:hidden">
-        <Icon name="plus" size={16} />{pending ? "Adding…" : "Add task"}
+        <Icon name="plus" size={16} />{pending ? "Assigning…" : "Assign task"}
       </button>
       {toast.node}
     </form>
@@ -166,6 +216,9 @@ const fmtDue = (d: string, today: string) => {
  * Task list with a large tick box per row. Admins can also rename, reassign and re-date inline.
  * Groups: Overdue, Today, Upcoming (including no date), Done (collapsed).
  */
+/** Finished tasks shown before "Show all". */
+const DONE_SHOWN = 6;
+
 export function TaskList({ tasks, today, employees = [], toggle, update, showAssignee }: {
   tasks: TaskItem[]; today: string; employees?: Opt[];
   toggle: (id: number, done: boolean) => Promise<Result>;
@@ -174,6 +227,7 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
 }) {
   const [optimistic, setOptimistic] = useState<Record<number, string>>({});
   const [editor, setEditor] = useState<Editor>(null);
+  const [showAllDone, setShowAllDone] = useState(false);
   const router = useRouter();
   const [draft, setDraft] = useState("");
   const [, start] = useTransition();
@@ -222,7 +276,7 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
     const editing = editor?.id === t.id ? editor.field : null;
     return (
       // The whole row opens the task; the tick box, edit buttons, links and inputs inside it keep their own job.
-      <li key={t.id} className="flex cursor-pointer items-start gap-1 py-1 pr-2 transition-colors hover:bg-bg"
+      <li key={t.id} className={`flex cursor-pointer items-start gap-1 rounded-brand border bg-white py-1 pr-2 transition-colors hover:border-ink ${overdue ? "border-red-200" : "border-line"}`}
         onClick={(e) => { if (!editing && !(e.target as HTMLElement).closest("a, button, input, select, textarea, label, [role=group]")) router.push(t.href); }}>
         <button type="button" role="checkbox" aria-checked={isDone} aria-label={isDone ? `Reopen ${t.title}` : `Mark ${t.title} done`} onClick={() => tick(t)}
           className="flex h-11 w-11 shrink-0 items-center justify-center">
@@ -272,18 +326,29 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
     );
   };
 
+  // Four boxes side by side: Overdue, Today, Upcoming and Done, each task a small card.
+  const tone: Record<string, string> = { overdue: "border-t-red-600", today: "border-t-accent", upcoming: "border-t-[#3b6fd8]", done: "border-t-[#9a9a96]" };
+  const empty: Record<string, string> = { overdue: "Nothing overdue.", today: "Nothing due today.", upcoming: "Nothing coming up.", done: "No finished tasks yet." };
+  const boxes = [...groups, { key: "done", label: "Done", items: done }];
+  const box = (g: (typeof boxes)[number]) => {
+    const many = g.key === "done" && g.items.length > DONE_SHOWN && !showAllDone;
+    const items = many ? g.items.slice(0, DONE_SHOWN) : g.items;
+    return (
+      <section key={g.key} aria-label={g.label} className={`flex flex-col rounded-brand border border-t-4 border-line bg-bg/60 ${tone[g.key]}`}>
+        <h2 style={{ fontFamily: "var(--font-body)" }} className={`flex items-center justify-between px-3 pb-2 pt-3 text-sm font-medium ${g.key === "overdue" && g.items.length ? "text-red-700" : "text-ink"}`}>
+          {g.label}<span className="rounded-full bg-white px-2 py-0.5 text-xs tabular text-muted">{g.items.length}</span>
+        </h2>
+        <div className="flex-1 px-2 pb-2">
+          {items.length ? <ul className="space-y-2">{items.map(row)}</ul> : <p className="rounded-brand border border-dashed border-line bg-white px-3 py-6 text-center text-sm text-muted">{empty[g.key]}</p>}
+          {many && <button type="button" onClick={() => setShowAllDone(true)} className="mt-2 w-full rounded-brand border border-line bg-white px-3 py-1.5 text-xs text-muted hover:border-ink hover:text-ink">Show all {g.items.length}</button>}
+        </div>
+      </section>
+    );
+  };
+
   return (
-    <div className="space-y-5">
-      {groups.map((g) => (
-        <section key={g.key} aria-label={g.label}>
-          <h2 style={{ fontFamily: "var(--font-body)" }} className={`mb-1 text-xs font-medium uppercase tracking-[0.08em] ${g.key === "overdue" && g.items.length ? "text-red-700" : "text-muted"}`}>{g.label} <span className="tabular">({g.items.length})</span></h2>
-          {g.items.length ? <ul className="divide-y divide-line rounded-brand border border-line bg-white">{g.items.map(row)}</ul> : <p className="rounded-brand border border-dashed border-line px-4 py-3 text-sm text-muted">Nothing {g.key === "overdue" ? "overdue" : g.key === "today" ? "due today" : "coming up"}.</p>}
-        </section>
-      ))}
-      <details className="group">
-        <summary className="mb-1 flex items-center gap-1 text-xs font-medium uppercase tracking-[0.08em] text-muted"><Icon name="chevron" size={14} className="chev transition-transform" />Done <span className="tabular">({done.length})</span></summary>
-        {done.length ? <ul className="divide-y divide-line rounded-brand border border-line bg-white">{done.map(row)}</ul> : <p className="text-sm text-muted">No finished tasks yet.</p>}
-      </details>
+    <div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{boxes.map(box)}</div>
       {toast.node}
     </div>
   );

@@ -11,6 +11,7 @@ import { PRIORITIES, TASK_STATUSES, priorityLabel } from "@/lib/console";
 import { listEmployees } from "@/lib/queries/common";
 import { linkedOwners, listTasks, toTaskItem } from "@/lib/queries/tasks";
 import { todayIST } from "@/lib/dates";
+import { unassignedPool } from "@/lib/auto-assign";
 import { quickCreateTask, setTaskStatus, toggleTaskDone, updateTaskInline } from "./actions";
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -19,17 +20,17 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const board = sp.view === "board";
   const ids = (v?: string) => (v ?? "").split(",").map(Number).filter((n) => n > 0);
   const linked = { leadIds: ids(sp.leads), prospectIds: ids(sp.prospects) };
-  const [employees, data, linkedInfo] = await Promise.all([listEmployees(true), listTasks(sp, { all: true }), linkedOwners(linked.leadIds, linked.prospectIds)]);
+  const [employees, data, linkedInfo, pool] = await Promise.all([listEmployees(true), listTasks(sp, { all: true }), linkedOwners(linked.leadIds, linked.prospectIds), unassignedPool()]);
   const qs = queryString(sp, { quick: undefined, leads: undefined, prospects: undefined });
   const back = `/admin/tasks${qs ? `?${qs}` : ""}`;
-  const staff = employees.filter((u) => u.role === "employee").map((u) => ({ id: u.id, name: u.name }));
+  const staff = employees.filter((u) => u.role === "employee").map((u) => ({ id: u.id, name: u.name, level: u.level }));
 
   return (
     <>
-      <PageHeader title="Tasks" description="Type a task, tap who it is for and when it is due, press Enter. Tick a task to close it." actions={
+      <PageHeader title="Tasks" description="Write the task, choose who it is for, the due date, priority and how many new leads go with it, then Assign task. Tick a task to close it." actions={
         <Link href={`/admin/tasks?${queryString(sp, { view: board ? undefined : "board", page: undefined, quick: undefined, leads: undefined, prospects: undefined })}`} className="inline-flex items-center gap-1.5 rounded-brand border border-line bg-white px-3 py-2 text-sm hover:border-ink"><Icon name={board ? "list" : "kanban"} size={14} />{board ? "List view" : "Kanban view"}</Link>
       } />
-      <QuickTaskBar key={`${sp.leads ?? ""}|${sp.prospects ?? ""}`} employees={staff} action={quickCreateTask} linked={linked} linkedInfo={linkedInfo} autoFocus={sp.quick === "1"} />
+      <QuickTaskBar key={`${sp.leads ?? ""}|${sp.prospects ?? ""}`} employees={staff} action={quickCreateTask} linked={linked} linkedInfo={linkedInfo} autoFocus={sp.quick === "1"} leadPool={pool} />
       <Suspense>
         <FilterBar searchPlaceholder="Search title or linked name" filters={[
           { key: "status", label: "Status", options: TASK_STATUSES.map((s) => ({ value: s, label: s })) },

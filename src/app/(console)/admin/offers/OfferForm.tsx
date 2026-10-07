@@ -9,7 +9,7 @@ import { toDateInput } from "@/lib/dates";
 import type { OfferRow } from "@/lib/queries/content";
 import type { OfferFormState } from "./actions";
 
-export default function OfferForm({ offer: o, properties, projects, action }: { offer?: OfferRow | null; properties: { id: number; title: string }[]; projects: { id: number; name: string }[]; action: (p: OfferFormState, fd: FormData) => Promise<OfferFormState> }) {
+export default function OfferForm({ offer: o, section = "property", properties, projects, action }: { offer?: OfferRow | null; section?: "property" | "home_loan"; properties: { id: number; title: string }[]; projects: { id: number; name: string }[]; action: (p: OfferFormState, fd: FormData) => Promise<OfferFormState> }) {
   const [state, act] = useActionState<OfferFormState, FormData>(action, {});
   const e = state.errors ?? {};
   const [linkType, setLinkType] = useState(o?.property_id ? "property" : o?.project_id ? "project" : "url");
@@ -20,6 +20,7 @@ export default function OfferForm({ offer: o, properties, projects, action }: { 
     <form action={act} className="grid gap-5 lg:grid-cols-12">
       <div className="space-y-5 lg:col-span-7">
         <FormError message={state.message} />
+        <input type="hidden" name="section" value={o?.section ?? section} />
         <Section title="Offer creative">
           <Field label="Title" htmlFor="title" error={e.title} className="md:col-span-2"><Input id="title" name="title" value={title} onChange={(ev) => setTitle(ev.target.value)} maxLength={90} /></Field>
           <Field label="Short text" htmlFor="text" className="md:col-span-2"><Textarea id="text" name="text" rows={2} value={text} onChange={(ev) => setText(ev.target.value)} maxLength={160} /></Field>
@@ -34,7 +35,7 @@ export default function OfferForm({ offer: o, properties, projects, action }: { 
           <Field label="Start date" htmlFor="start_date"><Input id="start_date" name="start_date" type="date" defaultValue={toDateInput(o?.start_date)} /></Field>
           <Field label="End date" htmlFor="end_date" error={e.end_date}><Input id="end_date" name="end_date" type="date" defaultValue={toDateInput(o?.end_date)} /></Field>
         </Section>
-        <div className="flex gap-2"><SubmitButton>Save offer</SubmitButton><Link href="/admin/offers" className="self-center text-sm text-muted hover:text-ink">Cancel</Link></div>
+        <div className="flex gap-2"><SubmitButton>Save offer</SubmitButton><Link href={(o?.section ?? section) === "home_loan" ? "/admin/home-loans" : "/admin/offers"} className="self-center text-sm text-muted hover:text-ink">Cancel</Link></div>
       </div>
       <div className="lg:col-span-5">
         <p className="mb-2 text-xs font-medium text-ink">Preview</p>

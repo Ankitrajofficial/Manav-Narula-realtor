@@ -1,0 +1,276 @@
+{
+  "_about": "Our own words for each developer project, written for Manav Narula Realtor (agent, not developer). The importer fills these into empty fields only; anything edited in Admin > Projects is never overwritten. Facts (RERA, units, sizes, distances) come from the importer, not from here.",
+  "mexmon-dreams-jalandhar": {
+    "description": "Mexmon Dreams is a gated apartment township by Mexmon Group on 66 Feet Road, in Urban Estate Phase II Extension, Jalandhar. Phase 1 spreads over about 10 acres, with eight towers holding around 1,183 two- and three-bedroom homes, planned by the architecture practice of Hafeez Contractor.\n\nThe towers rise between 18 and 24 floors above stilt parking. Around 80% of the land stays open, including roughly 1.3 acres of landscaped gardens with water features, a jogging track and gazebos, and a 40,000 sq ft clubhouse sits at the centre of the amenities.\n\nWe are not the developer. As sales agents in Jalandhar, we can take you through the floor plans, current availability and the price list, arrange a site visit, and help you compare home loan offers before you book.",
+    "highlights": [
+      "2 BHK homes suited to smaller families and 3 BHK homes with room for joint families",
+      "Planned by the architecture practice of Hafeez Contractor",
+      "Built with Mivan aluminium-formwork construction",
+      "Four balconies per home, with no flat looking straight into another",
+      "About 80% open and green area and a 40,000 sq ft clubhouse",
+      "Three-tier security, including AI-assisted monitoring"
+    ],
+    "configNotes": {
+      "2 BHK": "Suits a nuclear family",
+      "3 BHK": "Room for a joint family"
+    },
+    "faqs": [
+      {
+        "q": "Which apartment types are available at Mexmon Dreams?",
+        "a": "Two- and three-bedroom apartments. Carpet areas and prices vary by tower and floor, so ask us for the current floor plans and price list."
+      },
+      {
+        "q": "Where exactly is Mexmon Dreams?",
+        "a": "On 66 Feet Road in Urban Estate Phase II Extension, Jalandhar. By the developer's estimate it is about 5 minutes from Urban Estate Phase I and 10 minutes from Model Town market."
+      },
+      {
+        "q": "Who designed the project?",
+        "a": "The towers are planned by the architecture practice of Hafeez Contractor, with Mivan construction for the structure."
+      }
+    ],
+    "seo_title": "Mexmon Dreams Jalandhar | 2 & 3 BHK on 66 Feet Road | Manav Narula Realtor",
+    "seo_description": "Mexmon Dreams by Mexmon Group: 2 and 3 BHK apartments on 66 Feet Road, Jalandhar. Project RERA PBRERA-JAL33-PR0962. Plans, prices and site visits with Manav Narula Realtor.",
+    "units": {
+      "2-bhk-flats-jalandhar": {
+        "description": "The two-bedroom homes at Mexmon Dreams are planned for a couple or a small family who want a compact home without giving up light and air. Each one has four balconies, and the towers are arranged so that no flat looks straight into another.\n\nLike the rest of the township they are built with Mivan aluminium formwork and sit inside the gated campus on 66 Feet Road. Unit sizes and the current price list come from the developer: ask us and we will share the latest figures, the layout and what is still available.",
+        "highlights": [
+          "Planned for couples and small families",
+          "Four balconies in every home",
+          "No flat faces another directly",
+          "Mivan construction inside a gated campus"
+        ],
+        "seo_title": "2 BHK Flats in Jalandhar at Mexmon Dreams, 66 Feet Road | Manav Narula Realtor",
+        "seo_description": "2 BHK apartments at Mexmon Dreams, 66 Feet Road, Jalandhar, by Mexmon Group. Layout, availability and price on request. Site visits with Manav Narula Realtor."
+      },
+      "3-bhk-flats-jalandhar": {
+        "description": "The three-bedroom homes at Mexmon Dreams suit larger households, including joint families who want shared living space as well as rooms of their own. Layouts are planned for cross-ventilation, and the towers are placed so that no flat looks straight into another.\n\nThe homes share the township's Mivan construction, gated campus and clubhouse on 66 Feet Road. Sizes and prices are released by the developer, so ask us for the current 3 BHK layout, price list and availability before you visit.",
+        "highlights": [
+          "Room for joint and larger families",
+          "Layouts planned for cross-ventilation",
+          "No flat faces another directly",
+          "Designed by the Hafeez Contractor practice"
+        ],
+        "seo_title": "3 BHK Flats in Jalandhar at Mexmon Dreams, 66 Feet Road | Manav Narula Realtor",
+        "seo_description": "3 BHK apartments at Mexmon Dreams, 66 Feet Road, Jalandhar, by Mexmon Group. Layout, availability and price on request. Site visits with Manav Narula Realtor."
+      },
+      "affordable-apartments-jalandhar": {
+        "description": "Mexmon Dreams is positioned as a value project: the developer aims to keep both the 2 BHK and 3 BHK homes within reach of first-time buyers while keeping the features of a larger township. That means a gated campus on 66 Feet Road, security at the gate, and the same four-balcony layouts as the rest of the project.\n\nIf you are buying your first home, we can work out a budget with you, compare loan offers from our partner banks and tell you which units fit it before you book a visit.",
+        "highlights": [
+          "2 BHK and 3 BHK options for first-time buyers",
+          "Gated campus on 66 Feet Road",
+          "Four balconies in every home",
+          "Home loan comparison through our partner banks"
+        ],
+        "seo_title": "Affordable Apartments in Jalandhar: Mexmon Dreams 2 & 3 BHK | Manav Narula Realtor",
+        "seo_description": "Budget-friendly 2 and 3 BHK homes at Mexmon Dreams, 66 Feet Road, Jalandhar, by Mexmon Group. Price list, loan help and site visits with Manav Narula Realtor."
+      },
+      "boutique-apartments-jalandhar": {
+        "description": "Mexmon Dreams describes its homes as boutique apartments: a smaller number of homes per floor, design work by the Hafeez Contractor practice and a long list of shared facilities for every age group, from the clubhouse and pool to the jogging track and gardens.\n\nBoth 2 BHK and 3 BHK homes are part of this offer. Ask us which towers and floors are open, and we will arrange a visit to the site and the clubhouse.",
+        "highlights": [
+          "Design by the Hafeez Contractor practice",
+          "More than 40 shared amenities",
+          "Clubhouse, pool, gardens and jogging track",
+          "Available in 2 BHK and 3 BHK"
+        ],
+        "seo_title": "Boutique Apartments in Jalandhar: Mexmon Dreams | Manav Narula Realtor",
+        "seo_description": "Boutique 2 and 3 BHK apartments at Mexmon Dreams, 66 Feet Road, Jalandhar, by Mexmon Group. Amenities, availability and site visits with Manav Narula Realtor."
+      }
+    }
+  },
+  "mexmon-dreams-1-jalandhar": {
+    "description": "Mexmon Dreams-1 is a plotted township by Mexmon Group on Sahibzada Ajit Singh Nagar Road, Jalandhar. It brings together 102 residential plots, meant for buyers who want to build their own villa, and 39 shop-cum-office (SCO) units for businesses and investors.\n\nThe layout includes landscaped parks, a dedicated children's play area, wide internal roads and parking for residents and visitors, with security around the clock.\n\nAs sales agents, we can share the plot sizes on offer, the current price list and the registration details, and walk the site with you before you decide.",
+    "highlights": [
+      "102 residential plots for building your own villa",
+      "39 SCO units within the same township",
+      "Landscaped parks and a children's play area",
+      "Wide internal roads with resident and visitor parking",
+      "24×7 security"
+    ],
+    "configNotes": {
+      "Residential plot": "Build your own villa",
+      "SCO": "Shop-cum-office for retail or offices"
+    },
+    "faqs": [
+      {
+        "q": "What can I buy at Mexmon Dreams-1?",
+        "a": "Residential plots for building a villa, and shop-cum-office (SCO) units for a business or as an investment."
+      },
+      {
+        "q": "Where is Mexmon Dreams-1?",
+        "a": "On Sahibzada Ajit Singh Nagar Road, Jalandhar. We can take you to the site and show the surrounding schools, hospitals and markets."
+      }
+    ],
+    "seo_title": "Mexmon Dreams-1 Jalandhar | Residential Plots & SCOs | Manav Narula Realtor",
+    "seo_description": "Mexmon Dreams-1 by Mexmon Group: 102 residential plots and 39 SCOs on Sahibzada Ajit Singh Nagar Road, Jalandhar. Plot sizes, prices and visits with Manav Narula Realtor."
+  },
+  "mexmon-highstreet-jalandhar": {
+    "description": "Mexmon Highstreet is a commercial project by Mexmon Group on 66 Feet Road, Jalandhar, with 33 shop-cum-office (SCO), showroom and office units over three floors.\n\nEvery two units share a lift, which makes it easier for customers to reach the upper floors and for you to move stock. The complex also has parking and a landscaped courtyard with lawns.\n\nWe can share unit sizes, frontages and the current price list, and arrange a visit so you can judge the location and passing traffic for yourself.",
+    "highlights": [
+      "33 commercial units over three floors",
+      "SCO, showroom and office formats",
+      "One shared lift for every two units",
+      "Landscaped courtyard and lawns",
+      "Frontage on 66 Feet Road"
+    ],
+    "configNotes": {
+      "SCO": "Shop-cum-office",
+      "Showroom": "Retail at street level",
+      "Office": "Upper-floor office space"
+    },
+    "faqs": [
+      {
+        "q": "What kind of units does Mexmon Highstreet have?",
+        "a": "Shop-cum-office (SCO) units, showrooms and offices, 33 units in all over three floors."
+      },
+      {
+        "q": "How do customers reach the upper floors?",
+        "a": "Each pair of units shares a lift, so upper-floor shops and offices are easy to reach and goods are easy to move."
+      }
+    ],
+    "seo_title": "Mexmon Highstreet Jalandhar | SCOs & Showrooms on 66 Feet Road | Manav Narula Realtor",
+    "seo_description": "Mexmon Highstreet by Mexmon Group: 33 SCO, showroom and office units on 66 Feet Road, Jalandhar. Sizes, prices and visits with Manav Narula Realtor."
+  },
+  "mexmon-palm-city-jalandhar": {
+    "description": "Mexmon Palm City is a gated plotted community by Mexmon Group on 66 Feet Road, Jalandhar. It offers 50 residential plots for building a villa and 35 shop-cum-office (SCO) units for retail and offices, set among landscaped parks.\n\nResidents get green lawns, walking paths, a children's play area and recreation spaces for all ages, with 24×7 security at the gate.\n\nTalk to us for plot dimensions, the SCO layout, current prices and the registration details, and we will arrange a site visit at a time that suits you.",
+    "highlights": [
+      "50 residential plots for villas",
+      "35 SCO units for retail and offices",
+      "Landscaped parks, lawns and walking paths",
+      "Children's play area and recreation for all ages",
+      "24×7 security"
+    ],
+    "configNotes": {
+      "Residential plot": "Build your own villa",
+      "Villa": "Ask us for ready villa options",
+      "SCO": "Shop-cum-office for retail or offices"
+    },
+    "faqs": [
+      {
+        "q": "What can I buy at Mexmon Palm City?",
+        "a": "Residential plots for building a villa, villas, and shop-cum-office (SCO) units for a business or as an investment."
+      },
+      {
+        "q": "Where is Mexmon Palm City?",
+        "a": "On 66 Feet Road, Jalandhar, within reach of schools, hospitals and the city's commercial areas."
+      }
+    ],
+    "seo_title": "Mexmon Palm City Jalandhar | Plots, Villas & SCOs on 66 Feet Road | Manav Narula Realtor",
+    "seo_description": "Mexmon Palm City by Mexmon Group: 50 villa plots and 35 SCOs on 66 Feet Road, Jalandhar. Plot sizes, prices and visits with Manav Narula Realtor."
+  },
+  "agi-jalandhar-heights-ii": {
+    "description": "Jalandhar Heights II is a phase of AGI Infra's Jalandhar Heights township. Homes run from two to four bedrooms, sized from about 1,330 to 2,400 sq ft, with larger 4+1 BHK homes in the Iconic Tower and a few penthouses.\n\nAround 76% of the phase is open and green. Residents have a clubhouse with a restaurant, banquet hall, gym and pool, courts for squash, basketball and badminton, and banks and convenience stores inside the complex, with a multiplex and a mall within walking distance.\n\nWe are not the developer. As sales agents, we can show you the blocks and floor plans, check what is available, and arrange a visit.",
+    "highlights": [
+      "Two- to four-bedroom homes, plus 4+1 BHK homes and penthouses",
+      "About 76% open and green area",
+      "Clubhouse with restaurant, banquet hall, gym and swimming pool",
+      "Banks, laundry and convenience stores within the complex",
+      "Multiplex and shopping mall within walking distance"
+    ],
+    "faqs": [
+      {
+        "q": "Which apartment sizes are available at Jalandhar Heights II?",
+        "a": "2 BHK from about 1,330 sq ft, 3 BHK around 1,600 sq ft and 4 BHK from about 2,150 to 2,400 sq ft, plus 4+1 BHK homes and penthouses. Ask us which blocks have homes available."
+      }
+    ],
+    "seo_title": "AGI Jalandhar Heights II | 2, 3 & 4 BHK Apartments | Manav Narula Realtor",
+    "seo_description": "Jalandhar Heights II by AGI Infra: 2, 3 and 4 BHK apartments and penthouses in Jalandhar Heights. Floor plans, prices and visits with Manav Narula Realtor."
+  },
+  "agi-jalandhar-heights-iii": {
+    "description": "Jalandhar Heights III is a phase of AGI Infra's Jalandhar Heights township at Pholriwal, with 3 BHK homes of about 1,720 sq ft, 4 BHK homes of about 2,800 sq ft, and duplexes of about 4,200 sq ft, with penthouses in the high-rise towers.\n\nThe towers use Mivan construction, and around 84% of the phase is open and green. Residents share a clubhouse with a restaurant, banquet hall, gym and pool, play areas, courts and on-campus medical help.\n\nAs sales agents, we can take you through each block, the duplex layouts and current availability, and book your site visit.",
+    "highlights": [
+      "3 BHK, 4 BHK and duplex homes, with penthouses",
+      "Mivan construction",
+      "About 84% open and green area",
+      "Clubhouse with restaurant, banquet hall, gym and swimming pool",
+      "Two-tier security"
+    ],
+    "faqs": [
+      {
+        "q": "What sizes are available at Jalandhar Heights III?",
+        "a": "3 BHK of about 1,720 sq ft, 4 BHK of about 2,800 sq ft, and duplexes of about 4,200 sq ft. Penthouses are available in the 3 and 4 BHK towers."
+      }
+    ],
+    "seo_title": "AGI Jalandhar Heights III | 3 & 4 BHK and Duplexes | Manav Narula Realtor",
+    "seo_description": "Jalandhar Heights III by AGI Infra at Pholriwal: 3 BHK, 4 BHK and duplex apartments. Floor plans, prices and visits with Manav Narula Realtor."
+  },
+  "agi-jalandhar-heights-iv": {
+    "description": "The newest phase of AGI Infra's Jalandhar Heights township, Jalandhar Heights IV offers homes from three bedrooms up to 5+1 BHK, sized from about 1,800 to 3,600 sq ft.\n\nAround 83% of the phase is open and green, and the structure is designed for Seismic Zone V. Amenities run to more than 30, including a rooftop pool, spa, banquet halls, courts, a jogging track and dedicated spaces for children and senior citizens, and every flat has a panic button.\n\nWe are not the developer. As sales agents, we can compare the four layouts with you, check availability by block and arrange a visit.",
+    "highlights": [
+      "Four layouts, from 3 BHK to 5+1 BHK",
+      "About 83% open and green area",
+      "Structure designed for Seismic Zone V",
+      "A panic button in every flat",
+      "Rooftop swimming pool, spa and more than 30 amenities"
+    ],
+    "faqs": [
+      {
+        "q": "What layouts are available at Jalandhar Heights IV?",
+        "a": "3 BHK of about 1,800 sq ft, 4 BHK of about 2,500 sq ft, 4+1 BHK of about 2,800 sq ft and 5+1 BHK of about 3,600 sq ft, each in specific blocks. We can share the floor plans."
+      }
+    ],
+    "seo_title": "AGI Jalandhar Heights IV | 3, 4 & 5 BHK Apartments | Manav Narula Realtor",
+    "seo_description": "Jalandhar Heights IV by AGI Infra: 3, 4, 4+1 and 5+1 BHK apartments with 83% open area. Floor plans, prices and visits with Manav Narula Realtor."
+  },
+  "agi-prestige-jalandhar": {
+    "description": "Prestige is a 3 BHK project by AGI Infra at AGI Urbana, Jalandhar Heights, with four homes on each floor. Each apartment is about 1,300 sq ft, with a carpet area of about 960 sq ft.\n\nAround 88% of the site is open and green. Residents share a clubhouse with a restaurant, banquet hall, gym and pool, play areas for children, courts for squash, basketball and badminton, and banks and stores within the complex.\n\nAs sales agents, we can show you the floor plan, check which floors are available and arrange a visit.",
+    "highlights": [
+      "3 BHK homes, four to a floor",
+      "About 1,300 sq ft, carpet area about 960 sq ft",
+      "About 88% open and green area",
+      "Clubhouse with restaurant, banquet hall, gym and swimming pool",
+      "Two-tier 24×7 security"
+    ],
+    "faqs": [
+      {
+        "q": "How big are the apartments at Prestige?",
+        "a": "Each 3 BHK is about 1,300 sq ft, with a carpet area of about 960 sq ft, and there are four homes on each floor."
+      }
+    ],
+    "seo_title": "Prestige by AGI Jalandhar | 3 BHK at AGI Urbana | Manav Narula Realtor",
+    "seo_description": "Prestige by AGI Infra: 3 BHK apartments, four to a floor, at AGI Urbana, Jalandhar Heights. Floor plan, prices and visits with Manav Narula Realtor."
+  },
+  "agi-sky-garden-jalandhar": {
+    "description": "AGI Sky Garden is a group of residential projects by AGI Infra on G.T. Road, Jalandhar, made up of Sky Garden I, II and III and Maxima I and II. Homes are 2 BHK of about 820 to 880 sq ft and 3 BHK of about 1,200 to 1,300 sq ft.\n\nAround 68% of the area is open and green. Amenities include a clubhouse with a lounge and restaurant, rooftop and indoor pools, a gym, courts, a jogging track, play areas, a dispensary and a shopping complex within the premises.\n\nAs sales agents, we can tell you which of the five projects has homes available, share the floor plans and arrange a visit.",
+    "highlights": [
+      "2 and 3 BHK homes across five projects",
+      "About 68% open and green area",
+      "Clubhouse, rooftop and indoor swimming pools",
+      "Dispensary and doctor on campus",
+      "Shopping complex within the premises"
+    ],
+    "faqs": [
+      {
+        "q": "Which projects make up AGI Sky Garden?",
+        "a": "AGI Sky Garden I, II and III and AGI Maxima I and II, all on G.T. Road, Jalandhar."
+      },
+      {
+        "q": "What sizes are available?",
+        "a": "2 BHK of about 820 or 880 sq ft and 3 BHK of about 1,200 or 1,300 sq ft."
+      }
+    ],
+    "seo_title": "AGI Sky Garden Jalandhar | 2 & 3 BHK on G.T. Road | Manav Narula Realtor",
+    "seo_description": "AGI Sky Garden by AGI Infra: 2 and 3 BHK apartments on G.T. Road, Jalandhar, across five projects. Plans, prices and visits with Manav Narula Realtor."
+  },
+  "agi-sky-villas-ludhiana": {
+    "description": "On Pakhowal Road in Ludhiana, AGI Infra's Sky Villas is a luxury apartment project a short drive from Phullanwal Chowk and 200 Feet Road. Homes are 4 BHK of about 2,600 to 4,000 sq ft and 5 BHK of about 5,200 sq ft, with penthouses.\n\nCeilings are generous, at 3.6 metres floor to floor, and around 80% of the site is open and green. Amenities include a rooftop pool, spa, banquet halls, courts and a jogging track, with five-tier security and a panic button in every flat.\n\nAlthough this project is in Ludhiana, we handle enquiries, site visits and home loan comparisons for it from our Jalandhar office.",
+    "highlights": [
+      "Four- and five-bedroom homes, plus penthouses",
+      "3.6 m floor-to-floor height",
+      "About 80% open and green area",
+      "Five-tier security with a panic button in every flat",
+      "Close to 200 Feet Road and Phullanwal Chowk"
+    ],
+    "faqs": [
+      {
+        "q": "What sizes are available at AGI Sky Villas?",
+        "a": "4 BHK of about 2,600, 3,500 or 4,000 sq ft, and 5 BHK of about 5,200 sq ft, plus penthouses."
+      },
+      {
+        "q": "Do you handle a Ludhiana project from Jalandhar?",
+        "a": "Yes. We arrange site visits, share floor plans and compare home loans for AGI Sky Villas from our Jalandhar office."
+      }
+    ],
+    "seo_title": "AGI Sky Villas Ludhiana | 4 & 5 BHK on Pakhowal Road | Manav Narula Realtor",
+    "seo_description": "AGI Sky Villas by AGI Infra: 4 and 5 BHK apartments and penthouses on Pakhowal Road, Ludhiana. Plans, prices and visits with Manav Narula Realtor."
+  }
+}

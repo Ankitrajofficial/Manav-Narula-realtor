@@ -24,7 +24,7 @@ export function buildPdf(r: PdfReport): Uint8Array {
     c += `0 G 0.75 w ${M} ${H - M - 26} 26 26 re S\n`;
     text(M + 5, M + 18, "MN", 10, true);
     text(M + 34, M + 12, "Manav Narula Realtor", 11, true);
-    text(M + 34, M + 24, "66 Feet Rd, Mithapur, Jalandhar 144005  |  +91 90122 90522  |  RERA PBRERA-JAL-AGT-2024-0119", 7.5, false, "0.42 0.42 0.42");
+    text(M + 34, M + 24, "66 Feet Rd, Mithapur, Jalandhar 144005  |  +91 90122 90522", 7.5, false, "0.42 0.42 0.42");
     text(W - M - 200, M + 12, `Generated ${new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}`, 8, false, "0.42 0.42 0.42");
     text(W - M - 200, M + 24, `Page ${pi + 1} of ${chunks.length}`, 8, false, "0.42 0.42 0.42");
     line(M, M + 34, W - M, M + 34, 0.6);

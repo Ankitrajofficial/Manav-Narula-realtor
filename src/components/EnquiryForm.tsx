@@ -39,7 +39,7 @@ export default function EnquiryForm({
       const res = await fetch("/api/enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, subject, variant, propertyId, projectId, page: window.location.pathname }),
+        body: JSON.stringify({ ...data, subject, variant, propertyId, projectId, ...(variant === "project" && projectId ? { source: "project_page" } : {}), page: window.location.pathname }),
       });
       if (!res.ok) throw new Error("failed");
       setState("done");

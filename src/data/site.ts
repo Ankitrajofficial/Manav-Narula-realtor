@@ -1,8 +1,9 @@
 export const site = {
   name: "Manav Narula Realtor",
   monogram: "MN",
-  tagline: "Trusted property advisors in Jalandhar since 2012",
-  foundedYear: 2012,
+  tagline: "Trusted property advisors in Jalandhar since 2014",
+  // Default only: the live value is Admin → Settings → founded year (getFoundedYear).
+  foundedYear: 2014,
   address: "66 Feet Rd, opp. Punjab & Sind Bank, IsharPuri Colony, Mithapur, Jalandhar, Punjab 144005",
   addressShort: "66 Feet Rd, Mithapur, Jalandhar 144005",
   phone: "+91 90122 90522",
@@ -10,7 +11,8 @@ export const site = {
   whatsappHref: "https://wa.me/919012290522?text=Hello%2C%20I%20want%20to%20enquire%20about%20a%20property.",
   email: "realtormanavnarula@gmail.com",
   hours: "Mon to Sat, 10:00 am to 7:00 pm · Sunday by appointment",
-  rera: "PBRERA-JAL-AGT-2024-0119",
+  // Agent RERA number: not confirmed yet, so nothing is shown. Set it in Admin → Settings once confirmed.
+  rera: "",
   rating: 4.8,
   reviews: 21,
   mapHref: "https://www.google.com/maps/search/?api=1&query=Manav+Narula+Realtor+66+Feet+Rd+Mithapur+Jalandhar",
@@ -23,11 +25,23 @@ export const site = {
   },
 };
 
-export const nav = [
+/** Shown wherever developer projects appear: we are the developers' sales agents, and the projects are theirs. */
+export const developerCredit = "All credit goes to the respective project developers.";
+
+/** Developers with their own tab under Properties (slug = /developers/<slug>). */
+export const propertyDevelopers = [
+  { slug: "agi-infra", label: "AGI Infra" },
+  { slug: "mexmon-group", label: "Mexmon Group" },
+];
+
+/** `also`: other paths that highlight the item (project and developer pages belong under Properties). */
+export const nav: { href: string; label: string; also?: string[]; children?: { href: string; label: string }[] }[] = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
-  { href: "/properties", label: "Properties" },
-  { href: "/projects", label: "Projects" },
+  {
+    href: "/properties", label: "Properties", also: ["/projects", "/developers"],
+    children: [{ href: "/properties", label: "All properties" }, ...propertyDevelopers.map((d) => ({ href: `/properties?developer=${d.slug}`, label: d.label }))],
+  },
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -79,7 +93,7 @@ export const offer = {
 };
 
 export const trustPoints = [
-  { label: "Years in Jalandhar", value: `${new Date().getFullYear() - 2012}+` },
+  { label: "Years in Jalandhar", value: `${new Date().getFullYear() - site.foundedYear}+` },
   { label: "Properties sold", value: "1000+" },
 ];
 
@@ -151,17 +165,10 @@ export const testimonials = [
 ];
 
 export const milestones = [
-  { year: "2012", text: "Office opened on 66 Feet Road, Mithapur, with two advisors." },
+  { year: "2014", text: "Office opened on 66 Feet Road, Mithapur, with two advisors." },
   { year: "2016", text: "First 100 registries completed; legal desk added with an empanelled advocate." },
   { year: "2019", text: "NRI desk started after a third of enquiries came from Canada, the UK and Australia." },
   { year: "2022", text: "Home loan partnerships with four banks; 500th family handed keys." },
-];
-
-export const team = [
-  { name: "Manav Narula", role: "Founder and principal advisor", line: "13 years in Jalandhar real estate. Handles every valuation personally.", initials: "MN" },
-  { name: "Kirandeep Kaur", role: "Legal and documentation", line: "Coordinates title searches, registry and mutation with our advocates.", initials: "KK" },
-  { name: "Arjun Mehta", role: "Sales advisor, plots and kothis", line: "Accompanies site visits across Urban Estate, Model Town and Cantt.", initials: "AM" },
-  { name: "Priya Sharma", role: "NRI and rentals desk", line: "Video visits, tenant verification and monthly owner statements.", initials: "PS" },
 ];
 
 export const certifications = [

@@ -3,7 +3,7 @@ import DataTable, { queryString } from "./DataTable";
 import FilterBar from "./FilterBar";
 import Pill from "./Pill";
 import BulkBar from "./BulkBar";
-import { inputCls } from "./Form";
+import { inputCls } from "./form-classes";
 import { LEAD_STATUSES, INTERESTS } from "@/lib/console";
 import { maskPhone, relativeTime } from "@/lib/format";
 import { listProspects, type ProspectRow } from "@/lib/queries/prospects";

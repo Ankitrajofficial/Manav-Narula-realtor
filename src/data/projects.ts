@@ -1,5 +1,14 @@
 export type ProjectStatus = "Upcoming" | "Under construction" | "Ready";
 
+export type ProjectMediaKind = "elevation" | "interior" | "gallery" | "floor-plan" | "master-plan" | "amenity" | "location-map";
+/** developer: supplied by the developer; published: false keeps it off the site (e.g. until the developer gives permission). */
+export interface ProjectMedia { url: string; alt: string; kind: ProjectMediaKind; developer?: boolean; published?: boolean }
+/** A unit type of a project (e.g. 2 BHK), shown as a tab on the project page and as its own page /projects/<slug>/<unit slug>. */
+export interface ProjectUnit {
+  slug: string; label: string; name: string; rera: string; reraSource?: string; configurations: string[]; sizeRange?: string;
+  description: string[]; highlights: string[]; seoTitle?: string; seoDescription?: string; media: ProjectMedia[];
+}
+
 export interface Project {
   id?: number;
   slug: string;
@@ -7,9 +16,10 @@ export interface Project {
   developer: string;
   locality: string;
   status: ProjectStatus;
-  image: string;
+  /** Cover image; null shows a branded placeholder until real photos are uploaded. */
+  image: string | null;
   gallery: string[];
-  configurations: { type: string; area: string; price: string }[];
+  configurations: { type: string; area: string; price: string; note?: string }[];
   startingPrice: string;
   possession: string;
   progress: number;
@@ -19,6 +29,27 @@ export interface Project {
   rera: string;
   description: string[];
   brochure: string;
+  /* Developer projects sold by Manav Narula Realtor as sales agents (optional on the old seed data). */
+  city?: string;
+  address?: string;
+  sizeRange?: string;
+  /** Whole rupees; empty means "Price on request". */
+  priceFrom?: number | null;
+  featured?: boolean;
+  highlights?: string[];
+  faqs?: { q: string; a: string }[];
+  locationHighlights?: string[];
+  floorPlans?: { url: string; label: string }[];
+  masterPlan?: string;
+  /** Every image with its alt text and the page section it belongs to (elevation = hero + gallery). */
+  media?: ProjectMedia[];
+  units?: ProjectUnit[];
+  /** The developer's page, /developers/<slug>. */
+  developerSlug?: string;
+  /** False while the project is a draft (only visible in an admin preview). */
+  published?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export const projects: Project[] = [

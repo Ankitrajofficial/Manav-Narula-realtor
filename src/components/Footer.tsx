@@ -2,6 +2,7 @@ import Link from "next/link";
 import { nav, site } from "@/data/site";
 import { getBusiness, getFoundedYear, phoneHref, whatsappHref, withFoundedYear } from "@/lib/site-data";
 import { q } from "@/lib/db";
+import { CookieSettingsLink } from "./CookieConsent";
 import Icon from "./Icon";
 import { Container } from "./ui";
 import Logo from "@/components/Logo";
@@ -106,6 +107,7 @@ export default async function Footer() {
           <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy" className="hover:text-white">Privacy</Link>
+            <CookieSettingsLink className="hover:text-white" />
             <Link href="/terms" className="hover:text-white">Terms</Link>
             <Link href="/disclaimer" className="hover:text-white">Disclaimer</Link>
             <Link href="/sitemap.xml" className="hover:text-white">Sitemap</Link>

@@ -34,7 +34,7 @@ export async function seed(db: Client) {
   const projectIds: Record<string, number> = {};
   for (const p of projects) {
     const r = await ins("INSERT INTO projects (slug,name,developer,locality,status,image,gallery,starting_price,possession,key_facts,amenities,rera,description,brochure,published) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10::jsonb,$11::jsonb,$12,$13,$14,true) RETURNING id",
-      [p.slug, p.name, p.developer, p.locality, p.status, unsplash(p.image, 1600, 900), j(p.gallery.map((g) => unsplash(g, 800, 600))), p.startingPrice, p.possession, j(p.keyFacts), j(p.amenities), p.rera, p.description.join("\n\n"), p.brochure]);
+      [p.slug, p.name, p.developer, p.locality, p.status, p.image ? unsplash(p.image, 1600, 900) : null, j(p.gallery.map((g) => unsplash(g, 800, 600))), p.startingPrice, p.possession, j(p.keyFacts), j(p.amenities), p.rera, p.description.join("\n\n"), p.brochure]);
     projectIds[p.slug] = r.id;
     for (const [i, c] of p.configurations.entries()) await db.query("INSERT INTO project_configurations (project_id,type,area,price,sort_order) VALUES ($1,$2,$3,$4,$5)", [r.id, c.type, c.area, c.price, i]);
     for (const [i, m] of p.milestones.entries()) await db.query("INSERT INTO project_milestones (project_id,title,done,sort_order) VALUES ($1,$2,$3,$4)", [r.id, m.label, m.done, i]);

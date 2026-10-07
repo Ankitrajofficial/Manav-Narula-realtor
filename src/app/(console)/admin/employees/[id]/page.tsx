@@ -5,7 +5,7 @@ import ConfirmButton from "@/components/console/ConfirmButton";
 import StatTile from "@/components/console/StatTile";
 import { LineChart } from "@/components/console/Charts";
 import { QuickTaskBar, TaskList } from "@/components/console/QuickTasks";
-import { inputCls } from "@/components/console/Form";
+import { inputCls } from "@/components/console/form-classes";
 import Icon from "@/components/Icon";
 import { requireUser } from "@/lib/auth";
 import { todayIST } from "@/lib/dates";

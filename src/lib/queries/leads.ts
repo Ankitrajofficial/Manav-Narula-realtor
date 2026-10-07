@@ -28,6 +28,7 @@ export function leadFilters(sp: SP, scope: Scope = {}) {
   if (sp.q?.trim()) { add("(l.name ILIKE ? OR l.phone ILIKE ? OR l.email ILIKE ?)", `%${sp.q.trim()}%`); where[where.length - 1] = where[where.length - 1].replace(/\?/g, `$${params.length}`); meta.push(`search "${sp.q.trim()}"`); }
   if (sp.status) { add("l.status = ?", sp.status); meta.push(`status ${sp.status}`); }
   if (sp.source) { add("l.source = ?", sp.source); meta.push(`source ${sp.source}`); }
+  if (sp.link && /^\d+$/.test(sp.link)) { add("l.link_id = ?", Number(sp.link)); meta.push(`ad link #${sp.link}`); }
   if (sp.interest) { add("l.interest = ?", sp.interest); meta.push(`interest ${sp.interest}`); }
   if (sp.locality) { add("l.locality = ?", sp.locality); meta.push(`locality ${sp.locality}`); }
   if (sp.assigned === "unassigned") { where.push("l.assigned_to IS NULL"); meta.push("unassigned"); }

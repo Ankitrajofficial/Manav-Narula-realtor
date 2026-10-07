@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { one, q, json } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/records";
-import { getCampaign, mediaOf, parseAudience, resolveAudience, runCampaign, type Audience } from "@/lib/queries/campaigns";
+import { getCampaign, mediaOf, parseAudience, queueFollowup, resolveAudience, runCampaign, type Audience } from "@/lib/queries/campaigns";
+import { getSettingValue } from "@/lib/queries/settings";
 import { getWhatsAppConfig, isConfigured, sendMedia, sendTemplate, type MediaType } from "@/lib/whatsapp";
 import { saveUpload } from "@/lib/upload";
 
@@ -36,6 +37,7 @@ function parse(fd: FormData) {
     interests: fd.getAll("interests").map(String),
     optInOnly: fd.get("optInOnly") === "1",
   });
+  const project_id = Number(fd.get("project_id")) || null;
   const scheduleDate = String(fd.get("schedule_date") ?? "").trim();
   const scheduleTime = String(fd.get("schedule_time") ?? "10:00").trim() || "10:00";
   const scheduled_at = scheduleDate ? new Date(`${scheduleDate}T${scheduleTime}:00`) : null;
@@ -45,10 +47,10 @@ function parse(fd: FormData) {
   if (message.length > 1024) errors.message = "Keep the message under 1,024 characters.";
   if (variants.some((v) => v.length > 1024)) errors.variants = "Keep each variant under 1,024 characters.";
   if (message_type === "template" && !template_name) errors.template_name = "Enter the approved template name.";
-  if (!audience.kinds.length) errors.kinds = "Choose prospects, leads or both.";
+  if (!audience.kinds.length) errors.kinds = "Campaigns go to leads.";
   if (scheduled_at && Number.isNaN(scheduled_at.getTime())) errors.schedule_date = "Enter a valid date.";
   if (window_end <= window_start) errors.window = "The sending window must end after it starts.";
-  return { name, message, variants, message_type, template_name, template_language, media_type, media_current, media_filename_current, media_file: media_file instanceof File ? media_file : null, window_start, window_end, daily_cap, gap_seconds, audience, scheduled_at, errors };
+  return { name, message, variants, message_type, template_name, template_language, media_type, media_current, media_filename_current, media_file: media_file instanceof File ? media_file : null, window_start, window_end, daily_cap, gap_seconds, audience, scheduled_at, project_id, errors };
 }
 
 /** Validates and stores the attached media. Returns the stored URL and original filename, or an error string. */
@@ -76,13 +78,13 @@ async function save(id: number | null, fd: FormData, userId: number): Promise<{ 
   if (Object.keys(c.errors).length) { console.warn("[campaign] validation failed", c.errors); return { errors: c.errors }; }
   const media = await storeMedia(c);
   if (media.error) return { errors: { media: media.error } };
-  const cols = [c.name, c.message, json(c.variants), c.message_type, c.template_name, c.template_language, json(c.audience), c.media_type, media.url, media.filename, c.window_start, c.window_end, c.daily_cap, c.gap_seconds];
+  const cols = [c.name, c.message, json(c.variants), c.message_type, c.template_name, c.template_language, json(c.audience), c.media_type, media.url, media.filename, c.window_start, c.window_end, c.daily_cap, c.gap_seconds, c.project_id];
   if (id) {
-    await q("UPDATE campaigns SET name=$1, message=$2, variants=$3::jsonb, message_type=$4, template_name=$5, template_language=$6, audience=$7::jsonb, media_type=$8, media_url=$9, media_filename=$10, window_start=$11, window_end=$12, daily_cap=$13, gap_seconds=$14, updated_at=now() WHERE id=$15", [...cols, id]);
+    await q("UPDATE campaigns SET name=$1, message=$2, variants=$3::jsonb, message_type=$4, template_name=$5, template_language=$6, audience=$7::jsonb, media_type=$8, media_url=$9, media_filename=$10, window_start=$11, window_end=$12, daily_cap=$13, gap_seconds=$14, project_id=$15, updated_at=now() WHERE id=$16", [...cols, id]);
     await audit(userId, "update", "campaign", id, { name: c.name, media: c.media_type });
     return { id };
   }
-  const row = await one<{ id: number }>("INSERT INTO campaigns (name, message, variants, message_type, template_name, template_language, audience, media_type, media_url, media_filename, window_start, window_end, daily_cap, gap_seconds, status, created_by) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,$14,'Draft',$15) RETURNING id", [...cols, userId]);
+  const row = await one<{ id: number }>("INSERT INTO campaigns (name, message, variants, message_type, template_name, template_language, audience, media_type, media_url, media_filename, window_start, window_end, daily_cap, gap_seconds, project_id, status, created_by) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,$14,$15,'Draft',$16) RETURNING id", [...cols, userId]);
   await audit(userId, "create", "campaign", row!.id, { name: c.name, media: c.media_type });
   return { id: row!.id };
 }
@@ -179,7 +181,7 @@ export async function duplicateCampaignAction(fd: FormData) {
   const id = Number(fd.get("id"));
   const c = await getCampaign(id);
   if (!c) redirect("/admin/campaigns");
-  const row = await one<{ id: number }>("INSERT INTO campaigns (name, message, variants, message_type, template_name, template_language, audience, media_type, media_url, media_filename, window_start, window_end, daily_cap, gap_seconds, status, created_by) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,$14,'Draft',$15) RETURNING id", [`${c.name} (copy)`, c.message, json(c.variants ?? []), c.message_type, c.template_name, c.template_language, json(c.audience), c.media_type, c.media_url, c.media_filename, c.window_start, c.window_end, c.daily_cap, c.gap_seconds, user.id]);
+  const row = await one<{ id: number }>("INSERT INTO campaigns (name, message, variants, message_type, template_name, template_language, audience, media_type, media_url, media_filename, window_start, window_end, daily_cap, gap_seconds, project_id, status, created_by) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12,$13,$14,$15,'Draft',$16) RETURNING id", [`${c.name} (copy)`, c.message, json(c.variants ?? []), c.message_type, c.template_name, c.template_language, json(c.audience), c.media_type, c.media_url, c.media_filename, c.window_start, c.window_end, c.daily_cap, c.gap_seconds, c.project_id, user.id]);
   redirect(`/admin/campaigns/${row!.id}?toast=${encodeURIComponent("Copied as a new draft")}`);
 }
 
@@ -210,4 +212,34 @@ export async function sendTestAction(fd: FormData) {
     : await sendMedia(cfg, sample.phone, media, renderMessage(c.message, sample, ""));
   await audit(user.id, "test_send", "campaign", id, { to: `+91${to}`, ok: res.ok });
   redirect(`/admin/campaigns/${id}?${res.ok ? `toast=${encodeURIComponent(`Test sent to +91 ${to}`)}` : `error=${encodeURIComponent(res.error)}`}`);
+}
+
+/**
+ * A follow-up in a running or finished campaign: a short check-in or acknowledgement that goes only to the leads who
+ * received the campaign, once each. It is delivered by the same sender (window, daily cap, pauses).
+ */
+export async function sendFollowupAction(fd: FormData) {
+  const user = await requireUser("admin");
+  const id = Number(fd.get("id"));
+  const back = `/admin/campaigns/${id}`;
+  const c = await getCampaign(id);
+  if (!c) redirect("/admin/campaigns");
+  const message = String(fd.get("followup_message") ?? "").trim();
+  const message_type = fd.get("followup_type") === "template" ? "template" : "text";
+  const template_name = String(fd.get("followup_template") ?? "").trim() || null;
+  const fail = (m: string) => redirect(`${back}?error=${encodeURIComponent(m)}#followups`);
+  if (message.length < 5) fail("Write the follow-up message.");
+  if (message.length > 1024) fail("Keep the follow-up under 1,024 characters.");
+  if (message_type === "template" && !template_name) fail("Enter the approved template name for the follow-up.");
+  const row = await one<{ id: number }>("INSERT INTO campaign_followups (campaign_id, message, message_type, template_name, template_language, created_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id", [id, message, message_type, template_name, c.template_language, user.id]);
+  const business = await getSettingValue<{ phone?: string }>("business", {});
+  const n = await queueFollowup(c, row!.id, message, business.phone ?? "");
+  await audit(user.id, "followup", "campaign", id, { followup: row!.id, queued: n });
+  if (!n) {
+    await q("DELETE FROM campaign_followups WHERE id = $1", [row!.id]);
+    fail("Nobody to follow up: no lead has received this campaign yet (or they are closed-lost or no longer opted in).");
+  }
+  const connected = isConfigured(await getWhatsAppConfig());
+  if (connected) { const res = await runCampaign(id, user.id); redirect(`${back}?${runToast(res)}#followups`); }
+  redirect(`${back}?toast=${encodeURIComponent(`Follow-up queued for ${n} ${n === 1 ? "lead" : "leads"}. It sends once WhatsApp is connected.`)}#followups`);
 }

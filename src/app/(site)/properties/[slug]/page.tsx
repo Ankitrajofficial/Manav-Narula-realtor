@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import Gallery from "@/components/Gallery";
 import EnquiryForm from "@/components/EnquiryForm";
@@ -7,7 +7,7 @@ import ShareButtons from "@/components/ShareButtons";
 import Icon from "@/components/Icon";
 import { Breadcrumbs, Container, Tag, TrustRow } from "@/components/ui";
 import type { Property } from "@/data/properties";
-import { getProperties, getPropertyBySlug, publicAddress } from "@/lib/site-data";
+import { getProperties, getPropertyBySlug, movedListingTarget, publicAddress } from "@/lib/site-data";
 
 export const revalidate = 60;
 
@@ -34,6 +34,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function PropertyPage({ params }: { params: Promise<{ slug: string }> }) {
+  // AGI listings moved to Projects: their old address sends visitors to the project page for good.
+  const moved = await movedListingTarget((await params).slug);
+  if (moved) permanentRedirect(`/projects/${moved}`);
   const p = await getPropertyBySlug((await params).slug);
   if (!p) notFound();
   const all = await getProperties();

@@ -9,12 +9,14 @@ import { getSetting } from "@/lib/queries/common";
  * still assigned to that person has moved past "New"; the task is then ticked done and the next batch goes out.
  * A batch that started short (the pool ran dry) is topped up as new leads arrive.
  */
-export interface AutoAssignConfig { enabled: boolean; batch_size: number }
-export const DEFAULT_AUTO_ASSIGN: AutoAssignConfig = { enabled: false, batch_size: 5 };
+/** schedule: "instant" hands leads out as they arrive; "daily_9am" only once a day at 9:00 AM India time. */
+export type AutoAssignSchedule = "instant" | "daily_9am";
+export interface AutoAssignConfig { enabled: boolean; batch_size: number; schedule: AutoAssignSchedule }
+export const DEFAULT_AUTO_ASSIGN: AutoAssignConfig = { enabled: false, batch_size: 5, schedule: "instant" };
 export async function autoAssignConfig(): Promise<AutoAssignConfig> {
   const v = await getSetting<Partial<AutoAssignConfig>>("auto_assign", DEFAULT_AUTO_ASSIGN);
   const size = Math.round(Number(v.batch_size));
-  return { enabled: v.enabled === true, batch_size: size >= 1 && size <= 50 ? size : DEFAULT_AUTO_ASSIGN.batch_size };
+  return { enabled: v.enabled === true, batch_size: size >= 1 && size <= 50 ? size : DEFAULT_AUTO_ASSIGN.batch_size, schedule: v.schedule === "daily_9am" ? "daily_9am" : "instant" };
 }
 
 interface Person { id: number; name: string }
@@ -80,13 +82,15 @@ async function startBatch(person: Person, size: number): Promise<number> {
 }
 
 /** What one pass did, for the confirmation shown after an action. */
-export interface AssignResult { ran: boolean; failed?: boolean; assigned: number; given: { name: string; n: number }[]; completed: string[]; eligible: number; busy: number; pool: number }
+export interface AssignResult { ran: boolean; failed?: boolean; /** Not run: leads go out at 9:00 AM. */ waitingFor9am?: boolean; assigned: number; given: { name: string; n: number }[]; completed: string[]; eligible: number; busy: number; pool: number }
 const NOT_RUN: AssignResult = { ran: false, assigned: 0, given: [], completed: [], eligible: 0, busy: 0, pool: 0 };
 
 /** Closes finished batches, tops up short ones and hands out the next batch. */
-async function runOnce(force = false): Promise<AssignResult> {
+async function runOnce(force = false, scheduled = false): Promise<AssignResult> {
   const cfg = await autoAssignConfig();
   if (!cfg.enabled && !force) return NOT_RUN;
+  // With the 9 AM schedule, only the daily run (or the admin's "Run now") hands leads out.
+  if (cfg.schedule === "daily_9am" && !scheduled && !force) return { ...NOT_RUN, waitingFor9am: true };
   // Whoever has waited longest since their last batch goes first, so a short pool is shared fairly.
   const people = await q<Person>(
     `SELECT u.id, u.name FROM users u
@@ -124,8 +128,8 @@ async function runOnce(force = false): Promise<AssignResult> {
 const g = globalThis as unknown as { __mnAutoAssign?: Promise<unknown> };
 
 /** Safe to call after any lead change: never throws, logs failures. `force` runs even while auto-assign is switched off. */
-export function runAutoAssign(opts: { force?: boolean } = {}): Promise<AssignResult> {
-  const run = (g.__mnAutoAssign ?? Promise.resolve()).catch(() => undefined).then(() => runOnce(opts.force));
+export function runAutoAssign(opts: { force?: boolean; scheduled?: boolean } = {}): Promise<AssignResult> {
+  const run = (g.__mnAutoAssign ?? Promise.resolve()).catch(() => undefined).then(() => runOnce(opts.force, opts.scheduled));
   g.__mnAutoAssign = run;
   return run.catch((e) => { console.error("[auto-assign] failed", e); return { ...NOT_RUN, failed: true }; });
 }
@@ -139,6 +143,7 @@ const leads = (n: number) => `${n} ${n === 1 ? "lead" : "leads"}`;
 export function describeAssign(r: AssignResult, opts: { me?: string; quiet?: boolean } = {}): string {
   const who = (name: string) => (name === opts.me ? "you" : name.split(" ")[0]);
   if (r.failed) return "Auto-assign could not run; check the server log";
+  if (r.waitingFor9am) return opts.quiet ? "" : "Leads are handed out every day at 9:00 AM";
   if (!r.ran) return opts.quiet ? "" : "Auto-assign is off";
   if (r.assigned) {
     const parts = r.given.length > 3 ? [`${leads(r.assigned)} shared between ${r.given.length} people`] : r.given.map((x, i) => (i === 0 ? `${leads(x.n)} assigned to ${who(x.name)}` : `${x.n} to ${who(x.name)}`));
@@ -174,3 +179,43 @@ export async function myBatch(userId: number): Promise<MyBatch | null> {
 }
 
 export const unassignedPool = async () => Number((await one<{ n: number }>("SELECT count(*)::int AS n FROM leads WHERE assigned_to IS NULL AND status = 'New'"))?.n ?? 0);
+
+/* ---------------- Daily 9:00 AM run ---------------- */
+
+/** India time now, as { date: "YYYY-MM-DD", minutes since midnight }. */
+function istNow() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  const v = (t: string) => parts.find((p) => p.type === t)?.value ?? "0";
+  return { date: `${v("year")}-${v("month")}-${v("day")}`, minutes: Number(v("hour")) * 60 + Number(v("minute")) };
+}
+
+/**
+ * The 9:00 AM hand-out: runs once per India calendar day, at 9:00 (or later in that hour if the server was restarting
+ * at 9:00; never in the evening, so switching the schedule on at night waits for the next morning). Claiming the day
+ * in the settings table first makes it run once even with several server processes. Returns the result, or null when
+ * it is not time yet, already done today, or the schedule is not "daily_9am".
+ */
+export async function runDailyIfDue(now = istNow()): Promise<AssignResult | null> {
+  const cfg = await autoAssignConfig();
+  if (!cfg.enabled || cfg.schedule !== "daily_9am") return null;
+  if (now.minutes < 9 * 60 || now.minutes >= 10 * 60) return null;
+  const claimed = await one<{ key: string }>(
+    `INSERT INTO settings (key, value) VALUES ('auto_assign_daily_run', to_jsonb($1::text))
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now() WHERE settings.value #>> '{}' IS DISTINCT FROM $1
+     RETURNING key`,
+    [now.date],
+  );
+  if (!claimed) return null;
+  const r = await runAutoAssign({ scheduled: true });
+  console.log(`[auto-assign] 9:00 AM run for ${now.date}: ${describeAssign(r)}`);
+  return r;
+}
+
+const timer = globalThis as unknown as { __mnDailyAssign?: ReturnType<typeof setInterval> };
+/** Started once per server (instrumentation.ts): checks every 30 seconds whether the 9:00 AM run is due. */
+export function startDailyAutoAssign() {
+  if (timer.__mnDailyAssign) return;
+  const tick = () => { runDailyIfDue().catch((e) => console.error("[auto-assign] daily run failed", e)); };
+  timer.__mnDailyAssign = setInterval(tick, 30_000);
+  setTimeout(tick, 5_000);
+}

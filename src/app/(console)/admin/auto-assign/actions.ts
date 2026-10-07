@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
-import { describeAssign, runAutoAssign } from "@/lib/auto-assign";
+import { autoAssignConfig, describeAssign, runAutoAssign } from "@/lib/auto-assign";
+import { flash } from "@/lib/flash";
+import { revalidatePath } from "next/cache";
 import { setSetting } from "@/lib/queries/settings";
 
 const to = (path: string, msg: string, kind: "toast" | "error" = "toast") => `${path}${path.includes("?") ? "&" : "?"}${kind}=${encodeURIComponent(msg)}`;
@@ -12,11 +14,27 @@ export async function saveAutoAssign(fd: FormData) {
   const user = await requireUser("admin");
   const size = Math.round(Number(fd.get("batch_size")));
   if (!(size >= 1 && size <= 50)) redirect(to("/admin/auto-assign", "Batch size is 1 to 50 leads", "error"));
-  const enabled = fd.get("enabled") === "on";
-  await setSetting("auto_assign", { enabled, batch_size: size });
-  await audit(user.id, "update", "setting", "auto_assign", { enabled, batch_size: size });
+  // On/off has its own switch (setAutoAssignEnabled); this form keeps whatever it is set to.
+  const enabled = (await autoAssignConfig()).enabled;
+  const schedule = fd.get("schedule") === "daily_9am" ? "daily_9am" : "instant";
+  await setSetting("auto_assign", { enabled, batch_size: size, schedule });
+  await audit(user.id, "update", "setting", "auto_assign", { enabled, batch_size: size, schedule });
   const msg = enabled ? describeAssign(await runAutoAssign()) : "";
-  redirect(to("/admin/auto-assign", `Saved: auto-assign ${enabled ? "on" : "off"}, batches of ${size}${msg ? `. ${msg}` : ""}`));
+  redirect(to("/admin/auto-assign", `Saved: auto-assign ${enabled ? "on" : "off"}, batches of ${size}, ${schedule === "daily_9am" ? "every day at 9:00 AM" : "as leads arrive"}${msg ? `. ${msg}` : ""}`));
+}
+
+/** The page's On/Off switch: automatic lead distribution starts or stops at once. */
+export async function setAutoAssignEnabled(on: boolean) {
+  const user = await requireUser("admin");
+  const cfg = await autoAssignConfig();
+  await setSetting("auto_assign", { ...cfg, enabled: on });
+  await audit(user.id, on ? "auto_assign_on" : "auto_assign_off", "setting", "auto_assign");
+  const msg = on ? describeAssign(await runAutoAssign(), { quiet: true }) : "";
+  await flash(on
+    ? `Automatic lead distribution is on${cfg.schedule === "daily_9am" ? ": leads go out every day at 9:00 AM" : ""}${msg ? `. ${msg}` : ""}`
+    : "Automatic lead distribution is off. Leads wait in the pool until you assign them or switch it on");
+  revalidatePath("/admin/auto-assign");
+  revalidatePath("/employee");
 }
 
 /** Runs one pass now (even while switched off) and reports how many leads went out. */

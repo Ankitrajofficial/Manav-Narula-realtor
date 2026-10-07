@@ -5,7 +5,12 @@ import PropertyFilters from "@/components/PropertyFilters";
 import SortSelect from "@/components/SortSelect";
 import { Breadcrumbs, Section } from "@/components/ui";
 import type { Property } from "@/data/properties";
-import { getActiveOffers, getLocalityFilterOptions, getProperties } from "@/lib/site-data";
+import { getActiveOffers, getDeveloperBySlug, getLocalityFilterOptions, getProjects, getProjectsByDeveloper, getProperties } from "@/lib/site-data";
+import ProjectCard from "@/components/ProjectCard";
+import { developerCredit, propertyDevelopers } from "@/data/site";
+import { previewView } from "@/lib/preview";
+import type { Project } from "@/data/projects";
+import { AGI } from "@/lib/project-import";
 import { unsplash } from "@/lib/format";
 import Image from "next/image";
 
@@ -37,10 +42,77 @@ function filter(properties: Property[], sp: SP): Property[] {
   return list;
 }
 
+/** A developer's projects, each with links to its unit types (2 BHK, 3 BHK, ...). */
+function ProjectGrid({ projects }: { projects: Project[] }) {
+  return (
+    <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      {projects.map((p) => (
+        <li key={p.slug} className="flex flex-col gap-3">
+          <ProjectCard p={p} />
+          {(p.units ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {p.units!.map((u) => <Link key={u.slug} href={`/projects/${p.slug}/${u.slug}`} className="rounded-brand border border-line bg-white px-3 py-1.5 text-sm hover:border-ink">{u.label}</Link>)}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** All | AGI Infra | Mexmon Group: the developer tabs of the Properties page (also in the header's Properties menu). */
+function DeveloperTabs({ current }: { current: string }) {
+  const tabs = [{ slug: "", label: "All" }, ...propertyDevelopers];
+  return (
+    <nav aria-label="Show properties by developer" className="mt-6 flex gap-1 overflow-x-auto border-b border-line">
+      {tabs.map((t) => (
+        <Link key={t.slug} href={t.slug ? `/properties?developer=${t.slug}` : "/properties"} aria-current={current === t.slug ? "page" : undefined}
+          className={`-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm ${current === t.slug ? "border-accent font-medium text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+          {t.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export default async function PropertiesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [properties, offers, localityOptions] = await Promise.all([getProperties(), getActiveOffers(), getLocalityFilterOptions()]);
-  const list = filter(properties, sp);
+  const preview = await previewView();
+  const devSlug = one(sp.developer);
+  const developer = devSlug ? propertyDevelopers.find((d) => d.slug === devSlug) : undefined;
+
+  // A developer's tab lists that developer's projects only.
+  if (developer) {
+    const d = await getDeveloperBySlug(developer.slug);
+    const projects = d ? await getProjectsByDeveloper(d.id, preview) : [];
+    return (
+      <Section>
+        <Breadcrumbs items={[{ label: "Properties", href: "/properties" }, { label: developer.label }]} />
+        <h1 className="mt-6 text-4xl md:text-5xl">{developer.label} properties</h1>
+        <p className="mt-3 max-w-2xl text-muted">Projects by {d?.name ?? developer.label} in Jalandhar and Ludhiana, sold through us as sales agents. {developerCredit}</p>
+        <DeveloperTabs current={developer.slug} />
+        <p className="mb-6 mt-6 text-sm text-muted"><span className="tabular text-ink">{projects.length}</span> {projects.length === 1 ? "project" : "projects"}</p>
+        {projects.length ? <ProjectGrid projects={projects} /> : (
+          <div className="rounded-brand border border-line bg-white p-8">
+            <p className="text-lg">{developer.label} projects are coming soon.</p>
+            <p className="mt-2 text-sm text-muted">Call us for plans, prices and availability in the meantime.</p>
+            <Link href="/contact" className="mt-4 inline-block rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white">Ask about {developer.label}</Link>
+          </div>
+        )}
+      </Section>
+    );
+  }
+
+  const [properties, offers, localityOptions, allProjects] = await Promise.all([getProperties(), getActiveOffers(), getLocalityFilterOptions(), getProjects(preview)]);
+  // "All" also lists the developers' projects (AGI Infra, Mexmon Group, ...), above the individual listings.
+  const projects = allProjects.filter((p) => propertyDevelopers.some((d) => d.slug === p.developerSlug));
+  // An old listing whose project is shown above (e.g. the AGI listings that became projects) is not listed twice.
+  const shown = new Set(projects.map((p) => p.slug));
+  const replaced = new Set(AGI.filter((a) => shown.has(a.slug)).map((a) => a.from));
+  const listings = properties.filter((p) => !replaced.has(p.slug));
+  const list = filter(listings, sp);
+  // With developer projects on the page and no other listings at all, the empty listings block is left out.
+  const showListings = listings.length > 0 || projects.length === 0;
   const page = Math.max(1, Number(one(sp.page)) || 1);
   const pages = Math.max(1, Math.ceil(list.length / PAGE));
   const slice = list.slice((page - 1) * PAGE, page * PAGE);
@@ -63,7 +135,16 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
           ))}
         </ul>
       )}
-      <div className="mt-10 grid gap-10 md:grid-cols-12">
+      <DeveloperTabs current="" />
+      {projects.length > 0 && page === 1 && (
+        <section aria-labelledby="dev-projects" className="mt-8">
+          <h2 id="dev-projects" className="text-2xl">Developer projects</h2>
+          <p className="mb-4 mt-1 text-sm text-muted">{developerCredit}</p>
+          <ProjectGrid projects={projects} />
+        </section>
+      )}
+      {showListings && projects.length > 0 && page === 1 && <h2 className="mt-12 text-2xl">Resale and rental listings</h2>}
+      {showListings && <div className={`${projects.length > 0 && page === 1 ? "mt-6" : "mt-10"} grid gap-10 md:grid-cols-12`}>
         <div className="md:col-span-3">
           <Suspense><PropertyFilters localities={localityOptions} /></Suspense>
         </div>
@@ -91,7 +172,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: P
             </nav>
           )}
         </div>
-      </div>
+      </div>}
     </Section>
   );
 }

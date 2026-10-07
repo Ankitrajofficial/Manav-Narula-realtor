@@ -3,9 +3,9 @@ import { one, q } from "@/lib/db";
 import { maskPhone } from "@/lib/format";
 import { LOCALITY_ORDER, type LocalityOption } from "@/lib/localities";
 
-export interface UserRow { id: number; name: string; email: string; phone: string | null; role: string; status: string; last_login_at: Date | null; created_at: Date }
+export interface UserRow { id: number; name: string; email: string; phone: string | null; role: string; level: string | null; status: string; last_login_at: Date | null; created_at: Date }
 
-export const listEmployees = (activeOnly = true) => q<UserRow>(`SELECT id, name, email, phone, role, status, last_login_at, created_at FROM users ${activeOnly ? "WHERE status = 'active'" : ""} ORDER BY role, name`);
+export const listEmployees = (activeOnly = true) => q<UserRow>(`SELECT id, name, email, phone, role, level, status, last_login_at, created_at FROM users ${activeOnly ? "WHERE status = 'active'" : ""} ORDER BY role, name`);
 /** Active locality names, grouped by zone order. */
 export const listLocalities = async () => (await q<{ name: string }>(`SELECT l.name FROM localities l WHERE l.is_active ORDER BY ${LOCALITY_ORDER}`)).map((r) => r.name);
 /** Active localities with their zone, for the searchable zone-grouped selects. */

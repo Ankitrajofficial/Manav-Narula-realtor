@@ -15,6 +15,7 @@ export default function BannerForm({ banner: b, group, action }: { banner?: Bann
   const [headline, setHeadline] = useState(b?.headline ?? "");
   const [line, setLine] = useState(b?.line ?? "");
   const [cta, setCta] = useState(b?.cta_label ?? "");
+  const [imageOnly, setImageOnly] = useState(b ? !b.show_text : false);
   return (
     <form action={act} className="grid gap-5 lg:grid-cols-12">
       <div className="space-y-5 lg:col-span-7">
@@ -30,6 +31,7 @@ export default function BannerForm({ banner: b, group, action }: { banner?: Bann
             <ImageField name="image" label="Image" initial={b?.image} hint={g === "offer" ? "Recommended 1440 x 400 px, JPG or WebP under 400 KB." : "Recommended 1920 x 800 px, JPG or WebP under 600 KB."} />
             {e.image && <p className="mt-1 text-xs text-red-700">{e.image}</p>}
           </div>
+          {g === "carousel" && <label className="flex items-start gap-2 text-sm md:col-span-2"><input type="checkbox" name="image_only" checked={imageOnly} onChange={(ev) => setImageOnly(ev.target.checked)} className="mt-0.5 accent-[#00BF63]" /><span>Image has its own text<span className="block text-xs text-muted">Shows the image as it is, without the dark tint, headline and button. The whole banner links to the button link; the headline is used as the image description.</span></span></label>}
         </Section>
         <Section title="Schedule" description="Leave both blank to show whenever the banner is active.">
           <Field label="Start date" htmlFor="start_date" error={e.start_date}><Input id="start_date" name="start_date" type="date" defaultValue={toDateInput(b?.start_date)} /></Field>
@@ -39,7 +41,7 @@ export default function BannerForm({ banner: b, group, action }: { banner?: Bann
       </div>
       <div className="lg:col-span-5">
         <p className="mb-2 text-xs font-medium text-ink">Preview on website</p>
-        <BannerPreview group={g} image={b?.image} headline={headline} line={line} ctaLabel={cta} />
+        <BannerPreview group={g} image={b?.image} headline={headline} line={line} ctaLabel={cta} imageOnly={g === "carousel" && imageOnly} />
         <p className="mt-2 text-xs text-muted">A newly chosen image appears after saving. Text updates live.</p>
       </div>
     </form>

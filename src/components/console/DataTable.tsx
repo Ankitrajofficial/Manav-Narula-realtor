@@ -16,6 +16,8 @@ interface Props<T> {
   sortKey?: string;
   sortDir?: "asc" | "desc";
   exportHref?: string;
+  /** Render each row as a box in a grid instead of a table row. */
+  cards?: (row: T) => React.ReactNode;
   exportPdfHref?: string;
   empty: { text: string; action?: { label: string; href: string } };
   selectable?: boolean;
@@ -31,7 +33,7 @@ function hrefWith(basePath: string, sp: Record<string, string | undefined>, patc
 }
 
 /** Sticky-header table with sort links, result count, export buttons and pagination. State is in the URL. */
-export default function DataTable<T extends object>({ columns, rows, total, page, pageSize, sp, basePath, sortKey, sortDir, exportHref, exportPdfHref, empty, selectable, rowId, toolbar }: Props<T>) {
+export default function DataTable<T extends object>({ columns, rows, total, page, pageSize, sp, basePath, sortKey, sortDir, exportHref, exportPdfHref, empty, selectable, rowId, toolbar, cards }: Props<T>) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div>
@@ -45,6 +47,10 @@ export default function DataTable<T extends object>({ columns, rows, total, page
       </div>
       {rows.length === 0 ? (
         <EmptyState text={empty.text} action={empty.action} />
+      ) : cards ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {rows.map((r, i) => <div key={rowId ? rowId(r) : i} className="contents">{cards(r)}</div>)}
+        </div>
       ) : (
         <div className="rounded-brand border border-line bg-white md:overflow-x-auto">
           <table className="rtable w-full text-left md:min-w-[720px]">

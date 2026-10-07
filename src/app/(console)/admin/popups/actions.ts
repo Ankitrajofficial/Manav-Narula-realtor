@@ -16,7 +16,8 @@ const opt = (v: string) => (v ? v : null);
 export async function upsertPopup(id: number | null, _p: PopupFormState, fd: FormData): Promise<PopupFormState> {
   const user = await requireUser("admin");
   const errors: Record<string, string> = {};
-  const kind: PopupKind = s(fd, "kind") === "consultation" ? "consultation" : "promo";
+  const kinds: PopupKind[] = ["promo", "consultation", "enquiry"];
+  const kind: PopupKind = kinds.includes(s(fd, "kind") as PopupKind) ? (s(fd, "kind") as PopupKind) : "promo";
   const title = s(fd, "title").slice(0, 90);
   if (title.length < 3) errors.title = "Enter a title of at least 3 characters.";
   const text = s(fd, "text").slice(0, 400);
@@ -48,7 +49,9 @@ export async function upsertPopup(id: number | null, _p: PopupFormState, fd: For
 
   const input: PopupInput = {
     kind, title, text: opt(text), image,
-    cta_label: kind === "promo" ? opt(ctaLabel) : null, cta_href: kind === "promo" ? opt(ctaHref) : null,
+    // For an enquiry form the button text is the submit button's label.
+    cta_label: kind === "consultation" ? null : opt(ctaLabel), cta_href: kind === "promo" ? opt(ctaHref) : null,
+    project_id: kind === "enquiry" ? Number(s(fd, "project_id")) || null : null,
     pages, delay_seconds: delay, start_date: opt(start), end_date: opt(end), active: !!fd.get("active"),
   };
   const newId = await savePopup(id, input);

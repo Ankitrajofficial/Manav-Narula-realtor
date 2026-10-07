@@ -4,7 +4,9 @@ import Icon from "@/components/Icon";
 import LoanEnquiryForm from "@/components/LoanEnquiryForm";
 import YouTubeLite from "@/components/YouTubeLite";
 import { Breadcrumbs, Section, SectionTitle } from "@/components/ui";
-import { getBusiness, getPageVideos, getPartnerBanks, phoneHref, whatsappHref } from "@/lib/site-data";
+import { getActiveOffers, getBusiness, getPageVideos, getPartnerBanks, phoneHref, whatsappHref } from "@/lib/site-data";
+import Link from "next/link";
+import { unsplash } from "@/lib/format";
 
 export const revalidate = 60;
 export const metadata = {
@@ -34,7 +36,7 @@ const faqs = [
 ];
 
 export default async function HomeLoansPage() {
-  const [business, banks, videos] = await Promise.all([getBusiness(), getPartnerBanks(), getPageVideos("home_loans")]);
+  const [business, banks, videos, offers] = await Promise.all([getBusiness(), getPartnerBanks(), getPageVideos("home_loans"), getActiveOffers("home_loan")]);
   const [main, ...more] = videos;
   return (
     <>
@@ -47,6 +49,27 @@ export default async function HomeLoansPage() {
           <a href={phoneHref(business)} className="inline-flex items-center gap-2 rounded-brand bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-ink"><Icon name="phone" size={16} />Call {business.phone}</a>
           <a href={whatsappHref(business)} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-brand border border-ink px-5 py-3 text-sm hover:bg-ink hover:text-white"><Icon name="whatsapp" size={16} />WhatsApp</a>
         </div>
+        {/* Home loan offers (Admin → Home Loans → Home loan offers). */}
+        {offers.length > 0 && (
+          <ul className="mt-8 grid gap-4 md:grid-cols-2">
+            {offers.map((o) => {
+              const here = o.href === "/home-loans";
+              const body = (
+                <>
+                  {o.image && <span className="relative h-16 w-24 shrink-0 overflow-hidden rounded-brand bg-line"><Image src={unsplash(o.image, 400, 300)} alt="" fill sizes="96px" className="object-cover" /></span>}
+                  <span><span className="text-xs uppercase tracking-wide text-accent-ink">Offer</span><span className="block text-base">{o.title}</span>{o.text && <span className="block text-sm text-muted">{o.text}</span>}</span>
+                </>
+              );
+              return (
+                <li key={o.id}>
+                  {here
+                    ? <a href="#loan-enquiry" className="flex items-center gap-4 rounded-brand border border-[#c9c9c6] bg-white p-3 transition-colors hover:border-ink">{body}</a>
+                    : <Link href={o.href} className="flex items-center gap-4 rounded-brand border border-[#c9c9c6] bg-white p-3 transition-colors hover:border-ink">{body}</Link>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Section>
 
       {/* Partner banks */}

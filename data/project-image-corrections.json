@@ -1,0 +1,38 @@
+{
+  "_about": "Corrections to the scraper's images_manifest.json, keyed by the first 12 hex characters of each image file's SHA-1 (stable across re-scrapes even when file names change). An entry can set label (elevation, interior, gallery, floor-plan, master-plan, amenity, location-map, or skip), alt, project (our slug, for images shared across pages), and cover (first image of the project). Images without an entry use the manifest's label and suggested_alt. Checked by eye against every picture on 2026-10-06.",
+
+  "b46530126edf": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "cover": true, "alt": "Entrance gate and towers of Mexmon Dreams on 66 Feet Road, Jalandhar (render)", "note": "manifest: elevation (correct); alt was generic" },
+  "fa514564d8da": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "Mexmon Dreams towers above the landscaped grounds (render)", "note": "manifest: gallery" },
+  "610adbbfe74b": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "Mexmon Dreams towers and entrance gate (render)", "note": "manifest: gallery" },
+  "9710afcbc787": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "A Mexmon Dreams tower beside landscaped gardens (render)", "note": "manifest: location-map, but it is a tower render" },
+  "4774ea24ca0b": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "Mexmon Dreams tower seen from the street (render)", "note": "manifest: interior, but it is an exterior" },
+  "20eeca9c321f": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "Tower entrance with a covered drop-off at Mexmon Dreams (render)", "note": "manifest: gallery" },
+  "596f18b78389": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "Aerial view of a Mexmon Dreams tower (render)", "note": "shared on every page; it is a Mexmon Dreams tower" },
+  "4795bbc0613d": { "project": "mexmon-dreams-jalandhar", "label": "elevation", "alt": "Aerial panorama of the Mexmon Dreams towers (render)", "note": "manifest: interior, but it is an aerial exterior" },
+  "501a5f661282": { "project": "mexmon-dreams-jalandhar", "label": "interior", "alt": "Living and dining room in a Mexmon Dreams sample apartment (render)", "note": "manifest: gallery" },
+  "f3522c96a5ce": { "project": "mexmon-dreams-jalandhar", "label": "interior", "alt": "Bedroom in a Mexmon Dreams sample apartment (render)", "note": "manifest: gallery" },
+  "974f1ad2b5f4": { "project": "mexmon-dreams-jalandhar", "label": "floor-plan", "alt": "3D layout of a 2 BHK apartment at Mexmon Dreams", "note": "manifest: gallery, but it is a unit layout" },
+  "4c5402ce2947": { "project": "mexmon-dreams-jalandhar", "label": "floor-plan", "alt": "3D layout of an apartment at Mexmon Dreams", "note": "manifest: amenity (spa), but it is a unit layout; also shown on the Highstreet page" },
+  "be6f8b675ff7": { "project": "mexmon-dreams-jalandhar", "label": "amenity", "alt": "Children's play area beside the Mexmon Dreams towers (render)", "note": "manifest: gallery" },
+  "51221007284f": { "project": "mexmon-dreams-jalandhar", "label": "amenity", "alt": "Landscaped water feature at Mexmon Dreams (render)", "note": "manifest: amenity (spa); it is a water feature" },
+  "e04a928b263a": { "project": "mexmon-dreams-jalandhar", "label": "location-map", "alt": "Location map of Mexmon Dreams on 66 Feet Road, Jalandhar", "note": "manifest: location-map (correct); alt was generic" },
+
+  "dad926b52ac8": { "project": "mexmon-dreams-1-jalandhar", "label": "elevation", "cover": true, "alt": "Entrance gate of Mexmon Dreams-1 (render)", "note": "manifest: amenity (park), but it is the entrance gate" },
+  "09136c07ea1a": { "project": "mexmon-dreams-1-jalandhar", "label": "elevation", "alt": "Shop-cum-office units at Mexmon Dreams-1 (render)", "note": "manifest: gallery" },
+  "e2aaa570ba59": { "project": "mexmon-dreams-1-jalandhar", "label": "amenity", "alt": "Landscaped lawn with fountains beside the villas at Mexmon Dreams-1 (render)", "note": "manifest: gallery" },
+
+  "1ec94efba94f": { "project": "mexmon-highstreet-jalandhar", "label": "elevation", "cover": true, "alt": "Arched shop facade of Mexmon Highstreet (render)", "note": "shared on every page; it is the Highstreet facade" },
+  "9f1020a590f9": { "project": "mexmon-highstreet-jalandhar", "label": "elevation", "alt": "Corner of the Mexmon Highstreet facade (render)", "note": "manifest: gallery" },
+  "215bd580008b": { "project": "mexmon-highstreet-jalandhar", "label": "elevation", "alt": "Courtyard and shop fronts at Mexmon Highstreet (render)", "note": "manifest: gallery" },
+
+  "7302f50bcd33": { "project": "mexmon-palm-city-jalandhar", "label": "elevation", "cover": true, "alt": "Mexmon Market commercial block at Mexmon Palm City (render)", "note": "manifest: amenity (spa), but it is the commercial block" },
+  "86c41c529bf7": { "project": "mexmon-palm-city-jalandhar", "label": "elevation", "alt": "Shop-cum-office units at Mexmon Palm City (render)", "note": "manifest: gallery" },
+
+  "60109f922c75": { "label": "skip", "note": "portrait of the architect Hafeez Contractor: a person, not the project" },
+  "681cf1105369": { "label": "skip", "note": "SEO banner with \"2BHK FLATS IN JALANDHAR\" written into the image" },
+  "ccf34d523e80": { "label": "skip", "note": "SEO banner with \"3BHK FLATS IN JALANDHAR\" written into the image" },
+  "f36a5bc5ba97": { "label": "skip", "note": "villa aerial shown on every page; which project it belongs to is unclear" },
+  "4db9e0c1eda1": { "label": "skip", "note": "smaller copy of the bedroom render f3522c96a5ce" },
+  "581023422135": { "label": "skip", "note": "stock photo of a clothing shop, not the project" },
+  "edb107a121a1": { "label": "skip", "note": "near-duplicate crop of the Mexmon Market render 7302f50bcd33" }
+}

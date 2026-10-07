@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Icon from "./Icon";
 
 export default function ShareButtons({ title }: { title: string }) {
   const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined" ? window.location.href : "";
+  // Read the address only in the browser, after hydration, so the server and first client render match.
+  const url = useSyncExternalStore(() => () => {}, () => window.location.href, () => "");
   return (
     <div className="flex items-center gap-3 text-sm">
       <a href={`https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 text-muted hover:text-ink">

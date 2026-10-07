@@ -1,9 +1,9 @@
 "use client";
 import { useFormStatus } from "react-dom";
 
-export const fieldCls = "rounded-brand border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-ink disabled:bg-bg";
-export const inputCls = "w-full rounded-brand border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-ink disabled:bg-bg";
-export const labelCls = "mb-1 block text-xs font-medium text-ink";
+import { fieldCls, inputCls, labelCls } from "./form-classes";
+// Re-exported for client components; server components must import from "./form-classes" directly.
+export { fieldCls, inputCls, labelCls };
 
 export function Field({ label, htmlFor, error, hint, children, className = "" }: { label: string; htmlFor?: string; error?: string; hint?: string; children: React.ReactNode; className?: string }) {
   return (

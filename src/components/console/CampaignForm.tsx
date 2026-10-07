@@ -21,13 +21,24 @@ const SAMPLE: Record<string, string> = { name: "Harpreet", full_name: "Harpreet 
 const preview = (t: string) => t.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_, k: string) => SAMPLE[k.toLowerCase()] ?? "");
 type MediaType = "none" | "image" | "document" | "video";
 
-export interface CampaignValues { name?: string; message?: string; variants?: string[]; message_type?: string; template_name?: string | null; template_language?: string; audience?: Audience; scheduled_at?: string | null; status?: string; media_type?: MediaType; media_url?: string | null; media_filename?: string | null; window_start?: number; window_end?: number; daily_cap?: number; gap_seconds?: number }
+export interface CampaignValues { project_id?: number | null; name?: string; message?: string; variants?: string[]; message_type?: string; template_name?: string | null; template_language?: string; audience?: Audience; scheduled_at?: string | null; status?: string; media_type?: MediaType; media_url?: string | null; media_filename?: string | null; window_start?: number; window_end?: number; daily_cap?: number; gap_seconds?: number }
 export interface TemplateOption { id: number; name: string }
 
-export default function CampaignForm({ action, values = {}, localities, tags, connected, isNew, templates = [] }: { action: (prev: CampaignFormState, fd: FormData) => Promise<CampaignFormState>; values?: CampaignValues; localities: string[]; tags: string[]; connected: boolean; isNew: boolean; templates?: TemplateOption[] }) {
+/**
+ * Starter messages for nurturing leads: useful knowledge and a reason to remember us, never pressure to buy.
+ * "[project]" is replaced with the project chosen under "About".
+ */
+const STARTERS: { label: string; text: string }[] = [
+  { label: "Buying checklist", text: "Hello {{name}}, a quick tip from Manav Narula Realtor: before you pay a token for any plot or flat in Jalandhar, check the title chain, the encumbrance certificate, the approved plan and the project's RERA number. Keep this message for whenever you need it. We are always happy to look over papers for you, with no obligation." },
+  { label: "Home loan tip", text: "Hello {{name}}, a home loan tip: banks look at how much of your monthly income already goes to EMIs, and the lower that share, the better the rate you are usually offered. Whenever you plan to buy, we can compare our partner banks for you at no cost. {{employee}}, Manav Narula Realtor" },
+  { label: "Locality guide", text: "Hello {{name}}, when you visit any locality, look at the distance to schools and hospitals, the road width, the water supply and how the area feels in the evening. Save our number {{phone}}: we are glad to share what we know about any area of Jalandhar, whenever you need it." },
+  { label: "Project update", text: "Hello {{name}}, sharing something you may find useful: [project] is one of the projects we follow closely in Jalandhar. If you would like the floor plans, the RERA details or simply an honest view of it, reply here any time. No rush and no obligation. {{employee}}, Manav Narula Realtor" },
+];
+
+export default function CampaignForm({ action, values = {}, localities, tags, connected, isNew, templates = [], projects = [], campaignId }: { action: (prev: CampaignFormState, fd: FormData) => Promise<CampaignFormState>; values?: CampaignValues; localities: string[]; tags: string[]; connected: boolean; isNew: boolean; templates?: TemplateOption[]; projects?: { id: number; name: string }[]; campaignId?: number }) {
   const [state, formAction] = useActionState<CampaignFormState, FormData>(action, {});
   const e = state.errors ?? {};
-  const a = values.audience ?? { kinds: ["prospect"], statuses: [], tags: [], localities: [], interests: [], optInOnly: true };
+  const a = values.audience ?? { kinds: ["lead"], statuses: [], tags: [], localities: [], interests: [], optInOnly: true };
   const [message, setMessage] = useState(values.message ?? "");
   const [variantB, setVariantB] = useState(values.variants?.[0] ?? "");
   const [variantC, setVariantC] = useState(values.variants?.[1] ?? "");
@@ -37,7 +48,8 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
   const [mediaError, setMediaError] = useState("");
   const [mediaPreview, setMediaPreview] = useState<string | null>(values.media_url ?? null);
   const [mediaName, setMediaName] = useState<string | null>(values.media_filename ?? null);
-  const [count, setCount] = useState<{ n: number; sample: string[] } | null>(null);
+  const [count, setCount] = useState<{ n: number; skipped?: number; sample: string[] } | null>(null);
+  const [projectId, setProjectId] = useState<string>(values.project_id ? String(values.project_id) : "");
   const [confirmed, setConfirmed] = useState(false);
   const [hasNewFile, setHasNewFile] = useState(false);
   const router = useRouter();
@@ -59,6 +71,9 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
     const p = new URLSearchParams();
     for (const k of ["kinds", "statuses", "tags", "localities", "interests"]) fd.getAll(k).forEach((v) => p.append(k, String(v)));
     p.set("optInOnly", fd.get("optInOnly") === "1" ? "1" : "0");
+    const pid = String(fd.get("project_id") ?? "");
+    if (pid) p.set("project_id", pid);
+    if (campaignId) p.set("campaign_id", String(campaignId));
     try { const r = await fetch(`/admin/campaigns/audience?${p}`); if (r.ok) setCount(await r.json()); } catch { /* ignore */ }
   };
   useEffect(() => { const t = setTimeout(refreshCount, 0); return () => clearTimeout(t); }, []);
@@ -119,6 +134,12 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
               )}
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <Field label="About" htmlFor="project_id" hint={projectId ? "Leads who already got a message about this project in another campaign are skipped. For a new project, create a new campaign." : "General knowledge: tips and guides, not about one project."}>
+                <Select id="project_id" name="project_id" value={projectId} onChange={(ev) => { setProjectId(ev.target.value); setTimeout(refreshCount, 0); }}>
+                  <option value="">General knowledge (no project)</option>
+                  {projects.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </Select>
+              </Field>
               <Field label="Message type" htmlFor="message_type" hint={type === "text" ? "Text reaches people who messaged you in the last 24 hours (Meta rule)." : "An approved Meta template; placeholders map to {{1}}, {{2}}… in order, media goes in the header."}>
                 <Select id="message_type" name="message_type" value={type} onChange={(ev) => setType(ev.target.value)}>
                   <option value="text">Text message</option>
@@ -133,6 +154,16 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
               )}
             </div>
             <div className="mt-4">
+              <div className="mb-3 rounded-brand border border-accent/30 bg-accent/5 p-3 text-xs text-ink">
+                <p className="font-medium">Nurture, don&apos;t push</p>
+                <p className="mt-0.5 text-muted">Share something useful (a tip, a guide, an update) so leads remember us when they are ready to buy. No pressure, no &quot;offer ends today&quot;. Start from an idea and make it yours:</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {STARTERS.map((st) => (
+                    <button key={st.label} type="button" onClick={() => setMessage(st.text.replace("[project]", projects.find((x) => String(x.id) === projectId)?.name ?? "this project"))}
+                      className="rounded-brand border border-accent/40 bg-white px-2.5 py-1 text-xs text-accent-ink hover:border-accent">{st.label}</button>
+                  ))}
+                </div>
+              </div>
               <label htmlFor="message" className="mb-1 block text-xs font-medium">Message</label>
               <div className="mb-2 flex flex-wrap gap-1.5">
                 {PLACEHOLDERS.map((p) => <button key={p.token} type="button" onClick={() => insert(p.token)} className="rounded-brand border border-line bg-white px-2 py-0.5 text-xs hover:border-ink" title={p.label}>{p.token}</button>)}
@@ -187,17 +218,14 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
 
           <section className="rounded-brand border border-line bg-white p-5">
             <h2 className="text-base">Audience</h2>
-            <p className="mt-1 mb-4 text-xs text-muted">Who receives it. Prospects are always limited to WhatsApp opt-in yes; closed-lost records are never included.</p>
+            <p className="mt-1 mb-4 text-xs text-muted">Who receives it: leads from your lead database only. Closed-lost leads are never included.</p>
             <div className="space-y-4">
               <div>
                 <p className="mb-1.5 text-xs font-medium">Send to</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {[["prospect", "Prospects"], ["lead", "Leads"]].map(([v, l]) => (
-                    <label key={v} className="inline-flex cursor-pointer items-center gap-1.5 rounded-brand border border-line bg-white px-2.5 py-1 text-xs has-[:checked]:border-accent has-[:checked]:bg-accent/10">
-                      <input type="checkbox" name="kinds" value={v} defaultChecked={a.kinds.includes(v as "lead" | "prospect")} onChange={refreshCount} className="accent-[#00BF63]" />{l}
-                    </label>
-                  ))}
-                  <label className="ml-2 inline-flex items-center gap-1.5 text-xs"><input type="checkbox" name="optInOnly" value="1" defaultChecked={a.optInOnly} onChange={refreshCount} className="accent-[#00BF63]" />Leads: opt-in only too</label>
+                <input type="hidden" name="kinds" value="lead" />
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-brand border border-accent bg-accent/10 px-2.5 py-1 text-xs text-accent-ink"><Icon name="users" size={12} />Leads</span>
+                  <label className="inline-flex items-center gap-1.5 text-xs"><input type="checkbox" name="optInOnly" value="1" defaultChecked={a.optInOnly} onChange={refreshCount} className="accent-[#00BF63]" />Only leads who agreed to WhatsApp (opt-in)</label>
                 </div>
                 {e.kinds && <p className="mt-1 text-xs text-red-700">{e.kinds}</p>}
               </div>
@@ -238,6 +266,7 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
             <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Audience size</p>
             <p className="mt-2 text-3xl tabular">{count ? count.n : "…"}</p>
             <p className="text-xs text-muted">people match right now{count?.sample.length ? `: ${count.sample.slice(0, 5).join(", ")}${count.n > 5 ? "…" : ""}` : ""}</p>
+            {!!count?.skipped && <p className="mt-1 text-xs text-amber-800">{count.skipped} more left out: already messaged about this project in another campaign.</p>}
             <button type="button" onClick={refreshCount} className="mt-3 text-xs text-accent-ink hover:underline">Refresh count</button>
           </section>
           {!locked && (

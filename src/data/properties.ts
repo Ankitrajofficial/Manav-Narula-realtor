@@ -64,7 +64,7 @@ export const properties: Property[] = [
     amenities: ["Modular kitchen", "Servant quarter", "Solar water heater", "Inverter backup", "Borewell", "Terrace garden", "CCTV wiring", "Park facing"],
     images: ["photo-1600596542815-ffad4c1539a9", "photo-1600566753086-00f18fb6b3ea", "photo-1502005229762-cf1b2da7c5d6", "photo-1600585154340-be6161a56a0c", "photo-1600573472592-401b489a3cdc"],
     trust: ["verified", "rera", "visit"],
-    rera: "PBRERA-JAL-AGT-2024-0119",
+    rera: "",
     nearby: [
       { name: "Urban Estate market", distance: "400 m" },
       { name: "Innocent Hearts School", distance: "1.2 km" },
@@ -125,7 +125,7 @@ export const properties: Property[] = [
     amenities: ["Approved colony", "40 ft road", "Boundary wall", "Sewer at plot", "Street lights"],
     images: ["photo-1500382017468-9049fed747ef", "photo-1500530855697-b586d89ba3ee"],
     trust: ["verified", "rera"],
-    rera: "PBRERA-JAL-AGT-2024-0119",
+    rera: "",
     nearby: [
       { name: "Surya Enclave gate", distance: "300 m" },
       { name: "Kapurthala Road", distance: "900 m" },
@@ -285,7 +285,7 @@ export const properties: Property[] = [
     amenities: ["Lift", "Home theatre", "Gym", "Rooftop deck", "Modular kitchen", "Servant quarter", "Solar panels"],
     images: ["photo-1600573472592-401b489a3cdc", "photo-1600585154340-be6161a56a0c", "photo-1600566753190-17f0baa2a6c3"],
     trust: ["verified", "rera", "visit"],
-    rera: "PBRERA-JAL-AGT-2024-0119",
+    rera: "",
     nearby: [
       { name: "Green Model Town park", distance: "200 m" },
       { name: "Sacred Heart School", distance: "1.8 km" },
@@ -342,7 +342,7 @@ export const properties: Property[] = [
     amenities: ["Park facing", "Developed sector", "PUDA approved", "Sewer and water", "Wide road"],
     images: ["photo-1500530855697-b586d89ba3ee", "photo-1500382017468-9049fed747ef"],
     trust: ["verified", "rera"],
-    rera: "PBRERA-JAL-AGT-2024-0119",
+    rera: "",
     nearby: [
       { name: "Urban Estate market", distance: "700 m" },
       { name: "Wadala chowk", distance: "2 km" },
@@ -405,7 +405,7 @@ export const properties: Property[] = [
     amenities: ["Front lawn", "Terrace", "Covered parking", "Inverter wiring", "Borewell", "Modular kitchen"],
     images: ["photo-1564013799919-ab600027ffc6", "photo-1570129477492-45c003edd2be", "photo-1523217582562-09d0def993a6"],
     trust: ["verified", "rera", "visit"],
-    rera: "PBRERA-JAL-AGT-2024-0119",
+    rera: "",
     nearby: [
       { name: "Manav Narula Realtor office", distance: "300 m" },
       { name: "Mithapur chowk", distance: "900 m" },

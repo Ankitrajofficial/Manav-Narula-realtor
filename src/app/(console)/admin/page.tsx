@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
         <StatTile label="Hot leads" value={stats.hot} href="/admin/leads?status=Hot%20lead" />
         <StatTile label="Follow-ups due today" value={stats.followUpsToday} href="/admin/notifications" />
         <StatTile label="Site visits this week" value={stats.siteVisitsWeek} href="/admin/leads?status=Site%20visit" />
-        <StatTile label="Sales this month" value={formatPrice(stats.salesMonth)} href="/admin/sales" />
+        <StatTile label="Sales this month" value={stats.salesMonth > 0 ? formatPrice(stats.salesMonth) : "₹0"} href="/admin/sales" />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

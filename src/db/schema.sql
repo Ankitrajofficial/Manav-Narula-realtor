@@ -267,6 +267,8 @@ CREATE TABLE IF NOT EXISTS campaign_messages (
 );
 CREATE INDEX IF NOT EXISTS campaign_messages_campaign_idx ON campaign_messages(campaign_id);
 
+-- false: the image carries its own text (a finished creative), so the site shows it without the tint, headline and button.
+ALTER TABLE banners ADD COLUMN IF NOT EXISTS show_text boolean NOT NULL DEFAULT true;
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS media_type text NOT NULL DEFAULT 'none';
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS media_url text;
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS media_filename text;

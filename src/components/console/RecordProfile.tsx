@@ -2,7 +2,7 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import Pill from "./Pill";
 import ConfirmButton from "./ConfirmButton";
-import { inputCls } from "./Form";
+import { inputCls } from "./form-classes";
 import { LEAD_STATUSES } from "@/lib/console";
 import { formatDateTime, relativeTime } from "@/lib/format";
 import type { LeadRow, ActivityRow } from "@/lib/queries/leads";

@@ -29,7 +29,7 @@ async function parse(fd: FormData): Promise<{ input?: BannerInput; errors?: Reco
   } catch (e) { errors.image = e instanceof Error ? e.message : "Upload failed."; }
   if (!image) errors.image = errors.image ?? "Upload a banner image.";
   if (Object.keys(errors).length) return { errors };
-  return { input: { group, image, headline, line: opt(s(fd, "line")), cta_label: opt(s(fd, "cta_label")), cta_href: opt(ctaHref), active: !!fd.get("active"), start_date: opt(start), end_date: opt(end) } };
+  return { input: { group, image, headline, line: opt(s(fd, "line")), cta_label: opt(s(fd, "cta_label")), cta_href: opt(ctaHref), show_text: !fd.get("image_only"), active: !!fd.get("active"), start_date: opt(start), end_date: opt(end) } };
 }
 
 export async function upsertBanner(id: number | null, _p: BannerFormState, fd: FormData): Promise<BannerFormState> {

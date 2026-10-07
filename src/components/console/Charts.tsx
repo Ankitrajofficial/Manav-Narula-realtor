@@ -6,7 +6,8 @@ export function LineChart({ points, height = 160, label }: { points: { x: string
   const X = (i: number) => pad + i * step;
   const Y = (v: number) => h - pad - (v / max) * (h - pad * 2);
   const d = points.map((p, i) => `${i ? "L" : "M"}${X(i)} ${Y(p.y)}`).join(" ");
-  const ticks = [0, Math.round(max / 2), max];
+  // Small maxima (e.g. 1) round the middle tick onto another one: keep each tick once.
+  const ticks = [...new Set([0, Math.round(max / 2), max])];
   return (
     <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={label} className="w-full">
       {ticks.map((t) => <g key={t}><line x1={pad} x2={w - pad} y1={Y(t)} y2={Y(t)} stroke="#E3E3E3" /><text x={pad - 6} y={Y(t) + 4} textAnchor="end" fontSize="10" fill="#6B6B6B">{t}</text></g>)}

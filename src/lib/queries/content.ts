@@ -2,6 +2,8 @@ import "server-only";
 import { json, one, q } from "@/lib/db";
 import { pageOf, sortOf } from "@/lib/console";
 import { levelLabel } from "@/lib/growth";
+import { fromMedia, type StoredUnit } from "@/lib/project-import";
+import type { ProjectMedia } from "@/data/projects";
 
 type SP = Record<string, string | undefined>;
 const like = (s: string) => `%${s.trim()}%`;
@@ -24,8 +26,10 @@ export interface PropertyImage { [key: string]: unknown; id: number; property_id
 const PROPERTY_SORT: Record<string, string> = { title: "p.title", price: "p.price", updated_at: "p.updated_at", locality: "p.locality", type: "p.type", status: "p.status" };
 const COVER = "(SELECT url FROM property_images i WHERE i.property_id = p.id ORDER BY i.is_cover DESC, i.sort_order ASC LIMIT 1) AS cover";
 
-export async function listProperties(sp: SP) {
+/** `excludeSlugs`: listings shown elsewhere, e.g. the AGI listings that became developer projects. */
+export async function listProperties(sp: SP, excludeSlugs: string[] = []) {
   const where: string[] = []; const params: unknown[] = [];
+  if (excludeSlugs.length) { params.push(excludeSlugs); where.push(`NOT (p.slug = ANY($${params.length}::text[]))`); }
   if (sp.q) { params.push(like(sp.q)); where.push(`(p.title ILIKE $${params.length} OR p.locality ILIKE $${params.length} OR p.slug ILIKE $${params.length})`); }
   if (sp.type) { params.push(sp.type); where.push(`p.type = $${params.length}`); }
   if (sp.purpose) { params.push(sp.purpose); where.push(`p.purpose = $${params.length}`); }
@@ -105,18 +109,24 @@ export interface ProjectRow { [key: string]: unknown;
   id: number; slug: string; name: string; developer: string | null; locality: string | null; status: string; image: string | null; gallery: string[];
   starting_price: string | null; possession: string | null; key_facts: { label: string; value: string }[]; amenities: string[]; rera: string | null;
   description: string | null; brochure: string | null; master_plan: string | null; floor_plan: string | null; published: boolean; created_at: Date; updated_at: Date;
+  media: ProjectMedia[]; floor_plans: { url: string; label: string }[] | null;
+  developer_id: number | null; city: string | null; address: string | null; size_range: string | null; price_from: string | number | null;
+  featured: boolean; featured_order: number | null; highlights: string[]; faqs: { q: string; a: string }[]; location_highlights: string[];
+  seo_title: string | null; seo_description: string | null; source_url: string | null; edited_fields: string[]; units: StoredUnit[];
+  show_developer_images: boolean;
   progress?: number; milestones_total?: number; milestones_done?: number;
 }
-export interface ProjectConfig { [key: string]: unknown; id: number; project_id: number; type: string; area: string | null; price: string | null; sort_order: number }
+export interface ProjectConfig { [key: string]: unknown; id: number; project_id: number; type: string; area: string | null; price: string | null; note: string | null; sort_order: number }
 export interface ProjectMilestone { [key: string]: unknown; id: number; project_id: number; title: string; date: string | Date | null; done: boolean; sort_order: number }
 
-const PROJECT_SORT: Record<string, string> = { name: "p.name", locality: "p.locality", status: "p.status", updated_at: "p.updated_at", starting_price: "p.starting_price" };
+const PROJECT_SORT: Record<string, string> = { name: "p.name", locality: "p.locality", status: "p.status", updated_at: "p.updated_at", developer: "p.developer", featured: "p.featured" };
 const PROGRESS = "COALESCE((SELECT round(100.0 * count(*) FILTER (WHERE done) / NULLIF(count(*),0)) FROM project_milestones m WHERE m.project_id = p.id), 0)::int AS progress";
 
 export async function listProjects(sp: SP) {
   const where: string[] = []; const params: unknown[] = [];
   if (sp.q) { params.push(like(sp.q)); where.push(`(p.name ILIKE $${params.length} OR p.locality ILIKE $${params.length} OR p.developer ILIKE $${params.length})`); }
   if (sp.status) { params.push(sp.status); where.push(`p.status = $${params.length}`); }
+  if (sp.developer) { params.push(Number(sp.developer)); where.push(`p.developer_id = $${params.length}`); }
   if (sp.published === "1") where.push("p.published = true");
   if (sp.published === "0") where.push("p.published = false");
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -132,41 +142,126 @@ export const getProjectConfigs = (id: number) => q<ProjectConfig>("SELECT * FROM
 export const getProjectMilestones = (id: number) => q<ProjectMilestone>("SELECT * FROM project_milestones WHERE project_id = $1 ORDER BY sort_order", [id]);
 
 export interface ProjectInput {
-  slug: string; name: string; developer: string | null; locality: string | null; status: string; image: string | null; gallery: string[]; starting_price: string | null;
+  slug: string; name: string; developer_id: number | null; locality: string | null; status: string;
   possession: string | null; key_facts: { label: string; value: string }[]; amenities: string[]; rera: string | null; description: string | null;
-  brochure: string | null; master_plan: string | null; floor_plan: string | null; published: boolean;
-  configurations: { type: string; area: string; price: string }[]; milestones: { title: string; date: string | null; done: boolean }[];
+  brochure: string | null; published: boolean;
+  city: string | null; address: string | null; size_range: string | null; price_from: number | null; featured: boolean; featured_order: number | null;
+  highlights: string[]; faqs: { q: string; a: string }[]; location_highlights: string[]; seo_title: string | null; seo_description: string | null;
+  show_developer_images: boolean;
+  /** Every image by section; image, gallery, floor_plans and master_plan are derived from it. */
+  media: ProjectMedia[];
+  units: StoredUnit[];
+  configurations: { type: string; area: string; price: string; note: string }[]; milestones: { title: string; date: string | null; done: boolean }[];
+}
+
+/** Fields a re-import may refresh or fill: changing one here marks it as edited so the import keeps the admin's value. */
+const TRACKED = ["rera", "size_range", "key_facts", "amenities", "location_highlights", "address", "locality", "city", "description", "highlights", "faqs", "seo_title", "seo_description", "media", "developer"] as const;
+/** Compares values the way they are stored: key order ignored (Postgres reorders jsonb keys), "" same as empty, images by their fields. */
+const sortKeys = (v: unknown): unknown => (Array.isArray(v) ? v.map(sortKeys) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys((v as Record<string, unknown>)[k])])) : v);
+const normMedia = (m: unknown) => ((m as ProjectMedia[] | null) ?? []).map((x) => ({ url: x.url, alt: x.alt, kind: x.kind, developer: !!x.developer, published: x.published !== false }));
+const norm = (v: unknown, key?: string) => JSON.stringify(sortKeys(key === "media" ? normMedia(v) : v === "" || v === undefined ? null : v));
+const UNIT_TRACKED = ["rera", "size_range", "configurations", "description", "highlights", "seo_title", "seo_description", "media", "label", "name"] as const;
+
+/** Developer images follow the project's switch: on shows them all, off hides them all. */
+function applyDeveloperSwitch(media: ProjectMedia[], show: boolean): ProjectMedia[] {
+  return media.map((m) => (m.developer ? { ...m, published: show } : m));
 }
 
 export async function saveProject(id: number | null, p: ProjectInput): Promise<number> {
   let pid = id;
-  if (pid) {
-    await q(`UPDATE projects SET slug=$1,name=$2,developer=$3,locality=$4,status=$5,image=$6,gallery=$7::jsonb,starting_price=$8,possession=$9,key_facts=$10::jsonb,amenities=$11::jsonb,rera=$12,description=$13,brochure=$14,master_plan=$15,floor_plan=$16,published=$17,updated_at=now() WHERE id=$18`,
-      [p.slug, p.name, p.developer, p.locality, p.status, p.image, json(p.gallery), p.starting_price, p.possession, json(p.key_facts), json(p.amenities), p.rera, p.description, p.brochure, p.master_plan, p.floor_plan, p.published, pid]);
+  const dev = p.developer_id ? await one<{ name: string }>("SELECT name FROM developers WHERE id = $1", [p.developer_id]) : null;
+  const before = pid ? await getProjectById(pid) : null;
+  // The switch changes every developer image at once; otherwise each image keeps its own "show" setting.
+  const switched = before ? before.show_developer_images !== p.show_developer_images : p.show_developer_images;
+  const media = switched ? applyDeveloperSwitch(p.media, p.show_developer_images) : p.media;
+  const units = p.units.map((u) => {
+    const old = before?.units?.find((x) => x.slug === u.slug);
+    const um = switched ? applyDeveloperSwitch(u.media, p.show_developer_images) : u.media;
+    const changed = old ? UNIT_TRACKED.filter((k) => norm((old as unknown as Record<string, unknown>)[k], k) !== norm((u as unknown as Record<string, unknown>)[k], k)) : [];
+    return { ...u, media: um, edited: [...new Set([...(old?.edited ?? []), ...changed.filter((k) => k !== "media" || !switched)])] };
+  });
+  const d = fromMedia(media.filter((m) => m.published !== false));
+  const vals: Record<string, unknown> = {
+    slug: p.slug, name: p.name, developer: dev?.name ?? null, developer_id: p.developer_id, locality: p.locality, status: p.status, possession: p.possession,
+    key_facts: p.key_facts, amenities: p.amenities, rera: p.rera, description: p.description, brochure: p.brochure, published: p.published,
+    city: p.city, address: p.address, size_range: p.size_range, price_from: p.price_from, featured: p.featured, featured_order: p.featured_order,
+    highlights: p.highlights, faqs: p.faqs, location_highlights: p.location_highlights, seo_title: p.seo_title, seo_description: p.seo_description,
+    show_developer_images: p.show_developer_images, media, units, image: d.image, gallery: d.gallery, floor_plans: d.floor_plans, master_plan: d.master_plan, floor_plan: null,
+  };
+  const JSONB = new Set(["key_facts", "amenities", "highlights", "faqs", "location_highlights", "media", "units", "gallery", "floor_plans"]);
+  const cols = Object.keys(vals);
+  const arg = (c: string) => (JSONB.has(c) ? json(vals[c]) : vals[c]);
+  if (pid && before) {
+    const prev = before as unknown as Record<string, unknown>;
+    const edited = new Set(before.edited_fields ?? []);
+    for (const k of TRACKED) {
+      if (k === "media" && switched) continue; // the switch alone is not an edit of the images
+      if (norm(prev[k], k) !== norm(vals[k], k)) edited.add(k);
+    }
+    const oldConfigs = (await getProjectConfigs(pid)).map((c) => ({ type: c.type, area: c.area ?? "" }));
+    if (norm(oldConfigs) !== norm(p.configurations.map((c) => ({ type: c.type, area: c.area })))) edited.add("configurations");
+    vals.edited_fields = [...edited]; JSONB.add("edited_fields"); cols.push("edited_fields");
+    await q(`UPDATE projects SET ${cols.map((c, i) => `${c}=$${i + 1}${JSONB.has(c) ? "::jsonb" : ""}`).join(", ")}, updated_at=now() WHERE id=$${cols.length + 1}`, [...cols.map(arg), pid]);
   } else {
-    const r = await one<{ id: number }>(`INSERT INTO projects (slug,name,developer,locality,status,image,gallery,starting_price,possession,key_facts,amenities,rera,description,brochure,master_plan,floor_plan,published) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10::jsonb,$11::jsonb,$12,$13,$14,$15,$16,$17) RETURNING id`,
-      [p.slug, p.name, p.developer, p.locality, p.status, p.image, json(p.gallery), p.starting_price, p.possession, json(p.key_facts), json(p.amenities), p.rera, p.description, p.brochure, p.master_plan, p.floor_plan, p.published]);
+    const r = await one<{ id: number }>(`INSERT INTO projects (${cols.join(", ")}) VALUES (${cols.map((c, i) => `$${i + 1}${JSONB.has(c) ? "::jsonb" : ""}`).join(", ")}) RETURNING id`, cols.map(arg));
     pid = r!.id;
   }
   await q("DELETE FROM project_configurations WHERE project_id = $1", [pid]);
-  for (const [i, c] of p.configurations.entries()) await q("INSERT INTO project_configurations (project_id,type,area,price,sort_order) VALUES ($1,$2,$3,$4,$5)", [pid, c.type, c.area || null, c.price || null, i]);
+  for (const [i, c] of p.configurations.entries()) await q("INSERT INTO project_configurations (project_id,type,area,price,note,sort_order) VALUES ($1,$2,$3,$4,$5,$6)", [pid, c.type, c.area || null, c.price || null, c.note || null, i]);
   await q("DELETE FROM project_milestones WHERE project_id = $1", [pid]);
   for (const [i, m] of p.milestones.entries()) await q("INSERT INTO project_milestones (project_id,title,date,done,sort_order) VALUES ($1,$2,$3,$4,$5)", [pid, m.title, m.date || null, m.done, i]);
   return pid!;
 }
 
+/** "Show developer images" from the projects list: flips every developer image of the project and its unit types. */
+export async function setDeveloperImages(id: number, show: boolean) {
+  const p = await getProjectById(id);
+  if (!p) return;
+  const media = applyDeveloperSwitch(p.media ?? [], show);
+  const units = (p.units ?? []).map((u) => ({ ...u, media: applyDeveloperSwitch(u.media ?? [], show) }));
+  const d = fromMedia(media.filter((m) => m.published !== false));
+  await q("UPDATE projects SET show_developer_images=$1, media=$2::jsonb, units=$3::jsonb, image=$4, gallery=$5::jsonb, floor_plans=$6::jsonb, master_plan=$7, updated_at=now() WHERE id=$8",
+    [show, json(media), json(units), d.image, json(d.gallery), json(d.floor_plans), d.master_plan, id]);
+}
+
+/** Lets the next re-import update these fields again (removes them from edited_fields). */
+export async function releaseEditedFields(id: number, fields: string[]) {
+  await q("UPDATE projects SET edited_fields = (SELECT COALESCE(jsonb_agg(f), '[]'::jsonb) FROM jsonb_array_elements_text(edited_fields) f WHERE NOT (f = ANY($1::text[]))), updated_at = now() WHERE id = $2", [fields, id]);
+}
+
+/* ---------------- Developers ---------------- */
+export interface DeveloperRow { [key: string]: unknown; id: number; name: string; slug: string; website: string | null; logo_permission: boolean; description: string | null; projects: number; updated_at: Date }
+export const listDevelopers = () => q<DeveloperRow>("SELECT d.*, (SELECT count(*)::int FROM projects p WHERE p.developer_id = d.id) AS projects FROM developers d ORDER BY d.name");
+export const getDeveloper = (id: number) => one<DeveloperRow>("SELECT d.*, (SELECT count(*)::int FROM projects p WHERE p.developer_id = d.id) AS projects FROM developers d WHERE d.id = $1", [id]);
+export interface DeveloperInput { name: string; slug: string; website: string | null; logo_permission: boolean; description: string | null }
+export async function saveDeveloper(id: number | null, d: DeveloperInput): Promise<number> {
+  if (id) {
+    await q("UPDATE developers SET name=$1, slug=$2, website=$3, logo_permission=$4, description=$5, updated_at=now() WHERE id=$6", [d.name, d.slug, d.website, d.logo_permission, d.description, id]);
+    // projects.developer keeps the display name in step with the developer record.
+    await q("UPDATE projects SET developer = $1 WHERE developer_id = $2 AND developer IS DISTINCT FROM $1", [d.name, id]);
+    return id;
+  }
+  return (await one<{ id: number }>("INSERT INTO developers (name, slug, website, logo_permission, description) VALUES ($1,$2,$3,$4,$5) RETURNING id", [d.name, d.slug, d.website, d.logo_permission, d.description]))!.id;
+}
+/** Moves a project to another developer and marks the developer as edited, so a re-import does not move it back. */
+export async function moveProjectToDeveloper(projectId: number, developerId: number) {
+  await q(`UPDATE projects p SET developer_id = d.id, developer = d.name, updated_at = now(),
+    edited_fields = CASE WHEN p.edited_fields ? 'developer' THEN p.edited_fields ELSE p.edited_fields || '["developer"]'::jsonb END
+    FROM developers d WHERE d.id = $1 AND p.id = $2`, [developerId, projectId]);
+}
+
 /* ---------------- Banners ---------------- */
-export interface BannerRow { [key: string]: unknown; id: number; group: string; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; active: boolean; start_date: string | Date | null; end_date: string | Date | null; sort_order: number; updated_at: Date }
+export interface BannerRow { [key: string]: unknown; id: number; group: string; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text: boolean; active: boolean; start_date: string | Date | null; end_date: string | Date | null; sort_order: number; updated_at: Date }
 export const listBanners = () => q<BannerRow>('SELECT * FROM banners ORDER BY "group", sort_order, id');
 export const getBanner = (id: number) => one<BannerRow>("SELECT * FROM banners WHERE id = $1", [id]);
-export interface BannerInput { group: string; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; active: boolean; start_date: string | null; end_date: string | null }
+export interface BannerInput { group: string; image: string | null; headline: string; line: string | null; cta_label: string | null; cta_href: string | null; show_text: boolean; active: boolean; start_date: string | null; end_date: string | null }
 export async function saveBanner(id: number | null, b: BannerInput): Promise<number> {
   if (id) {
-    await q('UPDATE banners SET "group"=$1,image=$2,headline=$3,line=$4,cta_label=$5,cta_href=$6,active=$7,start_date=$8,end_date=$9,updated_at=now() WHERE id=$10', [b.group, b.image, b.headline, b.line, b.cta_label, b.cta_href, b.active, b.start_date, b.end_date, id]);
+    await q('UPDATE banners SET "group"=$1,image=$2,headline=$3,line=$4,cta_label=$5,cta_href=$6,active=$7,start_date=$8,end_date=$9,show_text=$10,updated_at=now() WHERE id=$11', [b.group, b.image, b.headline, b.line, b.cta_label, b.cta_href, b.active, b.start_date, b.end_date, b.show_text, id]);
     return id;
   }
   const next = await one<{ n: number }>('SELECT COALESCE(max(sort_order),-1)+1 AS n FROM banners WHERE "group" = $1', [b.group]);
-  const r = await one<{ id: number }>('INSERT INTO banners ("group",image,headline,line,cta_label,cta_href,active,start_date,end_date,sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id', [b.group, b.image, b.headline, b.line, b.cta_label, b.cta_href, b.active, b.start_date, b.end_date, Number(next?.n ?? 0)]);
+  const r = await one<{ id: number }>('INSERT INTO banners ("group",image,headline,line,cta_label,cta_href,active,start_date,end_date,sort_order,show_text) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id', [b.group, b.image, b.headline, b.line, b.cta_label, b.cta_href, b.active, b.start_date, b.end_date, Number(next?.n ?? 0), b.show_text]);
   return r!.id;
 }
 export async function reorderBanners(group: string, ids: number[]) {
@@ -174,16 +269,18 @@ export async function reorderBanners(group: string, ids: number[]) {
 }
 
 /* ---------------- Offers ---------------- */
-export interface OfferRow { [key: string]: unknown; id: number; title: string; image: string | null; text: string | null; link: string | null; property_id: number | null; project_id: number | null; active: boolean; start_date: string | Date | null; end_date: string | Date | null; updated_at: Date; property_title?: string | null; project_name?: string | null }
-export const listOffers = () => q<OfferRow>("SELECT o.*, p.title AS property_title, j.name AS project_name FROM offers o LEFT JOIN properties p ON p.id = o.property_id LEFT JOIN projects j ON j.id = o.project_id ORDER BY o.active DESC, o.updated_at DESC");
+export interface OfferRow { [key: string]: unknown; id: number; title: string; image: string | null; text: string | null; link: string | null; property_id: number | null; project_id: number | null; active: boolean; start_date: string | Date | null; end_date: string | Date | null; updated_at: Date; property_title?: string | null; project_name?: string | null; section: OfferSection }
+/** property: Properties page and home page; home_loan: the Home Loans page only. */
+export type OfferSection = "property" | "home_loan";
+export const listOffers = (section: OfferSection = "property") => q<OfferRow>("SELECT o.*, p.title AS property_title, j.name AS project_name FROM offers o LEFT JOIN properties p ON p.id = o.property_id LEFT JOIN projects j ON j.id = o.project_id WHERE o.section = $1 ORDER BY o.active DESC, o.updated_at DESC", [section]);
 export const getOffer = (id: number) => one<OfferRow>("SELECT * FROM offers WHERE id = $1", [id]);
-export interface OfferInput { title: string; image: string | null; text: string | null; link: string | null; property_id: number | null; project_id: number | null; active: boolean; start_date: string | null; end_date: string | null }
+export interface OfferInput { section: OfferSection; title: string; image: string | null; text: string | null; link: string | null; property_id: number | null; project_id: number | null; active: boolean; start_date: string | null; end_date: string | null }
 export async function saveOffer(id: number | null, o: OfferInput): Promise<number> {
   if (id) {
     await q("UPDATE offers SET title=$1,image=$2,text=$3,link=$4,property_id=$5,project_id=$6,active=$7,start_date=$8,end_date=$9,updated_at=now() WHERE id=$10", [o.title, o.image, o.text, o.link, o.property_id, o.project_id, o.active, o.start_date, o.end_date, id]);
     return id;
   }
-  const r = await one<{ id: number }>("INSERT INTO offers (title,image,text,link,property_id,project_id,active,start_date,end_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id", [o.title, o.image, o.text, o.link, o.property_id, o.project_id, o.active, o.start_date, o.end_date]);
+  const r = await one<{ id: number }>("INSERT INTO offers (title,image,text,link,property_id,project_id,active,start_date,end_date,section) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id", [o.title, o.image, o.text, o.link, o.property_id, o.project_id, o.active, o.start_date, o.end_date, o.section]);
   return r!.id;
 }
 

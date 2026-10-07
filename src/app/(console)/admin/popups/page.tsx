@@ -8,7 +8,7 @@ import Icon from "@/components/Icon";
 import { requireUser } from "@/lib/auth";
 import { toDateInput } from "@/lib/dates";
 import { formatShortDate } from "@/lib/format";
-import { describePages, POPUP_KINDS } from "@/lib/popups";
+import { describePages, parsePagePaths, POPUP_KINDS } from "@/lib/popups";
 import { listPopups } from "@/lib/queries/popups";
 import { deletePopup, togglePopupActive } from "./actions";
 
@@ -39,6 +39,9 @@ export default async function PopupsPage() {
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${tone}`}>{status}</span>
                 <ToggleForm on={p.active} label={p.active ? "Switch off" : "Switch on"} action={togglePopupActive.bind(null, p.id, !p.active)} />
+                {status === "Live"
+                  ? <a href={`${p.pages === "all" || p.pages === "home" ? "/" : parsePagePaths(p.pages)[0] ?? "/"}?popup=${p.id}`} target="_blank" rel="noopener" className="rounded-brand border border-line px-3 py-1.5 text-sm hover:border-ink">Preview on website</a>
+                  : <span className="px-1 text-xs text-muted" title="Only live pop-ups can be previewed">Switch on to preview</span>}
                 <Link href={`/admin/popups/${p.id}`} className="rounded-brand border border-line px-3 py-1.5 text-sm hover:border-ink">Edit</Link>
                 <form><ConfirmButton label="Delete" action={deletePopup.bind(null, p.id)} /></form>
               </li>

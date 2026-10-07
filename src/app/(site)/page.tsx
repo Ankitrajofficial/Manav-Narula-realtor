@@ -3,23 +3,24 @@ import Link from "next/link";
 import BannerCarousel from "@/components/BannerCarousel";
 import OfferCarousel, { type OfferSlide } from "@/components/OfferCarousel";
 import FeaturedStrip from "@/components/FeaturedStrip";
-import ProjectCard from "@/components/ProjectCard";
 import EnquiryForm from "@/components/EnquiryForm";
 import Accordion from "@/components/Accordion";
 import Icon from "@/components/Icon";
 import { Container, GoogleRating, Section, SectionTitle } from "@/components/ui";
 import { servicesShort, site, testimonials, workEthics } from "@/data/site";
 import TrustStats from "@/components/TrustStats";
-import { getActiveOffers, getArticles, getBanners, getBusiness, getFoundedYear, getTrustStats, withFoundedYear, getFaqGroups, getFeaturedProperties, getOfferBanner, getLocalitiesServed, getProjects, getPartnerBanks, offerCta } from "@/lib/site-data";
+import { getActiveOffers, getArticles, getBanners, getBusiness, getFoundedYear, getTrustStats, withFoundedYear, getFaqGroups, getFeaturedProperties, getFeaturedProjects, getOfferBanner, getLocalitiesServed, getPartnerBanks, offerCta } from "@/lib/site-data";
 
 export const revalidate = 60;
 import { formatDate, unsplash } from "@/lib/format";
 
 export default async function HomePage() {
-  const [localitiesServed, featuredProperties, projects, articles, banners, activeOffers, fallbackOffer, faqs, trustStats, foundedYear, business, banks] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups(), getTrustStats(), getFoundedYear(), getBusiness(), getPartnerBanks()]);
+  const [localitiesServed, featuredProperties, featuredProjects, articles, banners, activeOffers, fallbackOffer, faqs, trustStats, foundedYear, business, banks] = await Promise.all([getLocalitiesServed(), getFeaturedProperties(), getFeaturedProjects(), getArticles(), getBanners(), getActiveOffers(), getOfferBanner(), getFaqGroups(), getTrustStats(), getFoundedYear(), getBusiness(), getPartnerBanks()]);
   const offers: OfferSlide[] = activeOffers.length
     ? activeOffers.map((o) => ({ id: String(o.id), image: o.image ?? fallbackOffer.image, headline: o.title, line: o.text ?? "", cta: { label: offerCta(o.href), href: o.href } }))
-    : [{ ...fallbackOffer, id: `banner-${fallbackOffer.id}` }];
+    // Without property offers: an offer banner set in Admin → Banners, else no offer slot (the built-in default is the
+    // home loan line, which belongs to the Home Loans page).
+    : fallbackOffer.id !== "static" ? [{ ...fallbackOffer, id: `banner-${fallbackOffer.id}` }] : [];
   const homeFaqs = [
     { ...faqs[0].items[0], tag: faqs[0].group },
     { ...faqs[0].items[1], tag: faqs[0].group },
@@ -42,7 +43,8 @@ export default async function HomePage() {
 
       {/* 3. Featured properties */}
       <Section>
-        <FeaturedStrip items={featuredProperties} title="Featured properties" intro="Verified kothis, plots, apartments and commercial spaces we would recommend this month." action={{ label: "View all properties", href: "/properties" }} />
+        {/* Every featured developer project first (Mexmon, AGI), then any featured resale listings. */}
+        <FeaturedStrip projects={featuredProjects} items={featuredProperties} title="Featured properties" intro="Apartments, plots and commercial spaces from the developers we work with, with plans, prices and site visits arranged by us." action={{ label: "View all properties", href: "/properties" }} />
       </Section>
 
       {/* 4. How we work */}
@@ -109,14 +111,6 @@ export default async function HomePage() {
           <OfferCarousel offers={offers} />
         </Container>
       )}
-
-      {/* 7. Current projects */}
-      <Section className="border-y border-line bg-white">
-        <SectionTitle title="Current projects" intro="Societies and plotted colonies we are authorised to sell." action={{ label: "All projects", href: "/projects" }} />
-        <div className="grid gap-6 md:grid-cols-3">
-          {projects.slice(0, 3).map((p) => <ProjectCard key={p.slug} p={p} />)}
-        </div>
-      </Section>
 
       {/* 8. Localities */}
       <Section>

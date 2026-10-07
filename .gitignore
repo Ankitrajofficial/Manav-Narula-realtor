@@ -46,3 +46,6 @@ next-env.d.ts
 
 # MySQL export with real data (leads, password hashes): never commit
 /db-mysql/data.sql
+
+# Raw scraped developer data (input for scripts/import-projects.mjs); never committed
+/data/mexmon/

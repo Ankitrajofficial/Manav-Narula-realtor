@@ -8,7 +8,7 @@ import { logoutAction } from "@/app/(console)/actions";
 import { fieldCls } from "./Form";
 import Logo from "@/components/Logo";
 
-type NavItem = { href: string; label: string; icon: string };
+type NavItem = { href: string; label: string; icon: string; also?: string[] };
 type Props = { nav: NavItem[]; user: { name: string; role: string }; home: string; quick: { label: string; href: string }[]; notifications: { count: number; href: string } };
 
 function NavLinks({ nav, home, collapsed, onNavigate }: { nav: NavItem[]; home: string; collapsed: boolean; onNavigate?: () => void }) {
@@ -16,7 +16,7 @@ function NavLinks({ nav, home, collapsed, onNavigate }: { nav: NavItem[]; home: 
   return (
     <>
       {nav.map((n) => {
-        const active = n.href === home ? pathname === home : pathname.startsWith(n.href);
+        const active = n.href === home ? pathname === home : [n.href, ...(n.also ?? [])].some((h) => pathname.startsWith(h));
         return (
           <Link key={n.href} href={n.href} title={n.label} onClick={onNavigate} className={`mx-2 my-0.5 flex items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm md:py-2 ${active ? "bg-accent/10 text-accent-ink" : "text-ink hover:bg-bg"}`}>
             <Icon name={n.icon} size={18} className={active ? "text-accent" : "text-muted"} />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import PageHeader from "@/components/console/PageHeader";
 import Icon from "@/components/Icon";
-import { inputCls } from "@/components/console/Form";
+import { inputCls } from "@/components/console/form-classes";
 import { requireUser } from "@/lib/auth";
 import { DEFAULT_BUSINESS, getSettingValue, listLocalityRows, listSourceRows, listTagRows, type Business } from "@/lib/queries/settings";
 import BusinessForm from "./BusinessForm";

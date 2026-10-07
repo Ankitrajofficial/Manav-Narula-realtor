@@ -8,14 +8,19 @@ import { requireUser } from "@/lib/auth";
 import { formatDateTime, formatPrice, formatShortDate } from "@/lib/format";
 import { employeeStats, tasksDueThisWeek, todaysFollowUps } from "@/lib/queries/dashboard";
 import Stars from "@/components/console/Stars";
-import { myBatch, runAutoAssign } from "@/lib/auto-assign";
+import { autoAssignConfig, myBatch, runAutoAssign } from "@/lib/auto-assign";
+import ToggleForm from "@/components/console/ToggleForm";
+import { one } from "@/lib/db";
+import { setMyAutoAssign } from "./auto-assign-actions";
 import { getGrowth } from "@/lib/queries/growth";
 
 export default async function EmployeeDashboard() {
   const user = await requireUser("employee");
   // Opening the console is also when a newly signed-in person picks up their first batch.
   await runAutoAssign();
-  const [stats, followUps, tasks, growth, batch] = await Promise.all([employeeStats(user.id), todaysFollowUps(user.id), tasksDueThisWeek(user.id), getGrowth(user.id), myBatch(user.id)]);
+  const [stats, followUps, tasks, growth, batch, cfg, me] = await Promise.all([employeeStats(user.id), todaysFollowUps(user.id), tasksDueThisWeek(user.id), getGrowth(user.id), myBatch(user.id), autoAssignConfig(), one<{ auto_assign: boolean }>("SELECT auto_assign FROM users WHERE id = $1", [user.id])]);
+  const autoOn = !!me?.auto_assign;
+  const daily = cfg.schedule === "daily_9am";
   const contacted = batch ? batch.leads.filter((l) => l.status !== "New").length : 0;
   const now = new Date();
   return (
@@ -25,11 +30,24 @@ export default async function EmployeeDashboard() {
         <span className="flex items-center gap-3"><Stars count={growth?.stars ?? 0} size={18} /><span className="text-muted">{growth?.sales ?? 0} approved {growth?.sales === 1 ? "sale" : "sales"}</span></span>
         <span>{batch ? `Lead batch: ${contacted} of ${batch.leads.length} contacted` : "No open lead batch"}</span>
       </Link>
+      {cfg.enabled && (
+        <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-brand border border-line bg-white px-5 py-3">
+          <div>
+            <p className="text-sm font-medium">{daily ? "Get leads automatically at 9:00 AM" : "Get leads automatically"}</p>
+            <p className="text-xs text-muted">{autoOn
+              ? daily ? "On: when your batch is finished, the next one arrives at 9:00 AM sharp every day." : "On: when your batch is finished, the next one arrives as new leads come in."
+              : "Off: you get no new leads automatically. Your current batch stays with you."}</p>
+          </div>
+          <span className="flex items-center gap-2 text-sm"><span className={autoOn ? "text-accent-ink" : "text-muted"}>{autoOn ? "On" : "Off"}</span>
+            <ToggleForm on={autoOn} label={autoOn ? "Turn off automatic leads" : "Turn on automatic leads"} action={setMyAutoAssign.bind(null, !autoOn)} />
+          </span>
+        </section>
+      )}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatTile label="Assigned leads" value={stats.assigned} href="/employee/leads" hint="Open, not yet closed" />
         <StatTile label="Follow-ups due today" value={stats.followUpsToday} href="/employee/notifications" />
         <StatTile label="Hot leads" value={stats.hot} href="/employee/leads?status=Hot%20lead" />
-        <StatTile label="Sales this month" value={formatPrice(stats.salesMonth)} href="/employee/sales" />
+        <StatTile label="Sales this month" value={stats.salesMonth > 0 ? formatPrice(stats.salesMonth) : "₹0"} href="/employee/sales" />
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <section className="rounded-brand border border-line bg-white">

@@ -5,7 +5,7 @@ import { suggestProperties } from "@/lib/site-data";
 import { forwardLeads } from "@/lib/lead-webhook";
 import { runAutoAssign } from "@/lib/auto-assign";
 
-const SOURCES = ["home_loan", "popup_consultation"];
+const SOURCES = ["home_loan", "popup_consultation", "popup_enquiry", "project_page"];
 
 /**
  * Every enquiry on the website becomes a lead in the shared database (source: Website, or home_loan /
@@ -24,10 +24,12 @@ export async function POST(req: Request) {
   if (name.length < 2 || !phone) {
     return NextResponse.json({ ok: false, error: "Name and a 10-digit Indian mobile number are required" }, { status: 422 });
   }
+  // An ad link (/l/<slug>): the lead takes the link's channel as its source, and its project.
+  const link = Number(body.linkId) ? await one<{ id: number; name: string; slug: string; channel: string; project_id: number | null }>("SELECT id, name, slug, channel, project_id FROM lead_links WHERE id = $1 AND active", [Number(body.linkId)]) : null;
   const propertyId = Number(body.propertyId) || null;
-  const projectId = Number(body.projectId) || null;
+  const projectId = Number(body.projectId) || link?.project_id || null;
   const interest = ["Buy", "Sell", "Rent"].includes(String(body.interest)) ? String(body.interest) : propertyId || projectId ? "Buy" : null;
-  const source = SOURCES.includes(String(body.source)) ? String(body.source) : "Website";
+  const source = link ? link.channel : SOURCES.includes(String(body.source)) ? String(body.source) : "Website";
   // Extra labelled answers (loan amount, employment type...) are kept on the lead as note lines.
   const extra = body.details && typeof body.details === "object" ? Object.entries(body.details as Record<string, unknown>).filter(([k, v]) => k.length <= 40 && v != null && String(v).trim()).slice(0, 10).map(([k, v]) => `${k}: ${String(v).trim().slice(0, 200)}`) : [];
   const parts = [body.subject && `Regarding: ${body.subject}`, ...extra, body.visitDate && `Preferred visit date: ${body.visitDate}`, body.message && String(body.message).trim()].filter(Boolean);
@@ -36,10 +38,10 @@ export async function POST(req: Request) {
 
   try {
     const lead = await one<{ id: number }>(
-      "INSERT INTO leads (name, phone, email, interest, budget, locality, property_id, project_id, source, status, notes, whatsapp_opt_in) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'New',$10,true) RETURNING id",
-      [name, phone, body.email ? String(body.email) : null, interest, body.budget ? String(body.budget) : null, locality, propertyId, projectId, source, notes],
+      "INSERT INTO leads (name, phone, email, interest, budget, locality, property_id, project_id, source, status, notes, whatsapp_opt_in, link_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'New',$10,true,$11) RETURNING id",
+      [name, phone, body.email ? String(body.email) : null, interest, body.budget ? String(body.budget) : null, locality, propertyId, projectId, source, notes, link?.id ?? null],
     );
-    await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, `${source === "home_loan" ? "Home loan enquiry" : source === "popup_consultation" ? "Free consultation pop-up" : "Enquiry from website"}${body.page ? ` (${body.page})` : ""}`]);
+    await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, link ? `${link.channel} ad link "${link.name}" (/l/${link.slug})` : `${source === "home_loan" ? "Home loan enquiry" : source === "popup_consultation" ? "Free consultation pop-up" : source === "popup_enquiry" ? `Enquiry pop-up: ${String(body.subject ?? "")}` : source === "project_page" ? `Enquiry from the ${String(body.subject ?? "project")} page` : "Enquiry from website"}${body.page ? ` (${body.page})` : ""}`]);
     console.log("[lead]", lead!.id, name, phone);
     void forwardLeads([lead!.id]);
     await runAutoAssign();

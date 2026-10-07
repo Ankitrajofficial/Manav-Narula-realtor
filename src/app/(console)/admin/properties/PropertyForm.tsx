@@ -103,7 +103,7 @@ export default function PropertyForm({ property: p, images = [], cover, localiti
       <Section title="Trust">
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="trust_verified" defaultChecked={trust.includes("verified")} className="accent-[#00BF63]" />Verified title</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="trust_visit" defaultChecked={trust.includes("visit")} className="accent-[#00BF63]" />Site visit available</label>
-        <Field label="RERA number" htmlFor="rera" hint="Adds the RERA registered badge when filled." className="md:col-span-2"><Input id="rera" name="rera" defaultValue={p?.rera ?? ""} placeholder="PBRERA-JAL-AGT-2024-0119" /></Field>
+        <Field label="RERA number" htmlFor="rera" hint="Adds the RERA registered badge when filled." className="md:col-span-2"><Input id="rera" name="rera" defaultValue={p?.rera ?? ""} placeholder="e.g. PBRERA-JAL33-PR0000" /></Field>
       </Section>
 
       <Section title="Nearby places" description="Shown with distances on the property page.">

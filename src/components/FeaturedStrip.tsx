@@ -2,10 +2,12 @@
 import Link from "next/link";
 import { useRef } from "react";
 import type { Property } from "@/data/properties";
+import type { Project } from "@/data/projects";
 import PropertyCard from "./PropertyCard";
+import ProjectCard from "./ProjectCard";
 import Icon from "./Icon";
 
-export default function FeaturedStrip({ items, title, intro, action }: { items: Property[]; title: string; intro?: string; action: { label: string; href: string } }) {
+export default function FeaturedStrip({ items = [], projects = [], title, intro, action }: { items?: Property[]; projects?: Project[]; title: string; intro?: string; action: { label: string; href: string } }) {
   const ref = useRef<HTMLDivElement>(null);
   const scroll = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * 340, behavior: "smooth" });
   const arrow = "flex h-9 w-9 items-center justify-center rounded-brand border border-line bg-white hover:border-ink";
@@ -28,6 +30,7 @@ export default function FeaturedStrip({ items, title, intro, action }: { items: 
         </div>
       </div>
       <div ref={ref} className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-2 md:-mx-8 md:px-8">
+        {projects.map((p) => <ProjectCard key={p.slug} p={p} fixed />)}
         {items.map((p) => <PropertyCard key={p.slug} p={p} />)}
       </div>
     </div>
