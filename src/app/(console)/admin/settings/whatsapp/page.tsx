@@ -5,16 +5,17 @@ import { Field, Input } from "@/components/console/Form";
 import { inputCls } from "@/components/console/form-classes";
 import { requireUser } from "@/lib/auth";
 import { getWhatsAppConfig, isConfigured, maskToken, testConnection } from "@/lib/whatsapp";
-import { disconnectWhatsAppAction, saveWhatsAppAction, sendTestMessageAction } from "./actions";
+import { getStaffAlerts } from "@/lib/notify";
+import { disconnectWhatsAppAction, saveStaffAlertsAction, saveWhatsAppAction, sendTestMessageAction, testStaffAlertAction } from "./actions";
 
 export default async function WhatsAppSettingsPage() {
   await requireUser("admin");
-  const cfg = await getWhatsAppConfig();
+  const [cfg, alerts] = await Promise.all([getWhatsAppConfig(), getStaffAlerts()]);
   const connected = isConfigured(cfg);
   const test = connected ? await testConnection(cfg) : null;
   return (
     <div className="max-w-3xl">
-      <PageHeader title="WhatsApp API" description="Meta WhatsApp Cloud API credentials used by Campaigns. Messages go out from your own business number." actions={<Pill value={test?.ok ? "Connected" : connected ? "Failed" : "Not connected"} />} />
+      <PageHeader title="WhatsApp API" description="Meta WhatsApp Cloud API credentials used by Campaigns and staff alerts. Messages go out from your own business number." actions={<Pill value={test?.ok ? "Connected" : connected ? "Failed" : "Not connected"} />} />
       {test && !test.ok && <p className="mb-4 rounded-brand border border-red-600 bg-white px-4 py-3 text-sm text-red-700">Credentials are saved but the API rejected them: {test.error}</p>}
       {test?.ok && <p className="mb-4 rounded-brand border border-line bg-white px-4 py-3 text-sm">Sending as <span className="font-medium">{test.display}</span>{test.quality ? ` · quality rating ${test.quality}` : ""}.</p>}
 
@@ -40,6 +41,29 @@ export default async function WhatsAppSettingsPage() {
           <input name="to" inputMode="tel" placeholder="10-digit mobile" className={`${inputCls} w-48`} aria-label="Test number" />
           <button type="submit" disabled={!connected} className="rounded-brand border border-ink px-4 py-2 text-sm hover:bg-ink hover:text-white disabled:opacity-40">Send test</button>
         </div>
+      </form>
+
+      <form id="staff-alerts" action={saveStaffAlertsAction} className="mt-5 scroll-mt-6 rounded-brand border border-line bg-white p-5">
+        <h2 className="text-base">Staff alerts on WhatsApp</h2>
+        <p className="mt-1 text-xs text-muted">
+          Sends admins every new website enquiry, and employees the leads and tasks given to them, as a WhatsApp message to the phone number on their account.
+          Meta only allows this with an approved <span className="font-medium text-ink">Utility</span> template whose body has two variables, for example:
+          &ldquo;Manav Narula Realtor alert: {"{{1}}"}. {"{{2}}"} Open the staff console for details.&rdquo; {"{{1}}"} is the alert (e.g. &ldquo;New enquiry: Simran Kaur&rdquo;), {"{{2}}"} the details.
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <Field label="Template name" htmlFor="template" hint="Exactly as approved in Meta, e.g. staff_alert"><Input id="template" name="template" defaultValue={alerts.template} placeholder="staff_alert" /></Field>
+          <Field label="Template language code" htmlFor="language" hint="As chosen in Meta: en, en_US, hi…"><Input id="language" name="language" defaultValue={alerts.language} /></Field>
+        </div>
+        <div className="mt-4 space-y-2 text-sm">
+          <label className="flex items-center gap-2"><input type="checkbox" name="whatsapp" defaultChecked={alerts.whatsapp} className="accent-[#00BF63]" />Send staff alerts on WhatsApp</label>
+          <label className="flex items-center gap-2 pl-6"><input type="checkbox" name="newLeads" defaultChecked={alerts.newLeads} className="accent-[#00BF63]" />New website enquiries, to every admin</label>
+          <label className="flex items-center gap-2 pl-6"><input type="checkbox" name="assignments" defaultChecked={alerts.assignments} className="accent-[#00BF63]" />Leads and tasks assigned, to that employee</label>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <button type="submit" className="rounded-brand bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-ink">Save staff alerts</button>
+          <button type="submit" formAction={testStaffAlertAction} disabled={!connected || !alerts.template} className="rounded-brand border border-ink px-4 py-2 text-sm hover:bg-ink hover:text-white disabled:opacity-40">Send a test alert to my phone</button>
+        </div>
+        <p className="mt-3 text-xs text-muted">Each person also gets these in the console bell and, if they turn it on under Notifications, as a push notification on their phone or computer.</p>
       </form>
 
       <section className="mt-5 rounded-brand border border-line bg-white p-5 text-sm">

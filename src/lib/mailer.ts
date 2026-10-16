@@ -37,25 +37,41 @@ export function signInUrl(): string {
   return `${base}/${slug || "login"}`;
 }
 
-/** Welcome email (new account) or reset email with the temporary password. */
+/** Welcome email (new account) or reset email with the temporary PIN. */
 export function credentialsEmail(p: { name: string; email: string; password: string; role: string; reset?: boolean }) {
   const url = signInUrl();
   const first = p.name.split(" ")[0] || p.name;
-  const subject = p.reset ? `Your new ${site.name} password` : `Your ${site.name} staff account`;
+  const subject = p.reset ? `Your new ${site.name} PIN` : `Your ${site.name} staff account`;
   const intro = p.reset
-    ? "Your password for the staff console has been reset. Sign in with the temporary password below."
+    ? "Your PIN for the staff console has been reset. Sign in with the temporary PIN below."
     : `An ${p.role === "admin" ? "admin" : "employee"} account has been created for you on the ${site.name} staff console.`;
-  const text = [`Hello ${first},`, "", intro, "", `Sign in at: ${url}`, `Email: ${p.email}`, `Temporary password: ${p.password}`, "",
-    "You will be asked to choose your own password when you sign in. Do not share this email.", "", site.name].join("\n");
+  const text = [`Hello ${first},`, "", intro, "", `Sign in at: ${url}`, `Email: ${p.email}`, `Temporary PIN: ${p.password}`, "",
+    "You will be asked to choose your own 6-digit PIN when you sign in. Do not share this email.", "", site.name].join("\n");
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#1a1a1a;max-width:520px">
 <p>Hello ${esc(first)},</p><p>${esc(intro)}</p>
 <table style="border-collapse:collapse;margin:16px 0">
 <tr><td style="padding:6px 16px 6px 0;color:#666">Sign in at</td><td style="padding:6px 0"><a href="${esc(url)}">${esc(url)}</a></td></tr>
 <tr><td style="padding:6px 16px 6px 0;color:#666">Email</td><td style="padding:6px 0">${esc(p.email)}</td></tr>
-<tr><td style="padding:6px 16px 6px 0;color:#666">Temporary password</td><td style="padding:6px 0;font-family:monospace;font-size:17px">${esc(p.password)}</td></tr>
+<tr><td style="padding:6px 16px 6px 0;color:#666">Temporary PIN</td><td style="padding:6px 0;font-family:monospace;font-size:17px">${esc(p.password)}</td></tr>
 </table>
 <p><a href="${esc(url)}" style="display:inline-block;background:#00BF63;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px">Sign in</a></p>
-<p style="color:#666;font-size:13px">You will be asked to choose your own password when you sign in. Do not share this email.</p>
+<p style="color:#666;font-size:13px">You will be asked to choose your own 6-digit PIN when you sign in. Do not share this email.</p>
+<p>${esc(site.name)}</p></div>`;
+  return { to: p.email, subject, html, text };
+}
+
+/** One-time code for an employee resetting their own PIN (Forgot PIN). */
+export function pinResetEmail(p: { name: string; email: string; code: string; minutes: number }) {
+  const url = `${signInUrl().replace(/\/[^/]*$/, "")}/forgot-password`;
+  const first = p.name.split(" ")[0] || p.name;
+  const subject = `${p.code} is your ${site.name} PIN reset code`;
+  const text = [`Hello ${first},`, "", `Your code to reset your staff console PIN is: ${p.code}`, `It works once and expires in ${p.minutes} minutes.`, "",
+    `Enter it at: ${url}`, "", "If you did not ask for this, ignore this email; your PIN stays the same.", "", site.name].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#1a1a1a;max-width:520px">
+<p>Hello ${esc(first)},</p><p>Your code to reset your staff console PIN is:</p>
+<p style="font-family:monospace;font-size:28px;letter-spacing:6px;margin:16px 0">${esc(p.code)}</p>
+<p>It works once and expires in ${p.minutes} minutes.</p>
+<p style="color:#666;font-size:13px">If you did not ask for this, ignore this email; your PIN stays the same.</p>
 <p>${esc(site.name)}</p></div>`;
   return { to: p.email, subject, html, text };
 }

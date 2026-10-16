@@ -32,7 +32,7 @@ export default function Toast({ flash }: { flash?: Flash | null }) {
   }, [flash?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!msg) return null;
   return (
-    <div role="status" className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-brand border bg-white px-4 py-3 text-sm ${msg.kind === "ok" ? "border-accent text-ink" : "border-red-600 text-red-700"}`}>
+    <div role="status" className={`fixed left-1/2 top-4 z-[80] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-brand border bg-white px-4 py-3 text-sm shadow-lg ${msg.kind === "ok" ? "border-accent text-ink" : "border-red-600 text-red-700"}`}>
       <Icon name={msg.kind === "ok" ? "check" : "info"} size={16} className={msg.kind === "ok" ? "text-accent" : "text-red-600"} />
       {msg.text}
     </div>

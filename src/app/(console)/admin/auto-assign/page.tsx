@@ -56,7 +56,7 @@ export default async function AutoAssignPage() {
           </select>
         </label>
         <button type="submit" className="rounded-brand border border-line bg-white px-4 py-2 text-sm hover:border-ink">Save</button>
-        <p className="w-full text-xs text-muted">Interns, employees and executives who are active, have set their own password and have &quot;Get leads automatically at 9:00 AM&quot; on (in their own dashboard, or the switch below) take part. With the 9:00 AM schedule, everyone who has finished their batch gets the next one at 9:00 AM India time; &quot;Run now&quot; hands out at once. Leads you assign by hand are not touched.</p>
+        <p className="w-full text-xs text-muted">Interns, employees and executives who are active, have set their own PIN and have &quot;Get leads automatically at 9:00 AM&quot; on (in their own dashboard, or the switch below) take part. With the 9:00 AM schedule, everyone who has finished their batch gets the next one at 9:00 AM India time; &quot;Run now&quot; hands out at once. Leads you assign by hand are not touched.</p>
       </form>
 
       {people.length === 0 ? (

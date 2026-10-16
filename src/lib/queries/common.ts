@@ -17,15 +17,26 @@ export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   return (row?.value as T) ?? fallback;
 }
 export const propertyOptions = () => q<{ id: number; title: string; locality: string | null }>("SELECT id, title, locality FROM properties ORDER BY title");
-export const projectOptions = () => q<{ id: number; name: string }>("SELECT id, name FROM projects ORDER BY name");
+export const projectOptions = () => q<{ id: number; name: string; developer: string | null }>("SELECT id, name, developer FROM projects ORDER BY name");
 
-/** Bell count: follow-ups due today or overdue, plus unassigned new leads (admin only). */
+/** Bell count: unread notifications (new enquiries, assignments; see lib/notify) plus follow-ups due today or overdue. */
 export async function notificationCount(userId: number, role: string): Promise<number> {
   const mine = role === "admin" ? "" : `AND assigned_to = ${Number(userId)}`;
-  // One round trip: this runs on every console page.
+  // One round trip: this runs on every console page and on every bell poll.
   const due = `next_follow_up_at <= (date_trunc('day', now()) + interval '1 day') AND status NOT IN ('Closed won','Closed lost') ${mine}`;
-  const r = await one<{ n: number }>(`SELECT (SELECT count(*) FROM leads WHERE ${due}) + (SELECT count(*) FROM prospects WHERE ${due})${role === "admin" ? " + (SELECT count(*) FROM leads WHERE assigned_to IS NULL AND status = 'New')" : ""} AS n`);
+  const r = await one<{ n: number }>(`SELECT (SELECT count(*) FROM leads WHERE ${due}) + (SELECT count(*) FROM prospects WHERE ${due}) + (SELECT count(*) FROM notifications WHERE user_id = $1 AND read_at IS NULL) AS n`, [userId]);
   return Number(r?.n ?? 0);
+}
+
+export interface StoredNotification { id: number; kind: string; title: string; body: string | null; href: string | null; created_at: Date; read_at: Date | null }
+/** The person's notifications, newest first; with `afterId`, only ones newer than that. */
+export const listStoredNotifications = (userId: number, opts: { afterId?: number; limit?: number } = {}) =>
+  q<StoredNotification>("SELECT id, kind, title, body, href, created_at, read_at FROM notifications WHERE user_id = $1 AND id > $2 ORDER BY id DESC LIMIT $3", [userId, opts.afterId ?? 0, opts.limit ?? 100]);
+export const latestNotificationId = async (userId: number) => Number((await one<{ id: number | null }>("SELECT max(id) AS id FROM notifications WHERE user_id = $1", [userId]))?.id ?? 0);
+/** Marks one notification read, or all of them without an id. Returns the link of the one marked. */
+export async function markNotificationsRead(userId: number, id?: number): Promise<string | null> {
+  if (!id) { await q("UPDATE notifications SET read_at = now() WHERE user_id = $1 AND read_at IS NULL", [userId]); return null; }
+  return (await one<{ href: string | null }>("UPDATE notifications SET read_at = COALESCE(read_at, now()) WHERE id = $1 AND user_id = $2 RETURNING href", [id, userId]))?.href ?? null;
 }
 
 export interface Notification { kind: string; title: string; detail: string; href: string; at: Date | null }

@@ -9,6 +9,7 @@ import { credentialsEmail, mailConfigured, sendMail, signInUrl } from "@/lib/mai
 import { describeAssign, runAutoAssign } from "@/lib/auto-assign";
 import { getGrowth } from "@/lib/queries/growth";
 import { MAX_STARS, canPromote, starsDue } from "@/lib/growth";
+import { pinError } from "@/lib/pin";
 
 export interface EmployeeFormState { errors?: Record<string, string>; message?: string; created?: { id: number; name: string; email: string; tempPassword: string; signIn: string; emailed: boolean; emailError?: string } }
 export interface ResetState { tempPassword?: string; message?: string; emailed?: boolean; emailError?: string }
@@ -39,7 +40,8 @@ export async function createEmployee(_p: EmployeeFormState, fd: FormData): Promi
   if (!errors.email && (await emailTaken(email))) errors.email = "An account with this email already exists.";
   if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
   const password = s(fd, "password") || tempPassword();
-  if (password.length < 8) return { errors: { password: "At least 8 characters." }, message: "Fix the highlighted fields." };
+  const bad = pinError(password);
+  if (bad) return { errors: { password: bad }, message: "Fix the highlighted fields." };
   const r = await one<{ id: number }>("INSERT INTO users (name,email,phone,role,level,status,password_hash,must_reset) VALUES ($1,$2,$3,$4,$5,'active',$6,true) RETURNING id", [name, email, phone, role, level, hashPassword(password)]);
   await audit(user.id, "create", "user", r!.id, { name, email, role, level });
   let emailed = false, emailError: string | undefined;
@@ -70,7 +72,7 @@ export async function resetPassword(id: number, email: boolean): Promise<ResetSt
   const target = await one<{ id: number; name: string; email: string; role: string }>("SELECT id, name, email, role FROM users WHERE id = $1", [id]);
   if (!target) return { message: "Employee not found." };
   const pw = tempPassword();
-  await q("UPDATE users SET password_hash = $1, must_reset = true WHERE id = $2", [hashPassword(pw), id]);
+  await q("UPDATE users SET password_hash = $1, must_reset = true, failed_logins = 0, locked_until = NULL WHERE id = $2", [hashPassword(pw), id]);
   await audit(user.id, "reset_password", "user", id);
   if (!email || !mailConfigured()) return { tempPassword: pw };
   const res = await sendMail(credentialsEmail({ name: target.name, email: target.email, password: pw, role: target.role, reset: true }));

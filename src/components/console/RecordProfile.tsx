@@ -47,6 +47,12 @@ export default function RecordProfile({ kind, record: r, activities, isAdmin, ba
           </dl>
           {r.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{r.tags.map((t) => <span key={t} className="rounded-brand border border-line px-2 py-0.5 text-xs">{t}</span>)}</div>}
           {r.notes && <p className="mt-3 whitespace-pre-line border-t border-line pt-3 text-sm text-muted">{r.notes}</p>}
+          {prospect?.project_name && (
+            <div className="mt-3 border-t border-line pt-3 text-sm">
+              <p className="text-xs text-muted">Interested in{prospect.project_developer ? ` · ${prospect.project_developer}` : ""}</p>
+              <Link href={isAdmin ? `/admin/projects/${prospect.project_id}` : `/projects/${prospect.project_slug}`} className="text-accent-ink hover:underline">{prospect.project_name}</Link>
+            </div>
+          )}
           {lead && (lead.property_title || lead.project_name) && (
             <div className="mt-3 border-t border-line pt-3 text-sm">
               <p className="text-xs text-muted">Linked {lead.property_title ? "property" : "project"}</p>

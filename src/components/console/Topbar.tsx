@@ -3,8 +3,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { inputCls } from "./Form";
+import { useBellCount } from "./NotificationCenter";
 
 export default function Topbar({ searchPath, quick, notifications }: { searchPath: string; quick: { label: string; href: string }[]; notifications: { count: number; href: string } }) {
+  const count = useBellCount(notifications.count);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -19,9 +21,9 @@ export default function Topbar({ searchPath, quick, notifications }: { searchPat
         <input name="q" placeholder="Search leads, prospects, properties by name or phone" className={`${inputCls} pl-8`} aria-label="Global search" />
       </form>
       <div className="flex items-center gap-2">
-        <Link href={notifications.href} className="relative flex h-9 w-9 items-center justify-center rounded-brand border border-line bg-white hover:border-ink" aria-label={`${notifications.count} notifications`}>
+        <Link href={notifications.href} className="relative flex h-9 w-9 items-center justify-center rounded-brand border border-line bg-white hover:border-ink" aria-label={`${count} notifications`}>
           <Icon name="bell" size={18} />
-          {notifications.count > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white tabular">{notifications.count}</span>}
+          {count > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white tabular">{count > 99 ? "99+" : count}</span>}
         </Link>
         <div ref={ref} className="relative">
           <button type="button" onClick={() => setOpen(!open)} className="inline-flex h-9 items-center gap-1.5 rounded-brand bg-accent px-3 text-sm font-medium text-white hover:bg-accent-ink" aria-expanded={open}>

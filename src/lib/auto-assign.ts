@@ -2,6 +2,7 @@ import "server-only";
 import { one, q } from "@/lib/db";
 import { addDays, todayIST } from "@/lib/dates";
 import { getSetting } from "@/lib/queries/common";
+import { notify } from "./notify";
 
 /**
  * Automatic lead batches. Each active intern, employee and executive with auto-assign on holds one open batch of
@@ -78,6 +79,7 @@ async function startBatch(person: Person, size: number): Promise<number> {
   await q("UPDATE lead_batches SET task_id = $1 WHERE id = $2", [task!.id, batch.id]);
   await linkToTask(task!.id, leadIds);
   await logAssigned(leadIds, person, batch.id);
+  await notify([person.id], { kind: "lead_assigned", title: `${leadIds.length} new ${leadIds.length === 1 ? "lead" : "leads"} assigned to you`, body: `Batch ${n?.n ?? 1}: contact them within 2 days.`, path: `tasks/${task!.id}` });
   return leadIds.length;
 }
 
@@ -110,6 +112,7 @@ async function runOnce(force = false, scheduled = false): Promise<AssignResult> 
         const extra = await claimLeads(p.id, b.id, cfg.batch_size - b.held);
         await linkToTask(b.task_id, extra);
         await logAssigned(extra, p, b.id);
+        if (extra.length) await notify([p.id], { kind: "lead_assigned", title: `${extra.length} more ${extra.length === 1 ? "lead" : "leads"} added to your batch`, path: b.task_id ? `tasks/${b.task_id}` : "leads" });
         give(p.name, extra.length);
       }
       continue;

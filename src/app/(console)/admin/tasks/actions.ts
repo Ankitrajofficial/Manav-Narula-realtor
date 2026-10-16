@@ -7,6 +7,8 @@ import { audit, logActivity } from "@/lib/records";
 import { describeConflicts, linkedOwners, ownedByOthers, setTaskRecords, type LinkedOwner } from "@/lib/queries/tasks";
 import { PRIORITIES, TASK_STATUSES } from "@/lib/console";
 import { dueFromChip } from "@/lib/dates";
+import { formatDate } from "@/lib/format";
+import { notifyAssignee, type NotifyInput } from "@/lib/notify";
 
 export interface TaskFormState { errors?: Record<string, string>; error?: string }
 
@@ -29,6 +31,12 @@ function parse(fd: FormData) {
   if (lead_ids.length + prospect_ids.length > 500) errors.records = "A call sheet can hold up to 500 people.";
   return { title, lead_ids, prospect_ids, assign_records, assigned_to, due_date, priority, status, errors };
 }
+
+/** The notification an employee gets when a task becomes theirs. */
+function taskNote(id: number, title: string, due: string | null, extra?: string): NotifyInput {
+  return { kind: "task_assigned", title: `New task: ${title}`, body: [due ? `Due ${formatDate(due)}` : "", extra ?? ""].filter(Boolean).join(" · ") || null, path: `tasks/${id}` };
+}
+const onSheet = (n: number) => (n ? `${n} ${n === 1 ? "person" : "people"} on the call sheet` : "");
 
 /** Moves every record on the sheet to the task's employee and logs the assignment on each one. */
 async function assignSheet(userId: number, assignedTo: number, leadIds: number[], prospectIds: number[]): Promise<number> {
@@ -64,6 +72,7 @@ export async function createTask(_prev: TaskFormState, fd: FormData): Promise<Ta
   const moved = t.assign_records && t.assigned_to ? await assignSheet(user.id, t.assigned_to, t.lead_ids, t.prospect_ids) : 0;
   await audit(user.id, "create", "task", row?.id, { title: t.title, assigned_to: t.assigned_to, leads: t.lead_ids.length, prospects: t.prospect_ids.length, moved });
   const sheet = t.lead_ids.length + t.prospect_ids.length;
+  await notifyAssignee(t.assigned_to, user.id, taskNote(row!.id, t.title, t.due_date, onSheet(sheet)));
   redirect(`/admin/tasks/${row?.id}?toast=${encodeURIComponent(sheet ? `Task created with ${sheet} on the sheet${moved ? `, ${moved} reassigned` : ""}` : "Task created")}`);
 }
 
@@ -73,7 +82,9 @@ export async function updateTask(id: number, _prev: TaskFormState, fd: FormData)
   if (Object.keys(t.errors).length) return { errors: t.errors };
   const conflict = await sheetConflictError(t);
   if (conflict) return { errors: { records: conflict } };
+  const before = await one<{ assigned_to: number | null }>("SELECT assigned_to FROM tasks WHERE id = $1", [id]);
   await q("UPDATE tasks SET title=$1, assigned_to=$2, due_date=$3, priority=$4, status=$5, updated_at=now() WHERE id=$6", [t.title, t.assigned_to, t.due_date, t.priority, t.status, id]);
+  if (t.assigned_to !== before?.assigned_to) await notifyAssignee(t.assigned_to, user.id, taskNote(id, t.title, t.due_date, onSheet(t.lead_ids.length + t.prospect_ids.length)));
   await setTaskRecords(id, t.lead_ids, t.prospect_ids);
   const moved = t.assign_records && t.assigned_to ? await assignSheet(user.id, t.assigned_to, t.lead_ids, t.prospect_ids) : 0;
   await audit(user.id, "update", "task", id, { title: t.title, leads: t.lead_ids.length, prospects: t.prospect_ids.length, moved });
@@ -166,6 +177,7 @@ export async function quickCreateTask(fd: FormData): Promise<QuickResult> {
     moved = await assignSheet(user.id, assignedTo, leadIds, prospectIds);
   }
   await audit(user.id, "create", "task", row!.id, { title, assigned_to: assignedTo, due, priority, leads: leadIds.length, prospects: prospectIds.length, moved, given, conflicts: resolve || null });
+  await notifyAssignee(assignedTo, user.id, taskNote(row!.id, title, due, given ? `${given} new ${given === 1 ? "lead" : "leads"} given to you` : onSheet(leadIds.length + prospectIds.length)));
   refreshTasks();
   const notes = [given ? `${given} new ${given === 1 ? "lead" : "leads"} given to ${emp.name}` : "", moved ? `${moved} linked ${moved === 1 ? "record" : "records"} now with ${emp.name}` : ""].filter(Boolean);
   return { ok: true, id: row!.id, message: notes.join(". ") || undefined };
@@ -189,7 +201,12 @@ export async function updateTaskInline(id: number, patch: { title?: string; assi
   if (patch.priority !== undefined) add("priority", patch.priority === "high" ? "high" : "normal");
   if (!sets.length) return { ok: true, id };
   params.push(id);
+  const before = patch.assigned_to !== undefined ? await one<{ assigned_to: number | null }>("SELECT assigned_to FROM tasks WHERE id = $1", [id]) : null;
   await q(`UPDATE tasks SET ${sets.join(", ")}, updated_at = now() WHERE id = $${params.length}`, params);
+  if (patch.assigned_to !== undefined && patch.assigned_to !== before?.assigned_to) {
+    const t = await one<{ title: string; due_date: string | null }>("SELECT title, to_char(due_date, 'YYYY-MM-DD') AS due_date FROM tasks WHERE id = $1", [id]);
+    if (t) await notifyAssignee(patch.assigned_to, user.id, taskNote(id, t.title, t.due_date, moved ? `${moved} linked ${moved === 1 ? "record" : "records"} moved to you` : undefined));
+  }
   await audit(user.id, "update", "task", id, { ...patch, moved });
   refreshTasks();
   return { ok: true, id, message: moved ? `Reassigned. ${moved} linked ${moved === 1 ? "record" : "records"} moved with the task` : undefined };

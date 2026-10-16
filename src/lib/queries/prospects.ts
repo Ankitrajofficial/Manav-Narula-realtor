@@ -6,12 +6,13 @@ import type { ActivityRow, SP, Scope } from "./leads";
 export interface ProspectRow {
   id: number; name: string; phone: string; email: string | null; locality: string | null; budget: string | null; interest: string | null; source: string;
   tags: string[]; status: string; assigned_to: number | null; added_by: number | null; whatsapp_opt_in: boolean; notes: string | null;
-  last_contacted_at: Date | null; next_follow_up_at: Date | null; created_at: Date; updated_at: Date;
+  last_contacted_at: Date | null; next_follow_up_at: Date | null; created_at: Date; updated_at: Date; project_id: number | null;
+  project_name: string | null; project_slug: string | null; project_developer: string | null;
   assigned_name: string | null; added_by_name: string | null; assigned_by_name: string | null;
 }
 
 const SORTS: Record<string, string> = { name: "p.name", phone: "p.phone", locality: "p.locality", budget: "p.budget", interest: "p.interest", status: "p.status", assigned: "u.name", added_by: "a.name", contacted: "p.last_contacted_at", created: "p.created_at" };
-const SELECT = "SELECT p.*, u.name AS assigned_name, a.name AS added_by_name, (SELECT ab.name FROM lead_activities x JOIN users ab ON ab.id = x.user_id WHERE x.prospect_id = p.id AND x.type = 'assign' ORDER BY x.created_at DESC, x.id DESC LIMIT 1) AS assigned_by_name FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to LEFT JOIN users a ON a.id = p.added_by";
+const SELECT = "SELECT p.*, u.name AS assigned_name, a.name AS added_by_name, (SELECT ab.name FROM lead_activities x JOIN users ab ON ab.id = x.user_id WHERE x.prospect_id = p.id AND x.type = 'assign' ORDER BY x.created_at DESC, x.id DESC LIMIT 1) AS assigned_by_name, pr.name AS project_name, pr.slug AS project_slug, pr.developer AS project_developer FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to LEFT JOIN users a ON a.id = p.added_by LEFT JOIN projects pr ON pr.id = p.project_id";
 
 export function prospectFilters(sp: SP, scope: Scope = {}) {
   const where: string[] = [];

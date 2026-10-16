@@ -6,6 +6,7 @@ import ProjectCard from "@/components/ProjectCard";
 import { Breadcrumbs, Section } from "@/components/ui";
 import { developerCredit, site } from "@/data/site";
 import { getDeveloperBySlug, getProjectsByDeveloper } from "@/lib/site-data";
+import { shareImage } from "@/lib/share-image";
 
 export const revalidate = 60;
 
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!r) return {};
   const title = `${r.d.name} projects in Jalandhar | ${site.name}`;
   const description = `${r.d.name} projects sold through ${site.name}, sales agents in Jalandhar: ${r.projects.map((p) => p.name).join(", ")}. Plans, availability and site visits.`;
-  return { title: { absolute: title }, description, alternates: { canonical: `/developers/${r.d.slug}` }, openGraph: { title, description, type: "website" } };
+  return { title: { absolute: title }, description, alternates: { canonical: `/developers/${r.d.slug}` }, openGraph: { title, description, type: "website", images: [shareImage] } };
 }
 
 /** All projects of one developer that we sell as sales agents, each with its unit types underneath. Never the developer's logo or contacts. */

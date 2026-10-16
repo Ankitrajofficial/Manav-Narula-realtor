@@ -1,5 +1,5 @@
-import { randomInt } from "node:crypto";
 import "server-only";
+import { randomPin } from "@/lib/pin";
 import { one, q } from "@/lib/db";
 import { pageOf, sortOf } from "@/lib/console";
 
@@ -33,9 +33,5 @@ export async function reassignAndDelete(fromId: number, toId: number) {
   await q("DELETE FROM users WHERE id = $1", [fromId]);
 }
 
-export function tempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let s = "";
-  for (let i = 0; i < 10; i++) s += chars[randomInt(chars.length)];
-  return `Mn-${s}`;
-}
+/** Temporary 6-digit PIN for a new account or an admin reset; the person sets their own at first sign-in. */
+export const tempPassword = randomPin;

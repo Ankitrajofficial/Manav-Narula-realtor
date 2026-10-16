@@ -4,6 +4,7 @@ import { toE164 } from "@/lib/records";
 import { suggestProperties } from "@/lib/site-data";
 import { forwardLeads } from "@/lib/lead-webhook";
 import { runAutoAssign } from "@/lib/auto-assign";
+import { notifyAdmins } from "@/lib/notify";
 
 const SOURCES = ["home_loan", "popup_consultation", "popup_enquiry", "project_page"];
 
@@ -41,8 +42,10 @@ export async function POST(req: Request) {
       "INSERT INTO leads (name, phone, email, interest, budget, locality, property_id, project_id, source, status, notes, whatsapp_opt_in, link_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'New',$10,true,$11) RETURNING id",
       [name, phone, body.email ? String(body.email) : null, interest, body.budget ? String(body.budget) : null, locality, propertyId, projectId, source, notes, link?.id ?? null],
     );
-    await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, link ? `${link.channel} ad link "${link.name}" (/l/${link.slug})` : `${source === "home_loan" ? "Home loan enquiry" : source === "popup_consultation" ? "Free consultation pop-up" : source === "popup_enquiry" ? `Enquiry pop-up: ${String(body.subject ?? "")}` : source === "project_page" ? `Enquiry from the ${String(body.subject ?? "project")} page` : "Enquiry from website"}${body.page ? ` (${body.page})` : ""}`]);
+    const how = link ? `${link.channel} ad link "${link.name}"` : source === "home_loan" ? "Home loan enquiry" : source === "popup_consultation" ? "Free consultation pop-up" : source === "popup_enquiry" ? `Enquiry pop-up: ${String(body.subject ?? "")}` : source === "project_page" ? `Enquiry from the ${String(body.subject ?? "project")} page` : "Enquiry from website";
+    await q("INSERT INTO lead_activities (lead_id, type, body, to_status) VALUES ($1, 'created', $2, 'New')", [lead!.id, `${how}${link ? ` (/l/${link.slug})` : body.page ? ` (${body.page})` : ""}`]);
     console.log("[lead]", lead!.id, name, phone);
+    await notifyAdmins({ kind: "new_lead", title: `New enquiry: ${name}`, body: `${phone} · ${how}`, path: `leads/${lead!.id}` });
     void forwardLeads([lead!.id]);
     await runAutoAssign();
     const suggestions = source === "popup_consultation" ? await suggestProperties({ interest, budget: body.budget ? String(body.budget) : null, locality }).catch(() => []) : undefined;

@@ -33,8 +33,26 @@ function hrefWith(basePath: string, sp: Record<string, string | undefined>, patc
 }
 
 /** Sticky-header table with sort links, result count, export buttons and pagination. State is in the URL. */
+function PageLink({ href, off, current, label, children }: { href: string; off?: boolean; current?: boolean; label: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} aria-label={label} aria-disabled={off || undefined} aria-current={current ? "page" : undefined}
+      className={`inline-flex h-9 min-w-9 items-center justify-center gap-1 rounded-brand border px-2.5 tabular ${current ? "border-accent bg-accent font-medium text-white" : "border-line bg-white"} ${off ? "pointer-events-none opacity-40" : current ? "" : "hover:border-ink"}`}>
+      {children}
+    </Link>
+  );
+}
+
+/** Page numbers to show: the first, the last and two either side of the current one, with null for a gap. */
+function pageNumbers(page: number, pages: number): (number | null)[] {
+  const keep = new Set([1, pages, page - 2, page - 1, page, page + 1, page + 2].filter((n) => n >= 1 && n <= pages));
+  const out: (number | null)[] = [];
+  [...keep].sort((a, b) => a - b).forEach((n, i, all) => { if (i && n - all[i - 1] > 1) out.push(null); out.push(n); });
+  return out;
+}
+
 export default function DataTable<T extends object>({ columns, rows, total, page, pageSize, sp, basePath, sortKey, sortDir, exportHref, exportPdfHref, empty, selectable, rowId, toolbar, cards }: Props<T>) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const pageHref = (n: number) => hrefWith(basePath, sp, { page: String(Math.min(pages, Math.max(1, n))) });
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -81,11 +99,16 @@ export default function DataTable<T extends object>({ columns, rows, total, page
         </div>
       )}
       {pages > 1 && (
-        <nav aria-label="Pagination" className="mt-4 flex items-center justify-between text-sm">
-          <p className="text-muted">Page {page} of {pages}</p>
-          <div className="flex gap-1">
-            <Link aria-disabled={page <= 1} href={hrefWith(basePath, sp, { page: String(Math.max(1, page - 1)) })} className={`rounded-brand border border-line px-3 py-1.5 ${page <= 1 ? "pointer-events-none opacity-40" : "hover:border-ink"}`}>Previous</Link>
-            <Link aria-disabled={page >= pages} href={hrefWith(basePath, sp, { page: String(Math.min(pages, page + 1)) })} className={`rounded-brand border border-line px-3 py-1.5 ${page >= pages ? "pointer-events-none opacity-40" : "hover:border-ink"}`}>Next</Link>
+        <nav aria-label="Pagination" className="mt-4 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-muted">Showing <span className="tabular text-ink">{(page - 1) * pageSize + 1}–{Math.min(total, page * pageSize)}</span> of <span className="tabular text-ink">{total}</span></p>
+          <div className="flex flex-wrap items-center gap-1">
+            <PageLink href={pageHref(1)} off={page <= 1} label="First page"><Icon name="arrowLeft" size={14} /><Icon name="arrowLeft" size={14} className="-ml-2" /></PageLink>
+            <PageLink href={pageHref(page - 1)} off={page <= 1} label="Previous page"><Icon name="arrowLeft" size={14} /><span className="hidden sm:inline">Previous</span></PageLink>
+            {pageNumbers(page, pages).map((n, i) => n === null
+              ? <span key={`gap${i}`} className="px-1 text-muted" aria-hidden="true">…</span>
+              : <PageLink key={n} href={pageHref(n)} current={n === page} label={`Page ${n}`}>{n}</PageLink>)}
+            <PageLink href={pageHref(page + 1)} off={page >= pages} label="Next page"><span className="hidden sm:inline">Next</span><Icon name="arrowRight" size={14} /></PageLink>
+            <PageLink href={pageHref(pages)} off={page >= pages} label="Last page"><Icon name="arrowRight" size={14} /><Icon name="arrowRight" size={14} className="-ml-2" /></PageLink>
           </div>
         </nav>
       )}

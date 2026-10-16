@@ -1,8 +1,9 @@
 /**
  * Website email sender (Google Apps Script), running on the business Gmail (realtormanavnarula@gmail.com).
  *
- * The website POSTs { to, subject, html, text, name } to MAIL_WEBHOOK_URL. Used today for employee sign-in details
- * (new account and password reset). Mail goes out from the Gmail account that deploys this script.
+ * The website POSTs { to, subject, html, text, name } to MAIL_WEBHOOK_URL. Used for employee sign-in details (new
+ * account, admin PIN reset) and for "Forgot PIN": any employee can enter their email on the sign-in page and gets a
+ * one-time 6-digit code from here to set a new PIN themselves. Mail goes out from the Gmail account that deploys this.
  *
  * Setup (signed in as realtormanavnarula@gmail.com):
  *  1. Go to https://script.google.com → New project. Name it "Website mail".

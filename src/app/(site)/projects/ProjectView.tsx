@@ -13,6 +13,7 @@ import type { Project, ProjectMedia, ProjectUnit } from "@/data/projects";
 import { phoneHref, whatsappHref, type Business } from "@/lib/site-data";
 import UnitTabs from "./UnitTabs";
 import { formatPrice, unsplash } from "@/lib/format";
+import { shareImage } from "@/lib/share-image";
 
 /** Title and description for a project page or one of its unit-type pages. */
 export function projectMetadata(p: Project, unit?: ProjectUnit): Metadata {
@@ -24,7 +25,7 @@ export function projectMetadata(p: Project, unit?: ProjectUnit): Metadata {
     title: { absolute: title }, description, alternates: { canonical: path },
     // A draft seen in an admin preview must never be indexed.
     ...(p.published === false ? { robots: { index: false, follow: false } } : {}),
-    openGraph: { title, description, type: "website", ...(image ? { images: [{ url: unsplash(image, 1200, 630), alt: p.media?.find((m) => m.url === image)?.alt ?? unit?.media.find((m) => m.url === image)?.alt ?? p.name }] } : {}) },
+    openGraph: { title, description, type: "website", images: [image ? { url: unsplash(image, 1200, 630), alt: p.media?.find((m) => m.url === image)?.alt ?? unit?.media.find((m) => m.url === image)?.alt ?? p.name } : shareImage] },
   };
 }
 

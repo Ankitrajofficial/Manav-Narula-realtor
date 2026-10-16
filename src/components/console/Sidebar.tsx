@@ -7,6 +7,7 @@ import BackButton from "@/components/BackButton";
 import { logoutAction } from "@/app/(console)/actions";
 import { fieldCls } from "./Form";
 import Logo from "@/components/Logo";
+import { useBellCount } from "./NotificationCenter";
 
 type NavItem = { href: string; label: string; icon: string; also?: string[] };
 type Props = { nav: NavItem[]; user: { name: string; role: string }; home: string; quick: { label: string; href: string }[]; notifications: { count: number; href: string } };
@@ -29,6 +30,7 @@ function NavLinks({ nav, home, collapsed, onNavigate }: { nav: NavItem[]; home: 
 }
 
 export default function Sidebar({ nav, user, home, quick, notifications }: Props) {
+  const count = useBellCount(notifications.count);
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -52,9 +54,9 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
             <span className="truncate font-heading text-sm">Manav Narula Realtor</span>
           </Link>
         </div>
-        <Link href={notifications.href} className="relative flex h-10 w-10 items-center justify-center rounded-brand hover:bg-bg" aria-label={`${notifications.count} notifications`}>
+        <Link href={notifications.href} className="relative flex h-10 w-10 items-center justify-center rounded-brand hover:bg-bg" aria-label={`${count} notifications`}>
           <Icon name="bell" size={20} />
-          {notifications.count > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white tabular">{notifications.count}</span>}
+          {count > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-white tabular">{count > 99 ? "99+" : count}</span>}
         </Link>
       </header>
 
@@ -82,7 +84,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
               ))}
             </nav>
             <div className="border-t border-line p-2">
-              <Link href="/change-password" onClick={() => setOpen(false)} className="flex w-full items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />Change password</Link>
+              <Link href="/change-password" onClick={() => setOpen(false)} className="flex w-full items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />Change PIN</Link>
               <form action={logoutAction}>
                 <button type="submit" className="flex w-full items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="logout" size={18} />Log out</button>
               </form>
@@ -107,7 +109,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
               <p className="text-xs text-muted">{user.role}</p>
             </div>
           )}
-          <Link href="/change-password" title="Change password" className="flex items-center gap-2 rounded-brand px-2.5 py-2 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />{!collapsed && "Change password"}</Link>
+          <Link href="/change-password" title="Change PIN" className="flex items-center gap-2 rounded-brand px-2.5 py-2 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="key" size={18} />{!collapsed && "Change PIN"}</Link>
           <div className="flex items-center justify-between">
             <form action={logoutAction}>
               <button type="submit" title="Log out" className="flex items-center gap-2 rounded-brand px-2.5 py-2 text-sm text-muted hover:bg-bg hover:text-ink"><Icon name="logout" size={18} />{!collapsed && "Log out"}</button>

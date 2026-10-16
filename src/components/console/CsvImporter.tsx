@@ -12,6 +12,7 @@ const FIELDS: { key: keyof ImportRow; label: string; hints: string[] }[] = [
   { key: "interest", label: "Interest (Buy/Sell/Rent)", hints: ["interest", "purpose", "looking", "requirement"] },
   { key: "budget", label: "Budget", hints: ["budget", "price range"] },
   { key: "locality", label: "Locality", hints: ["locality", "area", "location", "colony"] },
+  { key: "project", label: "Project (e.g. Jalandhar Heights IV)", hints: ["project", "property"] },
   { key: "source", label: "Source", hints: ["source", "channel", "campaign"] },
   { key: "tags", label: "Tags (comma separated)", hints: ["tags", "tag", "type", "segment"] },
   { key: "notes", label: "Notes", hints: ["notes", "note", "remarks", "comment"] },

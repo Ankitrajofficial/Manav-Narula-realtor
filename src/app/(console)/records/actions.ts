@@ -5,6 +5,7 @@ import { json, one, q } from "@/lib/db";
 import { audit, logActivity, toE164 } from "@/lib/records";
 import { LEAD_STATUSES } from "@/lib/console";
 import { forwardLeads } from "@/lib/lead-webhook";
+import { notifyAssignee, type NotifyInput } from "@/lib/notify";
 import { describeAssign, runAutoAssign } from "@/lib/auto-assign";
 import { leadFilters } from "@/lib/queries/leads";
 import { prospectFilters } from "@/lib/queries/prospects";
@@ -15,6 +16,8 @@ const base = (u: SessionUser) => (u.role === "admin" ? "/admin" : "/employee");
 const kindOf = (v: unknown): Kind => (v === "prospect" ? "prospect" : "lead");
 const ids = (fd: FormData) => fd.getAll("ids").map(Number).filter((n) => Number.isInteger(n) && n > 0);
 const MAX_BULK = 5000;
+/** The notification someone gets when a lead or prospect is given to them. */
+const recordNote = (kind: Kind, id: number, name: string, by: string): NotifyInput => ({ kind: "lead_assigned", title: `${kind === "lead" ? "Lead" : "Prospect"} assigned to you: ${name}`, body: `By ${by}`, path: `${table(kind)}/${id}` });
 
 /**
  * The rows a bulk action applies to: the ticked ids, or with "select all matching" every row that fits the list's
@@ -130,6 +133,7 @@ export async function assignAction(fd: FormData) {
   await q(`UPDATE ${table(kind)} SET assigned_to = $1, updated_at = now() WHERE id = $2`, [toId, id]);
   await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "assign", body: emp ? `Assigned to ${emp.name}` : "Unassigned" });
   await audit(user.id, "assign", kind, id, { assigned_to: toId });
+  if (toId !== rec!.assigned_to) await notifyAssignee(toId, user.id, recordNote(kind, id, rec!.name, user.name));
   const auto = await assignNote(kind, user);
   const note = await otherOwnersTasks(kind, [id], toId);
   redirect(toastTo(path, withNote(`${emp ? `Assigned to ${emp.name}` : "Unassigned, back in the pool"}${note}`, auto)));
@@ -149,6 +153,9 @@ export async function bulkAssignAction(fd: FormData) {
   await q(`UPDATE ${table(kind)} SET assigned_to = $1, updated_at = now()${kind === "lead" ? ", last_activity_at = now()" : ""} WHERE id = ANY($2::int[])`, [Number(to), list]);
   await q(`INSERT INTO lead_activities (${col}, user_id, type, body) SELECT x, $2, 'assign', $3 FROM unnest($1::int[]) AS x`, [list, user.id, `Assigned to ${emp.name}`]);
   await audit(user.id, "bulk_assign", kind, null, { count: list.length, ids: list.slice(0, 200), all_matching: fd.get("all_matching") === "1", assigned_to: Number(to) });
+  await notifyAssignee(Number(to), user.id, list.length === 1
+    ? recordNote(kind, list[0], (await one<{ name: string }>(`SELECT name FROM ${table(kind)} WHERE id = $1`, [list[0]]))?.name ?? "", user.name)
+    : { kind: "lead_assigned", title: `${list.length} ${table(kind)} assigned to you`, body: `By ${user.name}`, path: table(kind) });
   const auto = await assignNote(kind, user);
   const note = await otherOwnersTasks(kind, list, Number(to));
   redirect(toastTo(back, withNote(`${list.length} assigned to ${emp.name}${note}`, auto)));
@@ -223,6 +230,7 @@ export async function saveLeadAction(prev: RecordFormState, fd: FormData): Promi
       await q("UPDATE leads SET assigned_to = $1 WHERE id = $2", [assigned, id]);
       const emp = assigned ? await one<{ name: string }>("SELECT name FROM users WHERE id = $1", [assigned]) : null;
       await logActivity({ leadId: id, userId: user.id, type: "assign", body: emp ? `Assigned to ${emp.name}` : "Unassigned" });
+      await notifyAssignee(assigned, user.id, recordNote("lead", id, v.name, user.name));
     }
     await audit(user.id, "update", "lead", id);
     const auto = assigned !== undefined && assigned !== rec.assigned_to ? await assignNote("lead", user) : "";
@@ -233,7 +241,11 @@ export async function saveLeadAction(prev: RecordFormState, fd: FormData): Promi
   const newId = row!.id;
   await logActivity({ leadId: newId, userId: user.id, type: "created", body: `Lead added manually (${v.source || "Walk-in"})`, toStatus: "New" });
   void forwardLeads([newId]);
-  if (assigned) { const emp = await one<{ name: string }>("SELECT name FROM users WHERE id = $1", [assigned]); await logActivity({ leadId: newId, userId: user.id, type: "assign", body: `Assigned to ${emp?.name ?? "employee"}` }); }
+  if (assigned) {
+    const emp = await one<{ name: string }>("SELECT name FROM users WHERE id = $1", [assigned]);
+    await logActivity({ leadId: newId, userId: user.id, type: "assign", body: `Assigned to ${emp?.name ?? "employee"}` });
+    await notifyAssignee(assigned, user.id, recordNote("lead", newId, v.name, user.name));
+  }
   await audit(user.id, "create", "lead", newId);
   redirect(toastTo(`${base(user)}/leads/${newId}`, "Lead added"));
 }
@@ -252,27 +264,29 @@ export async function saveProspectAction(prev: RecordFormState, fd: FormData): P
   if (id) {
     const rec = await accessible("prospect", id, user);
     if (!rec) return { message: "Prospect not found." };
-    await q("UPDATE prospects SET name=$1, phone=$2, email=$3, interest=$4, budget=$5, locality=$6, source=$7, notes=$8, whatsapp_opt_in=$9, tags=$10::jsonb, updated_at=now() WHERE id=$11",
-      [v.name, phone, v.email || null, v.interest || null, v.budget || null, v.locality || null, v.source || "Data entry", v.notes || null, v.whatsapp_opt_in, json(v.tags), id]);
+    await q("UPDATE prospects SET name=$1, phone=$2, email=$3, interest=$4, budget=$5, locality=$6, source=$7, notes=$8, whatsapp_opt_in=$9, tags=$10::jsonb, project_id=$11, updated_at=now() WHERE id=$12",
+      [v.name, phone, v.email || null, v.interest || null, v.budget || null, v.locality || null, v.source || "Data entry", v.notes || null, v.whatsapp_opt_in, json(v.tags), v.project_id ? Number(v.project_id) : null, id]);
     if (assigned !== undefined && assigned !== rec.assigned_to) {
       await q("UPDATE prospects SET assigned_to = $1 WHERE id = $2", [assigned, id]);
       const emp = assigned ? await one<{ name: string }>("SELECT name FROM users WHERE id = $1", [assigned]) : null;
       await logActivity({ prospectId: id, userId: user.id, type: "assign", body: emp ? `Assigned to ${emp.name}` : "Unassigned" });
+      await notifyAssignee(assigned, user.id, recordNote("prospect", id, v.name, user.name));
     }
     await audit(user.id, "update", "prospect", id);
     redirect(toastTo(`${base(user)}/prospects/${id}`, "Prospect saved"));
   }
-  const row = await one<{ id: number }>("INSERT INTO prospects (name, phone, email, interest, budget, locality, source, notes, tags, assigned_to, added_by, whatsapp_opt_in) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12) RETURNING id",
-    [v.name, phone, v.email || null, v.interest || null, v.budget || null, v.locality || null, v.source || "Data entry", v.notes || null, json(v.tags), assigned ?? user.id, user.id, v.whatsapp_opt_in]);
+  const row = await one<{ id: number }>("INSERT INTO prospects (name, phone, email, interest, budget, locality, source, notes, tags, assigned_to, added_by, whatsapp_opt_in, project_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,$13) RETURNING id",
+    [v.name, phone, v.email || null, v.interest || null, v.budget || null, v.locality || null, v.source || "Data entry", v.notes || null, json(v.tags), assigned ?? user.id, user.id, v.whatsapp_opt_in, v.project_id ? Number(v.project_id) : null]);
   const newId = row!.id;
   await logActivity({ prospectId: newId, userId: user.id, type: "created", body: `Added by ${user.name}`, toStatus: "New" });
+  await notifyAssignee(assigned, user.id, recordNote("prospect", newId, v.name, user.name));
   await audit(user.id, "create", "prospect", newId);
   if (v.and_another) redirect(toastTo(returnTo || `${base(user)}/data-entry`, `${v.name} saved`));
   redirect(toastTo(`${base(user)}/prospects/${newId}`, "Prospect added"));
 }
 
 /* ---------- CSV import ---------- */
-export interface ImportRow { name?: string; phone?: string; email?: string; interest?: string; budget?: string; locality?: string; source?: string; tags?: string; notes?: string; whatsapp_opt_in?: string }
+export interface ImportRow { name?: string; phone?: string; email?: string; interest?: string; budget?: string; locality?: string; source?: string; tags?: string; notes?: string; whatsapp_opt_in?: string; project?: string }
 
 export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promise<{ imported: number; skipped: number; reasons: string[]; redirect: string }> {
   const user = await requireUser();
@@ -280,6 +294,9 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
   const reasons: string[] = [];
   const seen = new Set<string>();
   const importedLeads: number[] = [];
+  // A "Project" column matches a project by name, ignoring case and spacing ("jalandhar heights iv").
+  const key = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const projects = new Map((await q<{ id: number; name: string }>("SELECT id, name FROM projects")).map((p) => [key(p.name), p.id]));
   for (const [i, r] of rows.slice(0, 5000).entries()) {
     const name = String(r.name ?? "").trim();
     const phone = toE164(String(r.phone ?? ""));
@@ -292,14 +309,15 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
     const opt = /^(yes|y|true|1)$/i.test(String(r.whatsapp_opt_in ?? "").trim());
     const interest = ["Buy", "Sell", "Rent"].find((x) => x.toLowerCase() === String(r.interest ?? "").trim().toLowerCase()) ?? null;
     const common = [name, phone, r.email?.trim() || null, interest, r.budget?.trim() || null, r.locality?.trim() || null, r.source?.trim() || "Import", r.notes?.trim() || null, json(tags), opt, user.id];
+    const projectId = r.project?.trim() ? projects.get(key(r.project)) ?? null : null;
     let newId: number;
     if (kind === "lead") {
-      const row = await one<{ id: number }>("INSERT INTO leads (name, phone, email, interest, budget, locality, source, notes, tags, whatsapp_opt_in, created_by, assigned_to) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12) RETURNING id", [...common, user.role === "admin" ? null : user.id]);
+      const row = await one<{ id: number }>("INSERT INTO leads (name, phone, email, interest, budget, locality, source, notes, tags, whatsapp_opt_in, created_by, assigned_to, project_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,$13) RETURNING id", [...common, user.role === "admin" ? null : user.id, projectId]);
       newId = row!.id;
       await logActivity({ leadId: newId, userId: user.id, type: "created", body: "Imported from CSV", toStatus: "New" });
       importedLeads.push(newId);
     } else {
-      const row = await one<{ id: number }>("INSERT INTO prospects (name, phone, email, interest, budget, locality, source, notes, tags, whatsapp_opt_in, added_by, assigned_to) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12) RETURNING id", [...common, user.role === "admin" ? null : user.id]);
+      const row = await one<{ id: number }>("INSERT INTO prospects (name, phone, email, interest, budget, locality, source, notes, tags, whatsapp_opt_in, added_by, assigned_to, project_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,$13) RETURNING id", [...common, user.role === "admin" ? null : user.id, projectId]);
       newId = row!.id;
       await logActivity({ prospectId: newId, userId: user.id, type: "created", body: "Imported from CSV", toStatus: "New" });
     }

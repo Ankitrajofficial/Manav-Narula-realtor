@@ -18,7 +18,7 @@ export default async function EditProspectPage({ params }: { params: Promise<{ i
       <div className="max-w-3xl">
         <RecordForm kind="prospect" id={record.id} action={saveProspectAction} isAdmin={false} cancelHref={`/employee/prospects/${record.id}`}
           opts={{ localities, sources, tags, employees, properties, projects }}
-          defaults={{ name: record.name, phone: record.phone, email: record.email, interest: record.interest, budget: record.budget, locality: record.locality, source: record.source, notes: record.notes, tags: record.tags, whatsapp_opt_in: record.whatsapp_opt_in, assigned_to: record.assigned_to }} />
+          defaults={{ name: record.name, phone: record.phone, email: record.email, interest: record.interest, budget: record.budget, locality: record.locality, source: record.source, notes: record.notes, tags: record.tags, whatsapp_opt_in: record.whatsapp_opt_in, assigned_to: record.assigned_to, project_id: record.project_id }} />
       </div>
     </>
   );

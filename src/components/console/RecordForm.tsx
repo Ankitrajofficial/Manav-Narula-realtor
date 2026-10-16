@@ -1,10 +1,10 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Field, FormError, Input, Select, SubmitButton, Textarea } from "./Form";
 import { BUDGETS, INTERESTS } from "@/lib/console";
 import type { RecordFormState } from "@/app/(console)/records/actions";
 
-interface Opts { localities: string[]; sources: string[]; tags: string[]; employees?: { id: number; name: string }[]; properties?: { id: number; title: string; locality: string | null }[]; projects?: { id: number; name: string }[] }
+interface Opts { localities: string[]; sources: string[]; tags: string[]; employees?: { id: number; name: string }[]; properties?: { id: number; title: string; locality: string | null }[]; projects?: { id: number; name: string; developer?: string | null }[] }
 interface Props {
   kind: "lead" | "prospect";
   action: (prev: RecordFormState, fd: FormData) => Promise<RecordFormState>;
@@ -43,9 +43,7 @@ export default function RecordForm({ kind, action, opts, isAdmin, defaults = {},
           {kind === "lead" && opts.properties && (
             <Field label="Property (optional)" htmlFor="f-property"><Select id="f-property" name="property_id" defaultValue={v("property_id")}><option value="">None</option>{opts.properties.map((p) => <option key={p.id} value={p.id}>{p.title}{p.locality ? ` · ${p.locality}` : ""}</option>)}</Select></Field>
           )}
-          {kind === "lead" && opts.projects && (
-            <Field label="Project (optional)" htmlFor="f-project"><Select id="f-project" name="project_id" defaultValue={v("project_id")}><option value="">None</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
-          )}
+          {opts.projects && <ProjectPicker key={v("project_id")} projects={opts.projects} value={v("project_id")} />}
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <fieldset>
@@ -77,5 +75,31 @@ export default function RecordForm({ kind, action, opts, isAdmin, defaults = {},
         <a href={cancelHref} className="px-2 text-sm text-muted hover:text-ink">Cancel</a>
       </div>
     </form>
+  );
+}
+
+const OTHER = "Other";
+
+/** Developer first (AGI Infra, Mexmon Group, ...), then one of that developer's projects. Submits project_id. */
+function ProjectPicker({ projects, value }: { projects: NonNullable<Opts["projects"]>; value: string }) {
+  const devOf = (p: { developer?: string | null }) => p.developer?.trim() || OTHER;
+  const developers = [...new Set(projects.map(devOf))].sort((a, b) => (a === OTHER ? 1 : b === OTHER ? -1 : a.localeCompare(b)));
+  const current = projects.find((p) => String(p.id) === value);
+  const [dev, setDev] = useState(current ? devOf(current) : "");
+  const [project, setProject] = useState(current ? value : "");
+  const list = projects.filter((p) => devOf(p) === dev);
+  return (
+    <>
+      <Field label="Developer (optional)" htmlFor="f-developer">
+        <Select id="f-developer" value={dev} onChange={(e) => { setDev(e.target.value); setProject(""); }}>
+          <option value="">None</option>{developers.map((d) => <option key={d}>{d}</option>)}
+        </Select>
+      </Field>
+      <Field label="Project" htmlFor="f-project">
+        <Select id="f-project" name="project_id" value={project} onChange={(e) => setProject(e.target.value)} disabled={!dev}>
+          <option value="">{dev ? "Choose a project" : "Pick a developer first"}</option>{list.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </Select>
+      </Field>
+    </>
   );
 }

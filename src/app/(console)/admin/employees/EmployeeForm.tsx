@@ -15,11 +15,11 @@ export default function EmployeeForm({ employee: u, isSelf, action }: { employee
         {state.created.emailed ? (
           <p className="mt-1 text-sm text-accent-ink">Sign-in details emailed to {state.created.email}. They are also shown below, once.</p>
         ) : (
-          <p className="mt-1 text-sm text-muted">{state.created.emailError ? <span className="text-red-700">Email not sent: {state.created.emailError}. </span> : null}Share these details with them now. The temporary password is shown only once.</p>
+          <p className="mt-1 text-sm text-muted">{state.created.emailError ? <span className="text-red-700">Email not sent: {state.created.emailError}. </span> : null}Share these details with them now. The temporary PIN is shown only once.</p>
         )}
         <dl className="mt-4 grid grid-cols-[120px_1fr] gap-y-2 text-sm">
           <dt className="text-muted">Email</dt><dd>{state.created.email}</dd>
-          <dt className="text-muted">Password</dt><dd className="font-mono text-base tabular">{state.created.tempPassword}</dd>
+          <dt className="text-muted">Temporary PIN</dt><dd className="font-mono text-base tabular">{state.created.tempPassword}</dd>
           <dt className="text-muted">Sign in at</dt><dd className="break-all">{state.created.signIn}</dd>
         </dl>
         <div className="mt-5 flex gap-2">
@@ -39,7 +39,7 @@ export default function EmployeeForm({ employee: u, isSelf, action }: { employee
         <Field label="Role" htmlFor="role" error={e.role} hint={isSelf ? "You cannot change your own role." : "Interns, employees and executives use the employee console and get leads automatically."}><Select id="role" name="role" defaultValue={u ? (u.role === "admin" ? "admin" : u.level) : "employee"} disabled={isSelf}><option value="intern">Intern</option><option value="employee">Employee</option><option value="executive">Executive</option><option value="admin">Admin</option></Select>{isSelf && <input type="hidden" name="role" value="admin" />}</Field>
         {!u && (
           <>
-            <Field label="Temporary password" htmlFor="password" error={e.password} hint="Leave blank to generate one. It is shown once after saving."><Input id="password" name="password" minLength={8} autoComplete="new-password" /></Field>
+            <Field label="Temporary PIN" htmlFor="password" error={e.password} hint="6 digits. Leave blank to generate one. It is shown once after saving."><Input id="password" name="password" inputMode="numeric" maxLength={6} autoComplete="new-password" /></Field>
             <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="send_invite" defaultChecked className="accent-[#00BF63]" />Email the sign-in details to them</label></div>
           </>
         )}
