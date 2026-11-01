@@ -22,6 +22,7 @@ import { bulkAssignAction } from "@/app/(console)/records/actions";
 import { quickCreateTask, toggleTaskDone, updateTaskInline } from "../../tasks/actions";
 import EmployeeForm from "../EmployeeForm";
 import ResetPassword from "../ResetPassword";
+import { googleConfigured } from "@/lib/google-auth";
 import { awardStar, deleteEmployee, promoteToExecutive, removeStar, resetPassword, setEmployeeStatus, updateEmployee } from "../actions";
 import { togglePersonAutoAssign } from "../../auto-assign/actions";
 import GrowthPanel from "@/components/console/GrowthPanel";
@@ -345,7 +346,7 @@ async function AccountTab({ userId, isSelf }: { userId: number; isSelf: boolean 
     <div className="grid gap-5 lg:grid-cols-12">
       <div className="lg:col-span-7"><EmployeeForm employee={u} isSelf={isSelf} action={updateEmployee.bind(null, u.id)} /></div>
       <div className="space-y-4 lg:col-span-5">
-        <ResetPassword action={resetPassword.bind(null, u.id)} canEmail={mailConfigured()} email={u.email} />
+        <ResetPassword action={resetPassword.bind(null, u.id)} canEmail={mailConfigured()} email={u.email} google={googleConfigured()} />
         {!isSelf && (
           <form action={setEmployeeStatus.bind(null, u.id, u.status === "blocked" ? "active" : "blocked")} className="rounded-brand border border-line bg-white p-5">
             <p className="text-base">{u.status === "blocked" ? "Unblock" : "Block"} account</p>

@@ -10,8 +10,9 @@ import { describeAssign, runAutoAssign } from "@/lib/auto-assign";
 import { getGrowth } from "@/lib/queries/growth";
 import { MAX_STARS, canPromote, starsDue } from "@/lib/growth";
 import { pinError } from "@/lib/pin";
+import { googleConfigured } from "@/lib/google-auth";
 
-export interface EmployeeFormState { errors?: Record<string, string>; message?: string; created?: { id: number; name: string; email: string; tempPassword: string; signIn: string; emailed: boolean; emailError?: string } }
+export interface EmployeeFormState { errors?: Record<string, string>; message?: string; created?: { id: number; name: string; email: string; tempPassword: string; signIn: string; emailed: boolean; emailError?: string; google?: boolean } }
 export interface ResetState { tempPassword?: string; message?: string; emailed?: boolean; emailError?: string }
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
@@ -51,7 +52,7 @@ export async function createEmployee(_p: EmployeeFormState, fd: FormData): Promi
     if (!res.ok) emailError = res.error;
     await audit(user.id, res.ok ? "invite_sent" : "invite_failed", "user", r!.id, { email, ...(res.ok ? {} : { error: res.error }) });
   }
-  return { created: { id: r!.id, name, email, tempPassword: password, signIn: signInUrl(), emailed, emailError } };
+  return { created: { id: r!.id, name, email, tempPassword: password, signIn: signInUrl(), emailed, emailError, google: googleConfigured() } };
 }
 
 export async function updateEmployee(id: number, _p: EmployeeFormState, fd: FormData): Promise<EmployeeFormState> {

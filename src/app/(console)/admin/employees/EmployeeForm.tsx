@@ -5,14 +5,16 @@ import { Field, FormError, Input, Section, Select, SubmitButton } from "@/compon
 import type { EmployeeRow } from "@/lib/queries/employees";
 import type { EmployeeFormState } from "./actions";
 
-export default function EmployeeForm({ employee: u, isSelf, action }: { employee?: EmployeeRow | null; isSelf?: boolean; action: (p: EmployeeFormState, fd: FormData) => Promise<EmployeeFormState> }) {
+export default function EmployeeForm({ employee: u, isSelf, action, google }: { employee?: EmployeeRow | null; isSelf?: boolean; action: (p: EmployeeFormState, fd: FormData) => Promise<EmployeeFormState>; /** "Sign in with Google" is on: no PIN to hand over. */ google?: boolean }) {
   const [state, act] = useActionState<EmployeeFormState, FormData>(action, {});
   const e = state.errors ?? {};
   if (state.created) {
     return (
       <div className="max-w-lg rounded-brand border border-accent bg-white p-5">
         <p className="text-base">Account created for {state.created.name}</p>
-        {state.created.emailed ? (
+        {state.created.google ? (
+          <p className="mt-1 text-sm text-muted">They sign in with Google using {state.created.email}. Send them the sign-in address below. The PIN is only a fallback if Google is unavailable.</p>
+        ) : state.created.emailed ? (
           <p className="mt-1 text-sm text-accent-ink">Sign-in details emailed to {state.created.email}. They are also shown below, once.</p>
         ) : (
           <p className="mt-1 text-sm text-muted">{state.created.emailError ? <span className="text-red-700">Email not sent: {state.created.emailError}. </span> : null}Share these details with them now. The temporary PIN is shown only once.</p>
@@ -34,10 +36,10 @@ export default function EmployeeForm({ employee: u, isSelf, action }: { employee
       <FormError message={state.message} />
       <Section title={u ? "Details" : "New employee"}>
         <Field label="Name" htmlFor="name" error={e.name}><Input id="name" name="name" defaultValue={u?.name} required /></Field>
-        <Field label="Email" htmlFor="email" error={e.email}><Input id="email" name="email" type="email" defaultValue={u?.email} required /></Field>
+        <Field label="Email" htmlFor="email" error={e.email} hint={google ? "The Google account they will sign in with." : undefined}><Input id="email" name="email" type="email" defaultValue={u?.email} required /></Field>
         <Field label="Phone" htmlFor="phone" error={e.phone}><Input id="phone" name="phone" inputMode="tel" defaultValue={u?.phone ?? ""} placeholder="10-digit mobile" /></Field>
         <Field label="Role" htmlFor="role" error={e.role} hint={isSelf ? "You cannot change your own role." : "Interns, employees and executives use the employee console and get leads automatically."}><Select id="role" name="role" defaultValue={u ? (u.role === "admin" ? "admin" : u.level) : "employee"} disabled={isSelf}><option value="intern">Intern</option><option value="employee">Employee</option><option value="executive">Executive</option><option value="admin">Admin</option></Select>{isSelf && <input type="hidden" name="role" value="admin" />}</Field>
-        {!u && (
+        {!u && !google && (
           <>
             <Field label="Temporary PIN" htmlFor="password" error={e.password} hint="6 digits. Leave blank to generate one. It is shown once after saving."><Input id="password" name="password" inputMode="numeric" maxLength={6} autoComplete="new-password" /></Field>
             <div className="flex items-end pb-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="send_invite" defaultChecked className="accent-[#00BF63]" />Email the sign-in details to them</label></div>

@@ -8,7 +8,8 @@ import { verifyPassword } from "./password";
 import { LOCK_MINUTES, MAX_FAILED_LOGINS } from "./pin";
 
 export type Role = "admin" | "employee";
-export interface SessionUser { id: number; name: string; email: string; role: Role; status: string; must_reset?: boolean; pin_set?: boolean; level?: string }
+export type SignInMethod = "pin" | "google";
+export interface SessionUser { id: number; name: string; email: string; role: Role; status: string; must_reset?: boolean; pin_set?: boolean; level?: string; /** How this session was opened. Google sign-ins never need a PIN. */ via?: SignInMethod }
 
 const COOKIE = "mn_session";
 const secret = () => process.env.SESSION_SECRET || "dev-only-secret-change-me";
@@ -18,15 +19,33 @@ const sign = (v: string) => createHmac("sha256", secret()).update(v).digest("hex
 export const getSession = cache(async function getSession(): Promise<SessionUser | null> {
   const raw = (await cookies()).get(COOKIE)?.value;
   if (!raw) return null;
-  const [id, exp, sig] = raw.split(".");
-  if (!id || !exp || sig !== sign(`${id}.${exp}`) || Number(exp) < Date.now()) return null;
+  // "<id>.<expiry>.<signature>" (PIN sign-in, also older cookies) or "<id>.<expiry>.g.<signature>" (Google sign-in).
+  const parts = raw.split(".");
+  const [id, exp] = parts;
+  const via: SignInMethod = parts.length === 4 && parts[2] === "g" ? "google" : "pin";
+  const sig = parts[parts.length - 1];
+  if (!id || !exp || parts.length < 3 || parts.length > 4 || sig !== sign(via === "google" ? `${id}.${exp}.g` : `${id}.${exp}`) || Number(exp) < Date.now()) return null;
   const user = await one<SessionUser>("SELECT id, name, email, role, status, must_reset, pin_set, level FROM users WHERE id = $1", [Number(id)]);
   if (!user || user.status !== "active") return null;
-  return user;
+  return { ...user, via };
 });
 
-/** Where a signed-in person must go first: /change-password until they have their own PIN. */
-export const needsNewPin = (u: Pick<SessionUser, "must_reset" | "pin_set">) => !!u.must_reset || !u.pin_set;
+/** The session cookie for a week of access; the Google variant carries a "g" so the PIN rules are skipped. */
+export function sessionCookie(userId: number, via: SignInMethod) {
+  const exp = Date.now() + 1000 * 60 * 60 * 24 * 7;
+  const payload = via === "google" ? `${userId}.${exp}.g` : `${userId}.${exp}`;
+  return { name: COOKIE, value: `${payload}.${sign(payload)}`, options: { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", expires: new Date(exp) } };
+}
+
+/** Opens a signed-in session and clears any lock. Called after the PIN has been checked (Google sign-in sets the cookie itself). */
+export async function startSession(userId: number, via: SignInMethod): Promise<void> {
+  const c = sessionCookie(userId, via);
+  (await cookies()).set(c.name, c.value, c.options);
+  await q("UPDATE users SET last_login_at = now(), failed_logins = 0, locked_until = NULL WHERE id = $1", [userId]);
+}
+
+/** Where a signed-in person must go first: /change-password until they have their own PIN. Google sign-ins skip this. */
+export const needsNewPin = (u: Pick<SessionUser, "must_reset" | "pin_set" | "via">) => u.via !== "google" && (!!u.must_reset || !u.pin_set);
 
 /**
  * Redirects to /login when signed out, to /change-password while a temporary PIN (or an old password) is in use,
@@ -69,11 +88,8 @@ export async function login(email: string, pin: string): Promise<{ ok: true; use
     return { ok: false, error: "Email or PIN is incorrect." };
   }
   if (row.status !== "active") return { ok: false, error: "This account is blocked. Contact the admin." };
-  const exp = Date.now() + 1000 * 60 * 60 * 24 * 7;
-  const value = `${row.id}.${exp}.${sign(`${row.id}.${exp}`)}`;
-  (await cookies()).set(COOKIE, value, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires: new Date(exp) });
-  await q("UPDATE users SET last_login_at = now(), failed_logins = 0, locked_until = NULL WHERE id = $1", [row.id]);
-  return { ok: true, user: { id: row.id, name: row.name, email: row.email, role: row.role, status: row.status, must_reset: row.must_reset, pin_set: row.pin_set } };
+  await startSession(row.id, "pin");
+  return { ok: true, user: { id: row.id, name: row.name, email: row.email, role: row.role, status: row.status, must_reset: row.must_reset, pin_set: row.pin_set, via: "pin" } };
 }
 
 export async function logout() {

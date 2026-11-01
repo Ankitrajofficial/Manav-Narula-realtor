@@ -18,8 +18,13 @@ const hmac = (v: string) => createHmac("sha256", secret()).update(v).digest("hex
 const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 function hasSession(req: NextRequest): boolean {
-  const [id, exp, sig] = (req.cookies.get(SESSION_COOKIE)?.value ?? "").split(".");
-  return !!id && !!exp && !!sig && Number(exp) > Date.now() && same(sig, hmac(`${id}.${exp}`));
+  // "<id>.<expiry>.<sig>" (PIN) or "<id>.<expiry>.g.<sig>" (Google); see startSession in lib/auth.ts.
+  const parts = (req.cookies.get(SESSION_COOKIE)?.value ?? "").split(".");
+  if (parts.length < 3 || parts.length > 4) return false;
+  const [id, exp] = parts;
+  const sig = parts[parts.length - 1];
+  const payload = parts.length === 4 ? `${id}.${exp}.${parts[2]}` : `${id}.${exp}`;
+  return !!id && !!exp && !!sig && Number(exp) > Date.now() && same(sig, hmac(payload));
 }
 
 const noStore = (res: NextResponse) => {
