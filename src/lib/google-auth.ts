@@ -14,12 +14,18 @@ const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = process.env.GOOGLE_TOKEN_URL || "https://oauth2.googleapis.com/token";
 const USERINFO_URL = process.env.GOOGLE_USERINFO_URL || "https://openidconnect.googleapis.com/v1/userinfo";
 
-/** The callback address registered with Google: the public site address, or the local origin in development. */
-export function redirectUri(requestUrl: string): string {
+/**
+ * An address on the public site, or on the local origin in development. Behind the host's proxy `req.url` carries the
+ * server's internal address (https://0.0.0.0:3000), so it must not be used for anything sent back to a browser or Google.
+ */
+export function publicUrl(path: string, requestUrl: string): URL {
   const origin = new URL(requestUrl).origin;
   const base = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ? origin : (process.env.PUBLIC_URL || site.url).replace(/\/$/, "");
-  return `${base}/api/auth/google/callback`;
+  return new URL(path, base);
 }
+
+/** The callback address registered with Google. */
+export const redirectUri = (requestUrl: string): string => publicUrl("/api/auth/google/callback", requestUrl).toString();
 
 const b64url = (b: Buffer) => b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 

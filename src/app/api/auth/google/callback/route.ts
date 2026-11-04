@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sessionCookie } from "@/lib/auth";
 import { one, q } from "@/lib/db";
-import { finishSignIn, googleConfigured } from "@/lib/google-auth";
+import { finishSignIn, googleConfigured, publicUrl } from "@/lib/google-auth";
 import { audit } from "@/lib/records";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ const GOOGLE_COOKIE = "mn_google";
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const back = (error: string, email?: string) => {
-    const res = NextResponse.redirect(new URL(`/login?error=${error}${email ? `&email=${encodeURIComponent(email)}` : ""}`, req.url));
+    const res = NextResponse.redirect(publicUrl(`/login?error=${error}${email ? `&email=${encodeURIComponent(email)}` : ""}`, req.url));
     res.cookies.set(GOOGLE_COOKIE, "", { path: "/api/auth/google", maxAge: 0 });
     res.headers.set("Cache-Control", "private, no-store");
     return res;
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
 
   await q("UPDATE users SET last_login_at = now(), failed_logins = 0, locked_until = NULL WHERE id = $1", [user.id]);
   await audit(user.id, "login", "user", user.id, { method: "google" });
-  const res = NextResponse.redirect(new URL(user.role === "admin" ? "/admin" : "/employee", req.url));
+  const res = NextResponse.redirect(publicUrl(user.role === "admin" ? "/admin" : "/employee", req.url));
   const c = sessionCookie(user.id, "google");
   res.cookies.set(c.name, c.value, c.options);
   res.cookies.set(GOOGLE_COOKIE, "", { path: "/api/auth/google", maxAge: 0 });
