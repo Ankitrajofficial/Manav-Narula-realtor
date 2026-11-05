@@ -1,5 +1,7 @@
 "use server";
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { clientIp, tooMany } from "@/lib/rate-limit";
+import { redirect } from "@/lib/nav";
 import { one, q } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { audit } from "@/lib/records";
@@ -60,13 +62,13 @@ export async function resetPinAction(_p: ForgotState, fd: FormData): Promise<For
     [email],
   );
   const wrong = { step: "code" as const, email, errors: { code: "This code is wrong or has expired. Ask for a new one." } };
-  if (!row || row.attempts >= MAX_CODE_TRIES) return wrong;
-  if (!verifyPassword(code, row.code_hash)) {
-    await q("UPDATE pin_reset_codes SET attempts = attempts + 1, used_at = CASE WHEN attempts + 1 >= $2 THEN now() ELSE NULL END WHERE id = $1", [row.id, MAX_CODE_TRIES]);
-    return wrong;
-  }
+  if (!row) return wrong;
+  if (tooMany(`reset:${clientIp(await headers())}`, 20, 15 * 60_000)) return wrong;
+  // The try is counted before the code is checked, so many tries at the same moment cannot exceed the limit.
+  const claim = await one<{ id: number }>("UPDATE pin_reset_codes SET attempts = attempts + 1, used_at = CASE WHEN attempts + 1 >= $2 THEN now() ELSE NULL END WHERE id = $1 AND used_at IS NULL AND attempts < $2 RETURNING id", [row.id, MAX_CODE_TRIES]);
+  if (!claim || !verifyPassword(code, row.code_hash)) return wrong;
   await q("UPDATE pin_reset_codes SET used_at = now() WHERE user_id = $1 AND used_at IS NULL", [row.user_id]);
-  await q("UPDATE users SET password_hash = $1, pin_set = true, must_reset = false, failed_logins = 0, locked_until = NULL WHERE id = $2", [hashPassword(pin), row.user_id]);
+  await q("UPDATE users SET password_hash = $1, pin_set = true, must_reset = false, failed_logins = 0, locked_until = NULL, sessions_valid_from = now() WHERE id = $2", [hashPassword(pin), row.user_id]);
   await audit(row.user_id, "pin_reset_self", "user", row.user_id);
   redirect("/login?reset=1");
 }

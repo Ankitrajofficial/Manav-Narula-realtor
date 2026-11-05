@@ -1,5 +1,5 @@
 "use server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/nav";
 import { requireUser } from "@/lib/auth";
 import { saveSaleRecord, type SaleFormState } from "@/lib/queries/sales";
 

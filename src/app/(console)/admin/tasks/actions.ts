@@ -1,4 +1,5 @@
 "use server";
+import { safePath } from "@/lib/safe-path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { one, q } from "@/lib/db";
@@ -95,7 +96,7 @@ export async function setTaskStatus(fd: FormData) {
   const user = await requireUser("admin");
   const id = Number(fd.get("id"));
   const status = String(fd.get("status") ?? "");
-  const back = String(fd.get("back") ?? `/admin/tasks/${id}`);
+  const back = safePath(fd.get("back"), `/admin/tasks/${id}`);
   if (!id || !(TASK_STATUSES as readonly string[]).includes(status)) redirect(`${back}?error=${encodeURIComponent("Invalid status")}`);
   await q("UPDATE tasks SET status=$1, updated_at=now() WHERE id=$2", [status, id]);
   await audit(user.id, "status", "task", id, { status });

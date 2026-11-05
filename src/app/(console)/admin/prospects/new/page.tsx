@@ -1,17 +1,6 @@
-import PageHeader from "@/components/console/PageHeader";
-import RecordForm from "@/components/console/RecordForm";
-import { requireUser } from "@/lib/auth";
-import { listEmployees, listLocalities, listSources, listTags, projectOptions } from "@/lib/queries/common";
-import { saveProspectAction } from "@/app/(console)/records/actions";
+import { redirect } from "next/navigation";
 
-export default async function NewProspectPage({ searchParams }: { searchParams: Promise<{ toast?: string }> }) {
-  await requireUser("admin");
-  const { toast } = await searchParams;
-  const [localities, sources, tags, employees, projects] = await Promise.all([listLocalities(), listSources(), listTags(), listEmployees(), projectOptions()]);
-  return (
-    <>
-      <PageHeader title="Add prospect" description="One structured record per person. The phone number must be unique." />
-      <div className="max-w-3xl"><RecordForm key={toast ?? "new"} kind="prospect" action={saveProspectAction} isAdmin andAnother returnTo="/admin/prospects/new" cancelHref="/admin/prospects" opts={{ localities, sources: sources.filter((s) => s !== "Website"), tags, employees, projects }} /></div>
-    </>
-  );
+/** New entries are leads. Kept so old bookmarks land in the right place. */
+export default function NewProspectPage() {
+  redirect("/admin/leads/new");
 }

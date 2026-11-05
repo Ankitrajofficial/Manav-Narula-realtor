@@ -17,7 +17,7 @@ export const leadsByStatus = (r: Range) => q<{ label: string; value: number }>(`
 
 export async function funnel(r: Range) {
   const row = (await q<{ total: number; contacted: number; visit: number; won: number }>(`SELECT count(*)::int AS total,
-    count(*) FILTER (WHERE status IN ('Called','Follow up','Hot lead','Site visit','Closed won'))::int AS contacted,
+    count(*) FILTER (WHERE status IN ('First time contact','Second time contact','Warm lead','Called','Follow up','Hot lead','Site visit','Closed won'))::int AS contacted,
     count(*) FILTER (WHERE status IN ('Site visit','Closed won'))::int AS visit,
     count(*) FILTER (WHERE status = 'Closed won')::int AS won
     FROM leads WHERE ${inRange("created_at")}`, [r.from, r.to]))[0];

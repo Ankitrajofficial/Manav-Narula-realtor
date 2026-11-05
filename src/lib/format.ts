@@ -5,6 +5,8 @@ export function formatPrice(rupees: number, purpose: "Buy" | "Rent" = "Buy"): st
     const cr = rupees / 1_00_00_000;
     return `₹${Number.isInteger(cr) ? cr : cr.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")} Cr`;
   }
+  // Below a lakh the exact amount reads better than "₹0.0 L".
+  if (rupees < 1_00_000) return `₹${rupees.toLocaleString("en-IN")}`;
   const l = rupees / 1_00_000;
   return `₹${Number.isInteger(l) ? l : l.toFixed(1)} L`;
 }
@@ -29,7 +31,7 @@ export function unsplash(id: string, w = 1200, h = 900): string {
 
 export function formatDateTime(v: string | Date | null | undefined): string {
   if (!v) return "";
-  return new Date(v).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(v).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export function formatShortDate(v: string | Date | null | undefined): string {

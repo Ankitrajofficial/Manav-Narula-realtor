@@ -1,9 +1,12 @@
 /** Shared constants for the admin and employee consoles. */
-export const LEAD_STATUSES = ["New", "Follow up", "Hot lead", "Called", "Site visit", "Closed won", "Closed lost"] as const;
+export const LEAD_STATUSES = ["New", "First time contact", "Second time contact", "Warm lead", "Hot lead", "Follow up", "Called", "Site visit", "Closed won", "Closed lost"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const PILL_COLORS: Record<string, string> = {
   New: "var(--pill-grey)",
+  "First time contact": "var(--pill-blue)",
+  "Second time contact": "var(--pill-blue)",
+  "Warm lead": "var(--pill-amber)",
   "Follow up": "var(--pill-amber)",
   "Hot lead": "var(--pill-green)",
   Called: "var(--pill-blue)",
@@ -58,36 +61,32 @@ export const AMENITY_OPTIONS = ["Modular kitchen", "Servant quarter", "Solar wat
 
 export const adminNav = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
-  { href: "/admin/leads", label: "Leads", icon: "users" },
-  { href: "/admin/prospects", label: "Prospects", icon: "userPlus" },
-  { href: "/admin/tasks", label: "Tasks", icon: "check" },
-  { href: "/admin/campaigns", label: "Campaigns", icon: "send" },
-  { href: "/admin/ad-links", label: "Ad links", icon: "link" },
+  { href: "/admin/leads", label: "Leads", icon: "users", group: "Sales" },
+  { href: "/admin/tasks", label: "Tasks", icon: "check", group: "Sales" },
+  { href: "/admin/sales", label: "Sales", icon: "rupee", group: "Sales" },
+  { href: "/admin/campaigns", label: "Campaigns", icon: "send", group: "Marketing" },
+  { href: "/admin/ad-links", label: "Ad links", icon: "link", group: "Marketing" },
   // Developer projects are part of Properties (as on the website); their editor lives under /admin/projects/<id>.
-  { href: "/admin/properties", label: "Properties", icon: "home", also: ["/admin/projects"] },
-  { href: "/admin/developers", label: "Developers", icon: "kanban" },
-  { href: "/admin/banners", label: "Banners", icon: "image" },
-  { href: "/admin/offers", label: "Offers", icon: "tag" },
-  { href: "/admin/popups", label: "Pop-ups", icon: "chat" },
-  { href: "/admin/home-loans", label: "Home Loans", icon: "bank" },
-  { href: "/admin/blog", label: "Blog", icon: "file" },
-  { href: "/admin/employees", label: "Employees", icon: "badge" },
-  { href: "/admin/team", label: "Team", icon: "users" },
-  { href: "/admin/auto-assign", label: "Auto-assign", icon: "manage" },
-  { href: "/admin/certificates", label: "Certificates", icon: "shield" },
-  { href: "/admin/sales", label: "Sales", icon: "rupee" },
-  { href: "/admin/reports", label: "Reports", icon: "chart" },
-  { href: "/admin/settings", label: "Settings", icon: "settings" },
+  { href: "/admin/properties", label: "Properties", icon: "home", also: ["/admin/projects"], group: "Website" },
+  { href: "/admin/developers", label: "Developers", icon: "kanban", group: "Website" },
+  { href: "/admin/banners", label: "Banners", icon: "image", group: "Website" },
+  { href: "/admin/offers", label: "Offers", icon: "tag", group: "Website" },
+  { href: "/admin/popups", label: "Pop-ups", icon: "chat", group: "Website" },
+  { href: "/admin/home-loans", label: "Home Loans", icon: "bank", group: "Website" },
+  { href: "/admin/blog", label: "Blog", icon: "file", group: "Website" },
+  { href: "/admin/team", label: "Website team", icon: "users", group: "Website" },
+  { href: "/admin/employees", label: "Employees", icon: "badge", group: "Staff" },
+  { href: "/admin/auto-assign", label: "Auto-assign", icon: "manage", group: "Staff" },
+  { href: "/admin/certificates", label: "Certificates", icon: "shield", group: "Staff" },
+  { href: "/admin/reports", label: "Reports", icon: "chart", group: "Business" },
+  { href: "/admin/settings", label: "Settings", icon: "settings", group: "Business" },
 ];
 
 export const employeeNav = [
   { href: "/employee", label: "My Dashboard", icon: "grid" },
-  { href: "/employee/leads", label: "My Leads", icon: "users" },
-  { href: "/employee/prospects", label: "My Prospects", icon: "userPlus" },
-  { href: "/employee/data-entry", label: "Data Entry", icon: "edit" },
+  { href: "/employee/leads", label: "Leads", icon: "users" },
   { href: "/employee/tasks", label: "My Tasks", icon: "check" },
   { href: "/employee/sales", label: "My Sales", icon: "rupee" },
-  { href: "/employee/growth", label: "My Stars", icon: "star" },
   { href: "/employee/blog", label: "My Blog", icon: "file" },
 ];
 
@@ -98,12 +97,12 @@ export function dateRange(sp: Record<string, string | undefined>): { from: strin
 }
 
 export function pageOf(sp: Record<string, string | undefined>, size = 20) {
-  const page = Math.max(1, Number(sp.page) || 1);
+  const page = Math.min(1_000_000, Math.max(1, Math.floor(Number(sp.page)) || 1));
   return { page, size, offset: (page - 1) * size };
 }
 
 export function sortOf(sp: Record<string, string | undefined>, allowed: Record<string, string>, fallback: string): { sql: string; key: string; dir: "asc" | "desc" } {
-  const key = sp.sort && allowed[sp.sort] ? sp.sort : fallback;
+  const key = sp.sort && Object.hasOwn(allowed, sp.sort) ? sp.sort : fallback;
   const dir = sp.dir === "asc" ? "asc" : "desc";
   return { sql: `${allowed[key]} ${dir} NULLS LAST`, key, dir };
 }

@@ -4,7 +4,9 @@ export function toCsv<T extends Record<string, unknown>>(rows: T[], columns: Csv
   const esc = (v: unknown) => {
     if (v == null) return "";
     const s = v instanceof Date ? v.toISOString() : Array.isArray(v) ? v.join("; ") : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    // A cell starting with = + - @ runs as a formula in Excel, and names come from public forms. Numbers and phones are left alone.
+    const safe = /^[=+\-@\t\r]/.test(s) && !/^[+-]?[\d\s().-]+$/.test(s) ? `'${s}` : s;
+    return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
   const head = columns.map((c) => esc(c.label)).join(",");
   const body = rows.map((r) => columns.map((c) => esc(c.value ? c.value(r) : r[c.key])).join(","));

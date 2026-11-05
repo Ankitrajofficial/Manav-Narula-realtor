@@ -1,4 +1,5 @@
 "use client";
+import SpamTrap from "./SpamTrap";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -128,8 +129,8 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(popup.kind === "enquiry"
-          ? { name: data.name, phone: data.phone, message: data.message || undefined, source: "popup_enquiry", subject: popup.title, projectId: popup.projectId ?? undefined, page: window.location.pathname }
-          : { name: data.name, phone: data.phone, interest, budget: budget || undefined, locality: locality || undefined, source: "popup_consultation", subject: popup.title, page: window.location.pathname }),
+          ? { hp_field: data.hp_field, name: data.name, phone: data.phone, message: data.message || undefined, source: "popup_enquiry", subject: popup.title, projectId: popup.projectId ?? undefined, page: window.location.pathname }
+          : { hp_field: data.hp_field, name: data.name, phone: data.phone, interest, budget: budget || undefined, locality: locality || undefined, source: "popup_consultation", subject: popup.title, page: window.location.pathname }),
       });
       const j = (await res.json()) as { ok: boolean; suggestions?: Suggestion[] };
       if (!res.ok || !j.ok) throw new Error("failed");
@@ -176,6 +177,7 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
               <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
               {popup.text && <p className="mt-1 whitespace-pre-line text-sm text-muted">{popup.text}</p>}
               <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
+                <SpamTrap />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm"><span className="mb-1.5 block">Name</span><input name="name" autoComplete="name" required className={inputCls} placeholder="Your name" /></label>
                   <label className="block text-sm"><span className="mb-1.5 block">Phone</span><input name="phone" inputMode="tel" autoComplete="tel" required className={inputCls} placeholder="10-digit mobile" /></label>
@@ -199,6 +201,7 @@ export default function SitePopups({ popups, localities }: { popups: SitePopup[]
             <h2 id="popup-title" className="pr-10 text-2xl">{popup.title}</h2>
             {popup.text && <p className="mt-1 text-sm text-muted">{popup.text}</p>}
             <form onSubmit={submit} className="mt-5 space-y-4" noValidate>
+              <SpamTrap />
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm"><span className="mb-1.5 block">Name</span><input name="name" autoComplete="name" required className={inputCls} placeholder="Your name" /></label>
                 <label className="block text-sm"><span className="mb-1.5 block">Phone</span><input name="phone" inputMode="tel" autoComplete="tel" required className={inputCls} placeholder="10-digit mobile" /></label>

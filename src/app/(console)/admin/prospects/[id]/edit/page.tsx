@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { one } from "@/lib/db";
 import PageHeader from "@/components/console/PageHeader";
 import RecordForm from "@/components/console/RecordForm";
 import { requireUser } from "@/lib/auth";
@@ -10,7 +11,12 @@ export default async function EditProspectPage({ params }: { params: Promise<{ i
   await requireUser("admin");
   const id = Number((await params).id);
   const record = await getProspect(id);
-  if (!record) notFound();
+  if (!record) {
+    // Prospects were merged into leads: old links and notifications open the lead instead.
+    const merged = await one<{ id: number }>("SELECT id FROM leads WHERE merged_from_prospect_id = $1", [id]);
+    if (merged) redirect(`/admin/leads/${merged.id}/edit`);
+    notFound();
+  }
   const [localities, sources, tags, employees, properties, projects] = await Promise.all([listLocalities(), listSources(), listTags(), listEmployees(), propertyOptions(), projectOptions()]);
   return (
     <>

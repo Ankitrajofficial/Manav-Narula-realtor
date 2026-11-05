@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
@@ -13,7 +13,9 @@ const CONSOLE_PREFIXES = ["/admin", "/employee", "/login", "/change-password", "
 const SESSION_COOKIE = "mn_session";
 const GATE_COOKIE = "mn_console";
 
-const secret = () => process.env.SESSION_SECRET || "dev-only-secret-change-me";
+// Without a secret in production nothing can match, so the console stays hidden and the public site keeps working.
+const UNUSABLE = randomBytes(32).toString("hex");
+const secret = () => process.env.SESSION_SECRET || (process.env.NODE_ENV === "production" ? UNUSABLE : "dev-only-secret-change-me");
 const hmac = (v: string) => createHmac("sha256", secret()).update(v).digest("hex");
 const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 

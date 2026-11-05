@@ -1,5 +1,6 @@
 "use server";
-import { redirect } from "next/navigation";
+import { safePath } from "@/lib/safe-path";
+import { redirect } from "@/lib/nav";
 import { revalidatePath } from "next/cache";
 import { one, q } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -14,7 +15,7 @@ export async function employeeSetTaskStatus(fd: FormData) {
   const user = await requireUser("employee");
   const id = Number(fd.get("id"));
   const status = String(fd.get("status") ?? "");
-  const back = String(fd.get("back") ?? `/employee/tasks/${id}`);
+  const back = safePath(fd.get("back"), `/employee/tasks/${id}`);
   if (!id || !["In progress", "Done"].includes(status) || !(await ownTask(id, user.id))) redirect(`${back}?error=${encodeURIComponent("Not allowed")}`);
   await q("UPDATE tasks SET status=$1, updated_at=now() WHERE id=$2", [status, id]);
   await audit(user.id, "status", "task", id, { status });

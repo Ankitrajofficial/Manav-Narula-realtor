@@ -1,5 +1,5 @@
 "use server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/nav";
 import { revalidatePath } from "next/cache";
 import { requireUser, type SessionUser } from "@/lib/auth";
 import { one, q } from "@/lib/db";

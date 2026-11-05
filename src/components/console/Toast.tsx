@@ -35,6 +35,9 @@ export default function Toast({ flash }: { flash?: Flash | null }) {
     <div role="status" className={`fixed left-1/2 top-4 z-[80] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-brand border bg-white px-4 py-3 text-sm shadow-lg ${msg.kind === "ok" ? "border-accent text-ink" : "border-red-600 text-red-700"}`}>
       <Icon name={msg.kind === "ok" ? "check" : "info"} size={16} className={msg.kind === "ok" ? "text-accent" : "text-red-600"} />
       {msg.text}
+      <button type="button" onClick={() => setMsg(null)} aria-label="Dismiss" className="-my-1 -mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-line hover:text-ink">
+        <Icon name="x" size={16} />
+      </button>
     </div>
   );
 }

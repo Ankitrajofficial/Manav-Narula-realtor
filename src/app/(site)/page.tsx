@@ -9,6 +9,7 @@ import Icon from "@/components/Icon";
 import { Container, GoogleRating, Section, SectionTitle } from "@/components/ui";
 import { servicesShort, site, testimonials, workEthics } from "@/data/site";
 import TrustStats from "@/components/TrustStats";
+import ServiceCardLink from "@/components/ServiceCardLink";
 import { getActiveOffers, getArticles, getBanners, getBusiness, getFoundedYear, getTrustStats, withFoundedYear, getFaqGroups, getFeaturedProperties, getFeaturedProjects, getOfferBanner, getLocalitiesServed, getPartnerBanks, offerCta } from "@/lib/site-data";
 
 export const revalidate = 60;
@@ -74,13 +75,13 @@ export default async function HomePage() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {servicesShort.map((s) => (
             <li key={s.id}>
-              <Link href={s.href ?? `/services#${s.id}`} className="flex h-full gap-4 rounded-brand border border-[#c9c9c6] bg-white p-5 transition-colors hover:border-ink">
+              <ServiceCardLink href={s.href ?? `/services#${s.id}`} className="flex h-full gap-4 rounded-brand border border-[#c9c9c6] bg-white p-5">
                 <Icon name={s.icon} size={24} className="mt-0.5 shrink-0 text-accent" />
                 <div>
                   <h3 className="text-lg">{s.title}</h3>
                   <p className="mt-1 text-sm text-muted">{s.line}</p>
                 </div>
-              </Link>
+              </ServiceCardLink>
             </li>
           ))}
         </ul>

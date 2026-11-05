@@ -1,14 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, needsNewPin } from "@/lib/auth";
 import { q } from "@/lib/db";
 
 interface Sub { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
-const isPushUrl = (u: string) => /^https:\/\/[^\s]+$/.test(u) && u.length < 1000;
+const PUSH_HOSTS = /^(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.push\.services\.mozilla\.com|[a-z0-9-]+\.notify\.windows\.com|web\.push\.apple\.com|[a-z0-9-]+\.push\.apple\.com)$/i;
+const isPushUrl = (u: string) => {
+  if (u.length >= 1000 || !/^https:\/\/[^\s]+$/.test(u)) return false;
+  try { return PUSH_HOSTS.test(new URL(u).hostname); } catch { return false; }
+};
 
 /** Saves this browser's push subscription for the signed-in person (a browser moved to another person moves with it). */
 export async function POST(req: NextRequest) {
   const user = await getSession();
-  if (!user) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!user || needsNewPin(user)) return NextResponse.json({ ok: false }, { status: 401 });
   const s = (await req.json().catch(() => ({}))) as Sub;
   if (!s.endpoint || !isPushUrl(s.endpoint) || !s.keys?.p256dh || !s.keys?.auth) return NextResponse.json({ ok: false, error: "Invalid subscription" }, { status: 422 });
   await q(
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
 /** Turns push off for this browser. */
 export async function DELETE(req: NextRequest) {
   const user = await getSession();
-  if (!user) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!user || needsNewPin(user)) return NextResponse.json({ ok: false }, { status: 401 });
   const s = (await req.json().catch(() => ({}))) as Sub;
   if (s.endpoint) await q("DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2", [s.endpoint, user.id]);
   return NextResponse.json({ ok: true });

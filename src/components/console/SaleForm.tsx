@@ -29,12 +29,14 @@ export default function SaleForm({ action, values = {}, leads, prospects, proper
               {leads.map((l) => <option key={l.id} value={l.id}>{l.name}{l.phone ? ` · ${l.phone}` : ""}</option>)}
             </Select>
           </Field>
-          <Field label="Prospect" htmlFor="prospect_id" hint="Or the prospect, if not a website lead">
+          {(prospects.length > 0 || values.prospect_id) && (
+          <Field label="Prospect" htmlFor="prospect_id" hint="Only for an old prospect">
             <Select id="prospect_id" name="prospect_id" defaultValue={values.prospect_id ?? ""}>
               <option value="">None</option>
               {prospects.map((l) => <option key={l.id} value={l.id}>{l.name}{l.phone ? ` · ${l.phone}` : ""}</option>)}
             </Select>
           </Field>
+          )}
           <Field label="Client name" htmlFor="client_name" error={e.client_name} hint="Filled from the lead or prospect when left blank" className="md:col-span-2"><Input id="client_name" name="client_name" defaultValue={values.client_name ?? ""} error={e.client_name} /></Field>
           <Field label="Listed property" htmlFor="property_id">
             <Select id="property_id" name="property_id" defaultValue={values.property_id ?? ""}>

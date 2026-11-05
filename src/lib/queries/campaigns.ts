@@ -74,13 +74,13 @@ export function parseAudience(v: unknown): Audience {
   return { kinds: ["lead"], statuses: arr(a.statuses), tags: arr(a.tags), localities: arr(a.localities), interests: arr(a.interests), optInOnly: a.optInOnly !== false };
 }
 
-/** Everyone the audience rules match, de-duplicated on phone. Prospects always require WhatsApp opt-in; leads follow the optInOnly flag. */
+/** Everyone the audience rules match, de-duplicated on phone. WhatsApp opt-in is always required: staff-entered contacts live in leads too. */
 export async function resolveAudience(a: Audience): Promise<Recipient[]> {
   const out: Recipient[] = [];
   const build = (kind: "lead" | "prospect") => {
     const t = kind === "lead" ? "leads" : "prospects";
     const conds = ["l.status NOT IN ('Closed lost')"]; const params: unknown[] = [];
-    if (kind === "prospect" || a.optInOnly) conds.push("l.whatsapp_opt_in = true");
+    conds.push("l.whatsapp_opt_in = true");
     if (a.statuses.length) { params.push(json(a.statuses)); conds.push(`l.status IN (SELECT value FROM jsonb_array_elements_text($${params.length}::jsonb))`); }
     if (a.localities.length) { params.push(json(a.localities)); conds.push(`l.locality IN (SELECT value FROM jsonb_array_elements_text($${params.length}::jsonb))`); }
     if (a.interests.length) { params.push(json(a.interests)); conds.push(`l.interest IN (SELECT value FROM jsonb_array_elements_text($${params.length}::jsonb))`); }
@@ -151,11 +151,10 @@ export async function queueCampaign(c: CampaignRow, ourPhone: string): Promise<n
  * for opt-in, and has not had this follow-up yet. The campaign's sender then delivers it inside the usual window and cap.
  */
 export async function queueFollowup(c: CampaignRow, followupId: number, message: string, ourPhone: string): Promise<number> {
-  const a = parseAudience(c.audience);
   const rows = await q<Recipient>(
     `SELECT 'lead' AS kind, l.id, l.name, l.phone, l.locality, l.interest, l.budget, u.name AS employee, l.whatsapp_opt_in AS opt_in
      FROM campaign_messages m JOIN leads l ON l.id = m.lead_id LEFT JOIN users u ON u.id = l.assigned_to
-     WHERE m.campaign_id = $1 AND m.followup_id IS NULL AND m.status = 'Sent' AND l.status NOT IN ('Closed lost') ${a.optInOnly ? "AND l.whatsapp_opt_in = true" : ""}
+     WHERE m.campaign_id = $1 AND m.followup_id IS NULL AND m.status = 'Sent' AND l.status NOT IN ('Closed lost') AND l.whatsapp_opt_in = true
        AND NOT EXISTS (SELECT 1 FROM campaign_messages f WHERE f.followup_id = $2 AND f.lead_id = l.id)`, [c.id, followupId]);
   for (const r of rows) await q("INSERT INTO campaign_messages (campaign_id, followup_id, lead_id, phone, name, body, status) VALUES ($1,$2,$3,$4,$5,$6,'Queued')", [c.id, followupId, r.id, r.phone, r.name, renderMessage(message, r, ourPhone)]);
   if (rows.length) await q("UPDATE campaigns SET status = CASE WHEN status = 'Paused' THEN status ELSE 'Sending' END, updated_at = now() WHERE id = $1", [c.id]);

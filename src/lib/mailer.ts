@@ -64,7 +64,7 @@ export function credentialsEmail(p: { name: string; email: string; password: str
 export function pinResetEmail(p: { name: string; email: string; code: string; minutes: number }) {
   const url = `${signInUrl().replace(/\/[^/]*$/, "")}/forgot-password`;
   const first = p.name.split(" ")[0] || p.name;
-  const subject = `${p.code} is your ${site.name} PIN reset code`;
+  const subject = `Your ${site.name} PIN reset code`;
   const text = [`Hello ${first},`, "", `Your code to reset your staff console PIN is: ${p.code}`, `It works once and expires in ${p.minutes} minutes.`, "",
     `Enter it at: ${url}`, "", "If you did not ask for this, ignore this email; your PIN stays the same.", "", site.name].join("\n");
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#1a1a1a;max-width:520px">

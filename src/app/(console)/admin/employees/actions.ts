@@ -73,7 +73,7 @@ export async function resetPassword(id: number, email: boolean): Promise<ResetSt
   const target = await one<{ id: number; name: string; email: string; role: string }>("SELECT id, name, email, role FROM users WHERE id = $1", [id]);
   if (!target) return { message: "Employee not found." };
   const pw = tempPassword();
-  await q("UPDATE users SET password_hash = $1, must_reset = true, failed_logins = 0, locked_until = NULL WHERE id = $2", [hashPassword(pw), id]);
+  await q("UPDATE users SET password_hash = $1, must_reset = true, failed_logins = 0, locked_until = NULL, sessions_valid_from = now() WHERE id = $2", [hashPassword(pw), id]);
   await audit(user.id, "reset_password", "user", id);
   if (!email || !mailConfigured()) return { tempPassword: pw };
   const res = await sendMail(credentialsEmail({ name: target.name, email: target.email, password: pw, role: target.role, reset: true }));

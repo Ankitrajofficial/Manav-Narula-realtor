@@ -6,7 +6,7 @@ import { unsplash } from "@/lib/format";
 import type { Banner } from "@/lib/site-data";
 import Icon from "./Icon";
 
-const AUTOPLAY_MS = 6000;
+const AUTOPLAY_MS = 2000;
 const SWIPE_PX = 40;
 
 /**
@@ -33,41 +33,36 @@ function SlideImage({ banner: b, first }: { banner: Banner; first: boolean }) {
 /**
  * Home hero, managed under Admin → Banners. Phones: a 4:5 frame (at most 78% of the screen height) with the text over the
  * image at the bottom left, swipe to change slides. Larger screens: 16:7 (at most 80% of the screen height) with arrows.
- * Slides change every 6 s, pausing while a finger is on the hero or while a keyboard user has tabbed into it (clicks and
- * taps do not pause it), and not at all when the visitor prefers reduced motion.
+ * Slides change every 2 s, pausing while a finger is on the hero or while a keyboard user has tabbed into it (clicks and
+ * taps do not pause it). Slides move sideways, in the direction of travel, including for visitors who prefer reduced motion (client's decision).
  * A slide whose image carries its own text ("Image has its own text") shows the image alone, linked as a whole.
  */
 export default function BannerCarousel({ banners }: { banners: Banner[] }) {
   const n = banners.length;
   const [i, setI] = useState(0);
+  // The slide that just left and which way the row moved. Null until the first change, so the first paint does not animate.
+  const [move, setMove] = useState<{ from: number; forward: boolean } | null>(null);
   // Images load for slides already shown and the next one, so the rest wait until they are needed.
   const [seen, setSeen] = useState(() => new Set([0, 1]));
   const [touching, setTouching] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
 
   const go = (k: number) => {
     const t = ((k % n) + n) % n, after = (t + 1) % n;
+    if (t === i) return;
+    setMove({ from: i, forward: k > i });
     setI(t);
     setSeen((s) => (s.has(t) && s.has(after) ? s : new Set([...s, t, after])));
   };
 
+  // Restarts after every change, so a manual move gets a full 2 s too.
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-
-  // Restarts after every change, so a manual move gets a full 6 s too.
-  useEffect(() => {
-    if (n < 2 || touching || focused || reducedMotion) return;
+    if (n < 2 || touching || focused) return;
     const t = setTimeout(() => go(i + 1), AUTOPLAY_MS);
     return () => clearTimeout(t);
-  }, [i, n, touching, focused, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [i, n, touching, focused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!n) return null;
   const current = banners[i];
@@ -109,7 +104,7 @@ export default function BannerCarousel({ banners }: { banners: Banner[] }) {
         const dark = b.theme !== "light";
         return (
           <div key={b.id} role="group" aria-roledescription="slide" aria-label={`${k + 1} of ${n}`} aria-hidden={!active} inert={!active}
-            className={`absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none ${active ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+            className={`absolute inset-0 ${active ? (move ? (move.forward ? "banner-in-right" : "banner-in-left") : "") : move?.from === k ? `pointer-events-none ${move.forward ? "banner-out-left" : "banner-out-right"}` : "invisible pointer-events-none"}`}>
             {seen.has(k) && <SlideImage banner={b} first={k === 0} />}
             {b.showText === false ? (
               <Link href={b.cta.href} className="absolute inset-0"><Heading className="sr-only">{b.headline}</Heading></Link>

@@ -1,5 +1,6 @@
 "use server";
-import { redirect } from "next/navigation";
+import { safePath } from "@/lib/safe-path";
+import { redirect } from "@/lib/nav";
 import { requireUser, type SessionUser } from "@/lib/auth";
 import { json, one, q } from "@/lib/db";
 import { audit, logActivity, toE164 } from "@/lib/records";
@@ -63,13 +64,12 @@ const assignNote = async (kind: Kind, user: SessionUser) => (kind === "lead" ? d
 export async function setStatusAction(fd: FormData) {
   const user = await requireUser();
   const kind = kindOf(fd.get("kind")); const id = Number(fd.get("id")); const status = str(fd, "status");
-  const back = str(fd, "return");
-  const path = back.startsWith("/") ? back : `${base(user)}/${table(kind)}/${id}`;
+  const path = safePath(str(fd, "return"), `${base(user)}/${table(kind)}/${id}`);
   if (!(LEAD_STATUSES as readonly string[]).includes(status)) redirect(errorTo(path, "Unknown status"));
   const rec = await accessible(kind, id, user);
   if (!rec) redirect(errorTo(`${base(user)}/${table(kind)}`, "Record not found"));
   const note = await changeStatus(kind, rec, status, user);
-  redirect(toastTo(path, withNote(back ? `${rec.name}: ${status}` : `Status set to ${status}`, note)));
+  redirect(toastTo(path, withNote(str(fd, "return") ? `${rec.name}: ${status}` : `Status set to ${status}`, note)));
 }
 
 export async function addNoteAction(fd: FormData) {
@@ -98,12 +98,13 @@ export async function logCallAction(fd: FormData) {
 export async function scheduleFollowUpAction(fd: FormData) {
   const user = await requireUser();
   const kind = kindOf(fd.get("kind")); const id = Number(fd.get("id"));
-  const date = str(fd, "date"); const time = str(fd, "time") || "10:00"; const note = str(fd, "note");
+  const date = str(fd, "date"); const rawTime = str(fd, "time"); const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTime) ? rawTime : "10:00"; const note = str(fd, "note");
   const path = `${base(user)}/${table(kind)}/${id}`;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) redirect(errorTo(path, "Pick a follow-up date"));
   const rec = await accessible(kind, id, user);
   if (!rec) redirect(errorTo(`${base(user)}/${table(kind)}`, "Record not found"));
-  const at = new Date(`${date}T${time}:00`);
+  // The office works in Indian time, whatever clock the server runs on.
+  const at = new Date(`${date}T${time}:00+05:30`);
   await q(`UPDATE ${table(kind)} SET next_follow_up_at = $1, updated_at = now() WHERE id = $2`, [at.toISOString(), id]);
   const assigned = rec.status === "New" ? await changeStatus(kind, rec, "Follow up", user) : "";
   await logActivity({ [kind === "lead" ? "leadId" : "prospectId"]: id, userId: user.id, type: "follow_up", body: note ? `Follow-up scheduled: ${note}` : "Follow-up scheduled", scheduledAt: at.toISOString() });
@@ -142,7 +143,7 @@ export async function assignAction(fd: FormData) {
 export async function bulkAssignAction(fd: FormData) {
   const user = await requireUser("admin");
   const kind = kindOf(fd.get("kind")); const to = str(fd, "assigned_to");
-  const back = str(fd, "return") || `/admin/${table(kind)}`;
+  const back = safePath(str(fd, "return"), `/admin/${table(kind)}`);
   if (!to) redirect(errorTo(back, "Choose an employee"));
   const list = await bulkIds(fd, kind);
   if (!list.length) redirect(errorTo(back, "Select at least one row"));
@@ -165,7 +166,7 @@ export async function bulkAssignAction(fd: FormData) {
 export async function bulkCreateTaskAction(fd: FormData) {
   await requireUser("admin");
   const kind = kindOf(fd.get("kind"));
-  const back = str(fd, "return") || `/admin/${table(kind)}`;
+  const back = safePath(str(fd, "return"), `/admin/${table(kind)}`);
   const list = await bulkIds(fd, kind);
   if (!list.length) redirect(errorTo(back, "Select at least one row"));
   if (list.length > 500) redirect(errorTo(back, `A task's call sheet holds up to 500 records; ${list.length} are selected. Narrow the filters first`));
@@ -175,7 +176,7 @@ export async function bulkCreateTaskAction(fd: FormData) {
 export async function bulkStatusAction(fd: FormData) {
   const user = await requireUser("admin");
   const kind = kindOf(fd.get("kind")); const status = str(fd, "status");
-  const back = str(fd, "return") || `/admin/${table(kind)}`;
+  const back = safePath(str(fd, "return"), `/admin/${table(kind)}`);
   if (!(LEAD_STATUSES as readonly string[]).includes(status)) redirect(errorTo(back, "Choose a status"));
   const list = await bulkIds(fd, kind);
   if (!list.length) redirect(errorTo(back, "Select at least one row"));
@@ -199,6 +200,9 @@ export async function deleteRecordAction(fd: FormData) {
 /* ---------- create / edit ---------- */
 export interface RecordFormState { errors?: Record<string, string>; message?: string; values?: Record<string, string> }
 
+/** What an employee sees for a number already saved: it never says whose it is. */
+const IN_SYSTEM = "This number is already in the system. Ask the admin if you need it.";
+
 function readRecord(fd: FormData) {
   const v = {
     name: str(fd, "name"), phone: str(fd, "phone"), email: str(fd, "email"), interest: str(fd, "interest"), budget: str(fd, "budget"), locality: str(fd, "locality"),
@@ -215,11 +219,34 @@ function readRecord(fd: FormData) {
   return { v, errors, phone };
 }
 
+/** Typed localities: "model  town" is saved as the listed "Model Town" so filters find it; anything else is kept as typed. */
+async function canonicalLocality(typed: string): Promise<string> {
+  const clean = typed.trim().replace(/\s+/g, " ");
+  if (!clean) return "";
+  const known = await one<{ name: string }>("SELECT name FROM localities WHERE lower(name) = lower($1)", [clean]);
+  return known?.name ?? clean;
+}
+
 export async function saveLeadAction(prev: RecordFormState, fd: FormData): Promise<RecordFormState> {
   const user = await requireUser();
   const id = Number(fd.get("id")) || 0;
   const { v, errors, phone } = readRecord(fd);
+  const returnTo = str(fd, "return");
+  // Employees enter everything as leads now, so a number already in the system stops here. A lead keeps saving if its number
+  // is unchanged, because website enquiries can already share one. Admins can still add a repeat on purpose.
+  if (!Object.keys(errors).length && user.role !== "admin") {
+    const current = id ? await one<{ phone: string }>("SELECT phone FROM leads WHERE id = $1", [id]) : null;
+    if (current?.phone !== phone) {
+      const lead = await one<{ id: number }>("SELECT id FROM leads WHERE phone = $1 AND id <> $2", [phone, id]);
+      const prospect = lead ? null : await one<{ id: number }>("SELECT id FROM prospects WHERE phone = $1", [phone]);
+      if (lead || prospect) {
+        errors.phone = IN_SYSTEM;
+        await audit(user.id, "duplicate_blocked", lead ? "lead" : "prospect", lead?.id ?? prospect?.id ?? null);
+      }
+    }
+  }
   if (Object.keys(errors).length) return { errors, values: { ...v, tags: v.tags.join(",") } as unknown as Record<string, string> };
+  v.locality = await canonicalLocality(v.locality);
   const assigned = user.role === "admin" ? (v.assigned_to ? Number(v.assigned_to) : null) : undefined;
   if (id) {
     const rec = await accessible("lead", id, user);
@@ -247,19 +274,22 @@ export async function saveLeadAction(prev: RecordFormState, fd: FormData): Promi
     await notifyAssignee(assigned, user.id, recordNote("lead", newId, v.name, user.name));
   }
   await audit(user.id, "create", "lead", newId);
+  if (v.and_another) redirect(toastTo(safePath(returnTo, `${base(user)}/leads/new`), `${v.name} saved`));
   redirect(toastTo(`${base(user)}/leads/${newId}`, "Lead added"));
 }
 
 export async function saveProspectAction(prev: RecordFormState, fd: FormData): Promise<RecordFormState> {
   const user = await requireUser();
   const id = Number(fd.get("id")) || 0;
+  if (!id) return { message: "New entries are added as leads." };
   const { v, errors, phone } = readRecord(fd);
   const returnTo = str(fd, "return");
   if (!Object.keys(errors).length) {
     const dupe = await one<{ id: number; name: string }>("SELECT id, name FROM prospects WHERE phone = $1 AND id <> $2", [phone, id]);
-    if (dupe) errors.phone = `This number already belongs to ${dupe.name} (prospect #${dupe.id}).`;
+    if (dupe) errors.phone = user.role === "admin" ? `This number already belongs to ${dupe.name} (prospect #${dupe.id}).` : IN_SYSTEM;
   }
   if (Object.keys(errors).length) return { errors, values: { ...v, tags: v.tags.join(",") } as unknown as Record<string, string> };
+  v.locality = await canonicalLocality(v.locality);
   const assigned = user.role === "admin" ? (v.assigned_to ? Number(v.assigned_to) : null) : undefined;
   if (id) {
     const rec = await accessible("prospect", id, user);
@@ -281,7 +311,7 @@ export async function saveProspectAction(prev: RecordFormState, fd: FormData): P
   await logActivity({ prospectId: newId, userId: user.id, type: "created", body: `Added by ${user.name}`, toStatus: "New" });
   await notifyAssignee(assigned, user.id, recordNote("prospect", newId, v.name, user.name));
   await audit(user.id, "create", "prospect", newId);
-  if (v.and_another) redirect(toastTo(returnTo || `${base(user)}/data-entry`, `${v.name} saved`));
+  if (v.and_another) redirect(toastTo(safePath(returnTo, `${base(user)}/leads/new`), `${v.name} saved`));
   redirect(toastTo(`${base(user)}/prospects/${newId}`, "Prospect added"));
 }
 
@@ -290,6 +320,7 @@ export interface ImportRow { name?: string; phone?: string; email?: string; inte
 
 export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promise<{ imported: number; skipped: number; reasons: string[]; redirect: string }> {
   const user = await requireUser();
+  if (kind !== "lead") return { imported: 0, skipped: rows.length, reasons: ["New entries are added as leads."], redirect: "/" };
   let imported = 0, skipped = 0;
   const reasons: string[] = [];
   const seen = new Set<string>();
@@ -297,14 +328,18 @@ export async function importRecordsAction(kind: Kind, rows: ImportRow[]): Promis
   // A "Project" column matches a project by name, ignoring case and spacing ("jalandhar heights iv").
   const key = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
   const projects = new Map((await q<{ id: number; name: string }>("SELECT id, name FROM projects")).map((p) => [key(p.name), p.id]));
-  for (const [i, r] of rows.slice(0, 5000).entries()) {
+  const isAdmin = user.role === "admin";
+  const cap = isAdmin ? 5000 : 500;
+  if (rows.length > cap) { skipped += rows.length - cap; reasons.push(`Only the first ${cap} rows were read.`); }
+  for (const [i, r] of rows.slice(0, cap).entries()) {
     const name = String(r.name ?? "").trim();
     const phone = toE164(String(r.phone ?? ""));
     if (name.length < 2 || !phone) { skipped++; if (reasons.length < 20) reasons.push(`Row ${i + 1}: missing name or invalid phone`); continue; }
     if (seen.has(phone)) { skipped++; if (reasons.length < 20) reasons.push(`Row ${i + 1}: duplicate of an earlier row (${phone})`); continue; }
     seen.add(phone);
-    const dupe = await one<{ id: number }>(`SELECT id FROM ${table(kind)} WHERE phone = $1`, [phone]);
-    if (dupe) { skipped++; if (reasons.length < 20) reasons.push(`Row ${i + 1}: ${phone} already exists (#${dupe.id})`); continue; }
+    const dupe = await one<{ id: number }>(`SELECT id FROM ${table(kind)} WHERE phone = $1`, [phone])
+      ?? (isAdmin ? null : await one<{ id: number }>(`SELECT id FROM ${kind === "lead" ? "prospects" : "leads"} WHERE phone = $1`, [phone]));
+    if (dupe) { skipped++; if (reasons.length < 20) reasons.push(isAdmin ? `Row ${i + 1}: ${phone} already exists (#${dupe.id})` : `Row ${i + 1}: ${phone} is already in the system`); continue; }
     const tags = String(r.tags ?? "").split(/[;,|]/).map((t) => t.trim()).filter(Boolean);
     const opt = /^(yes|y|true|1)$/i.test(String(r.whatsapp_opt_in ?? "").trim());
     const interest = ["Buy", "Sell", "Rent"].find((x) => x.toLowerCase() === String(r.interest ?? "").trim().toLowerCase()) ?? null;

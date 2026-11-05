@@ -6,7 +6,7 @@ export const PIN_LENGTH = 6;
 export const MAX_FAILED_LOGINS = 5;
 export const LOCK_MINUTES = 15;
 
-const trivial = (pin: string) => /^(\d)\1+$/.test(pin) || "0123456789".includes(pin) || "9876543210".includes(pin);
+const trivial = (pin: string) => /^(\d{1,3})\1+$/.test(pin) || /^(\d)\1(\d)\2(\d)\3$/.test(pin) || "0123456789".includes(pin) || "9876543210".includes(pin);
 
 /** Why this PIN cannot be used, or null when it is fine. */
 export function pinError(pin: string): string | null {

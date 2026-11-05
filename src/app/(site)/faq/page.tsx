@@ -1,3 +1,4 @@
+import { jsonLd } from "@/lib/json-ld";
 import Link from "next/link";
 import FaqSearch from "@/components/FaqSearch";
 import { Breadcrumbs, Section } from "@/components/ui";
@@ -12,7 +13,7 @@ export default async function FaqPage() {
   const schema = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqGroups.flatMap((g) => g.items.map((i) => ({ "@type": "Question", name: i.q, acceptedAnswer: { "@type": "Answer", text: i.a } }))) };
   return (
     <Section>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       <Breadcrumbs items={[{ label: "FAQ" }]} />
       <h1 className="mt-6 text-4xl md:text-5xl">Questions we are asked most</h1>
       <p className="mt-3 mb-8 max-w-2xl text-muted">If yours is not here, <Link href="/contact" className="text-accent-ink hover:underline">send it to us</Link> and we will answer within working hours.</p>

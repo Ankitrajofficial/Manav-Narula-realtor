@@ -6,35 +6,44 @@ import { BarChart, LineChart } from "@/components/console/Charts";
 import Icon from "@/components/Icon";
 import { requireUser } from "@/lib/auth";
 import { formatDateTime, formatPrice, relativeTime } from "@/lib/format";
-import { adminStats, employeeWorkload, latestLeads, leadsBySource, leadsPerDay, overdueFollowUps } from "@/lib/queries/dashboard";
+import { todayIST } from "@/lib/dates";
+import { adminAttention, adminStats, employeeWorkload, latestLeads, leadsBySource, leadsPerDay, overdueFollowUps } from "@/lib/queries/dashboard";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const OVERDUE_SHOWN = 5;
+
+function Attention({ count, label, href, action }: { count: number; label: string; href: string; action: string }) {
+  const waiting = count > 0;
+  return (
+    <Link href={href} className={`flex items-center gap-4 rounded-brand border bg-white px-5 py-4 hover:border-ink ${waiting ? "border-red-300" : "border-line"}`}>
+      <span className={`text-3xl tabular ${waiting ? "text-red-700" : "text-muted"}`}>{count}</span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-muted">{waiting ? action : "All clear"}</span>
+      </span>
+    </Link>
+  );
+}
 
 export default async function AdminDashboard() {
   const user = await requireUser("admin");
-  const [stats, perDay, bySource, latest, workload, overdue] = await Promise.all([adminStats(), leadsPerDay(30), leadsBySource(), latestLeads(10), employeeWorkload(), overdueFollowUps(undefined, 10)]);
-  const hour = new Date().getHours();
+  const [stats, attention, perDay, bySource, latest, workload, overdue] = await Promise.all([adminStats(), adminAttention(), leadsPerDay(30), leadsBySource(), latestLeads(6), employeeWorkload(), overdueFollowUps(undefined, OVERDUE_SHOWN)]);
+  const hour = Number(new Date().toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Kolkata" }));
+  const idle = workload.filter((w) => !w.open_leads && !w.open_prospects).length;
   return (
     <>
-      <PageHeader title="Dashboard" description={`${hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"}, ${user.name.split(" ")[0]}. Here is where the pipeline stands.`} />
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        <StatTile label="Leads today" value={stats.leadsToday} href={`/admin/leads?from=${today()}`} />
-        <StatTile label="Leads this week" value={stats.leadsWeek} href="/admin/leads" />
-        <StatTile label="Hot leads" value={stats.hot} href="/admin/leads?status=Hot%20lead" />
-        <StatTile label="Follow-ups due today" value={stats.followUpsToday} href="/admin/notifications" />
-        <StatTile label="Site visits this week" value={stats.siteVisitsWeek} href="/admin/leads?status=Site%20visit" />
-        <StatTile label="Sales this month" value={stats.salesMonth > 0 ? formatPrice(stats.salesMonth) : "₹0"} href="/admin/sales" />
-      </div>
+      <PageHeader title="Dashboard" description={`${hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"}, ${user.name.split(" ")[0]}.`} />
+      <section aria-label="Needs your attention" className="grid gap-3 md:grid-cols-3">
+        <Attention count={attention.unassigned} label="Unassigned leads" action="Give them to someone" href="/admin/leads?assigned=unassigned" />
+        <Attention count={attention.overdue} label="Overdue follow-ups" action="See who is behind" href="#overdue" />
+        <Attention count={attention.salesToApprove} label="Sales to approve" action="Review and approve" href="/admin/sales?status=Pending%20approval" />
+      </section>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <section className="rounded-brand border border-line bg-white p-5">
-          <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Leads per day · last 30 days</p>
-          <div className="mt-3"><LineChart points={perDay} label="Leads per day, last 30 days" /></div>
-        </section>
-        <section className="rounded-brand border border-line bg-white p-5">
-          <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Leads by source</p>
-          <div className="mt-3">{bySource.length ? <BarChart bars={bySource} label="Leads by source" /> : <p className="text-sm text-muted">No leads yet.</p>}</div>
-        </section>
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <StatTile label="Leads today" value={stats.leadsToday} href={`/admin/leads?from=${todayIST()}`} />
+        <StatTile label="Hot leads" value={stats.hot} href="/admin/leads?status=Hot%20lead" />
+        <StatTile label="Follow-ups today" value={stats.followUpsToday} href="/admin/notifications" />
+        <StatTile label="Site visits this week" value={stats.siteVisitsWeek} href="/admin/leads?status=Site%20visit" />
+        <StatTile label="Approved sales this month" value={stats.salesMonth > 0 ? formatPrice(stats.salesMonth) : "₹0"} href="/admin/sales" />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-12">
@@ -63,17 +72,18 @@ export default async function AdminDashboard() {
           <section className="rounded-brand border border-line bg-white p-5">
             <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Employee workload</p>
             <ul className="mt-3 divide-y divide-line">
-              {workload.map((w) => (
+              {workload.filter((w) => w.open_leads || w.open_prospects).map((w) => (
                 <li key={w.id} className="flex items-center justify-between py-2 text-sm">
                   <Link href={`/admin/leads?assigned=${w.id}`} className="hover:text-accent-ink">{w.name}</Link>
-                  <span className="tabular text-muted"><span className="text-ink">{w.open_leads}</span> open leads · {w.open_prospects} prospects</span>
+                  <span className="tabular text-muted"><span className="text-ink">{w.open_leads}</span> open {w.open_leads === 1 ? "lead" : "leads"} {w.open_prospects > 0 ? ` · ${w.open_prospects} old ${w.open_prospects === 1 ? "prospect" : "prospects"}` : ""}</span>
                 </li>
               ))}
             </ul>
+            {idle > 0 && <p className="mt-2 text-xs text-muted">{idle} {idle === 1 ? "employee has" : "employees have"} nothing open. <Link href="/admin/employees" className="text-accent-ink hover:underline">See all</Link></p>}
           </section>
-          <section className="rounded-brand border border-line bg-white p-5">
+          <section id="overdue" className="scroll-mt-20 rounded-brand border border-line bg-white p-5">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Overdue follow-ups</p>
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Overdue follow-ups{attention.overdue > OVERDUE_SHOWN ? ` · oldest ${OVERDUE_SHOWN} of ${attention.overdue}` : ""}</p>
               {overdue.length > 0 && <Pill value="Overdue" />}
             </div>
             {overdue.length === 0 ? <p className="mt-3 text-sm text-muted">Nothing overdue.</p> : (
@@ -89,6 +99,17 @@ export default async function AdminDashboard() {
           </section>
         </div>
       </div>
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <section className="rounded-brand border border-line bg-white p-5">
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Leads per day · last 30 days</p>
+          <div className="mt-3"><LineChart points={perDay} label="Leads per day, last 30 days" /></div>
+        </section>
+        <section className="rounded-brand border border-line bg-white p-5">
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Leads by source</p>
+          <div className="mt-3">{bySource.length ? <BarChart bars={bySource} label="Leads by source" /> : <p className="text-sm text-muted">No leads yet.</p>}</div>
+        </section>
+      </div>
+
     </>
   );
 }

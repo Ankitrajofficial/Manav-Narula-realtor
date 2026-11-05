@@ -2,6 +2,7 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import EmptyState from "./EmptyState";
 import SelectAllBox from "./SelectAllBox";
+import TableFrame from "./TableFrame";
 
 export interface Column<T> { key: string; label: string; sortable?: boolean; className?: string; /** Leave this column out of the stacked phone layout. */ hideOnMobile?: boolean; render?: (row: T) => React.ReactNode }
 
@@ -23,6 +24,8 @@ interface Props<T> {
   selectable?: boolean;
   rowId?: (row: T) => string | number;
   toolbar?: React.ReactNode;
+  /** Desktop: only the rows scroll; the page around them stays still. */
+  framed?: boolean;
 }
 
 function hrefWith(basePath: string, sp: Record<string, string | undefined>, patch: Record<string, string | undefined>) {
@@ -50,7 +53,8 @@ function pageNumbers(page: number, pages: number): (number | null)[] {
   return out;
 }
 
-export default function DataTable<T extends object>({ columns, rows, total, page, pageSize, sp, basePath, sortKey, sortDir, exportHref, exportPdfHref, empty, selectable, rowId, toolbar, cards }: Props<T>) {
+export default function DataTable<T extends object>({ columns, rows, total, page, pageSize, sp, basePath, sortKey, sortDir, exportHref, exportPdfHref, empty, selectable, rowId, toolbar, cards, framed }: Props<T>) {
+  const Wrap = framed ? TableFrame : ("div" as const);
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const pageHref = (n: number) => hrefWith(basePath, sp, { page: String(Math.min(pages, Math.max(1, n))) });
   return (
@@ -70,9 +74,9 @@ export default function DataTable<T extends object>({ columns, rows, total, page
           {rows.map((r, i) => <div key={rowId ? rowId(r) : i} className="contents">{cards(r)}</div>)}
         </div>
       ) : (
-        <div className="rounded-brand border border-line bg-white md:overflow-x-auto">
+        <Wrap className="rounded-brand border border-line bg-white md:overflow-x-auto">
           <table className="rtable w-full text-left md:min-w-[720px]">
-            <thead className="sticky top-0 z-10 bg-white">
+            <thead className="sticky top-0 z-10 bg-white shadow-[inset_0_-1px_0_var(--line)]">
               <tr className="border-b border-line text-xs text-muted">
                 {selectable && <th className="w-10 px-3"><SelectAllBox /></th>}
                 {columns.map((c) => (
@@ -96,7 +100,7 @@ export default function DataTable<T extends object>({ columns, rows, total, page
               ))}
             </tbody>
           </table>
-        </div>
+        </Wrap>
       )}
       {pages > 1 && (
         <nav aria-label="Pagination" className="mt-4 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">

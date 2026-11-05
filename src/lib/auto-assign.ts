@@ -96,7 +96,7 @@ async function runOnce(force = false, scheduled = false): Promise<AssignResult> 
   // Whoever has waited longest since their last batch goes first, so a short pool is shared fairly.
   const people = await q<Person>(
     `SELECT u.id, u.name FROM users u
-     WHERE u.role = 'employee' AND u.status = 'active' AND u.auto_assign AND NOT u.must_reset
+     WHERE u.role = 'employee' AND u.status = 'active' AND u.auto_assign AND (NOT u.must_reset OR u.last_login_at IS NOT NULL)
      ORDER BY (SELECT max(b.created_at) FROM lead_batches b WHERE b.user_id = u.id) ASC NULLS FIRST, u.id`,
   );
   const given = new Map<string, number>();
@@ -221,4 +221,12 @@ export function startDailyAutoAssign() {
   const tick = () => { runDailyIfDue().catch((e) => console.error("[auto-assign] daily run failed", e)); };
   timer.__mnDailyAssign = setInterval(tick, 30_000);
   setTimeout(tick, 5_000);
+}
+
+let lastFromPage = 0;
+/** For pages: opening one can pick up a batch, but refreshing does not repeat the whole pass. Lead changes and the 9 AM run are not limited. */
+export async function runAutoAssignFromPage() {
+  if (Date.now() - lastFromPage < 60_000) return;
+  lastFromPage = Date.now();
+  await runAutoAssign();
 }

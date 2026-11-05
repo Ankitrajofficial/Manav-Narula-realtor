@@ -1,4 +1,5 @@
 "use server";
+import { safePath } from "@/lib/safe-path";
 import { redirect } from "next/navigation";
 import { q } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -24,7 +25,7 @@ export async function updateSale(id: number, _prev: SaleFormState, fd: FormData)
 export async function approveSale(fd: FormData) {
   const user = await requireUser("admin");
   const id = Number(fd.get("id"));
-  const back = String(fd.get("back") ?? "/admin/sales");
+  const back = safePath(fd.get("back"), "/admin/sales");
   if (id) { await q("UPDATE sales SET status='Approved' WHERE id=$1", [id]); await audit(user.id, "approve", "sale", id); }
   redirect(`${back}${back.includes("?") ? "&" : "?"}toast=${encodeURIComponent("Sale approved")}`);
 }
