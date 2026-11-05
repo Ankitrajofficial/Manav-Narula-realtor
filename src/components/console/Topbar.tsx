@@ -18,7 +18,7 @@ export default function Topbar({ searchPath, quick, notifications }: { searchPat
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-line bg-bg/95 px-6 backdrop-blur-sm">
       <form action={searchPath} className="relative w-full max-w-md">
         <Icon name="search" size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
-        <input name="q" placeholder="Search leads, prospects, properties by name or phone" className={`${inputCls} pl-8`} aria-label="Global search" />
+        <input name="q" placeholder={searchPath.startsWith("/employee") ? "Search leads by name or phone" : "Search leads and properties by name or phone"} className={`${inputCls} pl-8`} aria-label="Global search" />
       </form>
       <div className="flex items-center gap-2">
         <Link href={notifications.href} className="relative flex h-9 w-9 items-center justify-center rounded-brand border border-line bg-white hover:border-ink" aria-label={`${count} notifications`}>

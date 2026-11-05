@@ -31,12 +31,12 @@ export default async function ProspectsTable({ sp, base, userId }: { sp: SP; bas
   const table = (
     <DataTable columns={columns} rows={data.rows} total={data.total} page={data.page} pageSize={data.size} sp={sp} basePath={`${base}/prospects`} sortKey={data.sort.key} sortDir={data.sort.dir}
       exportHref={isAdmin ? `${base}/prospects/export?format=csv${qs ? `&${qs}` : ""}` : undefined} exportPdfHref={isAdmin ? `${base}/prospects/export?format=pdf${qs ? `&${qs}` : ""}` : undefined}
-      selectable={isAdmin} rowId={(r) => r.id}
-      empty={{ text: isAdmin ? "No prospects match these filters." : "No prospects of yours match these filters.", action: { label: "Add prospect", href: isAdmin ? "/admin/prospects/new" : "/employee/data-entry" } }} />
+      selectable={isAdmin} rowId={(r) => r.id} framed
+      empty={{ text: isAdmin ? "No prospects match these filters." : "No prospects of yours match these filters.", action: undefined }} />
   );
   return (
     <>
-      <FilterBar dates filters={[
+      <FilterBar dates more={["tag", "optin", "locality", "interest"]} filters={[
         { key: "status", label: "Status", options: LEAD_STATUSES.map((s) => ({ value: s, label: s })) },
         { key: "tag", label: "Tag", options: tags.map((t) => ({ value: t, label: t })) },
         { key: "optin", label: "WhatsApp opt-in", options: [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }] },

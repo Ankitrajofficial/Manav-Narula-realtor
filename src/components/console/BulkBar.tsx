@@ -5,7 +5,8 @@ const rowBoxes = (form: HTMLFormElement) => Array.from(form.querySelectorAll<HTM
 const link = "text-accent-ink underline-offset-2 hover:underline";
 
 /**
- * Place inside the <form> that wraps a selectable DataTable. Shows how many rows are ticked and the bulk actions.
+ * Place inside the <form> that wraps a selectable DataTable. Stays out of the way until a row is ticked, then shows how
+ * many are ticked and the bulk actions, and stays in view while scrolling the list.
  * With `total` and `filter`, it also offers "select all N matching": the form then posts all_matching=1 and the
  * current filters, and the server works out the rows itself, including those on other pages.
  */
@@ -44,7 +45,7 @@ export default function BulkBar({ children, total, filter }: { children: React.R
   const canMatch = total != null && filter != null && total > onPage;
   const shown = allMatching && total != null ? total : count;
   return (
-    <div ref={ref} className={`mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-brand border px-3 py-2 text-sm ${shown ? "border-accent bg-white" : "border-line bg-white text-muted"}`}>
+    <div ref={ref} className={shown ? "sticky top-2 z-20 mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-brand border border-accent bg-white px-3 py-2 text-sm shadow-sm md:top-16" : "hidden"}>
       {allMatching && <><input type="hidden" name="all_matching" value="1" /><input type="hidden" name="filter" value={filter ?? ""} /></>}
       <span className="tabular">{allMatching ? `All ${shown.toLocaleString("en-IN")} matching selected` : `${shown} selected`}</span>
       {onPage > 0 && (
@@ -54,7 +55,7 @@ export default function BulkBar({ children, total, filter }: { children: React.R
           {(count > 0 || allMatching) && <button type="button" onClick={clear} className="text-muted hover:text-ink hover:underline">Clear</button>}
         </span>
       )}
-      <span className={shown ? "flex flex-wrap items-center gap-2" : "pointer-events-none flex flex-wrap items-center gap-2 opacity-50"}>{children}</span>
+      <span className="flex flex-wrap items-center gap-2 md:ml-auto [&_select]:w-auto!">{children}</span>
     </div>
   );
 }

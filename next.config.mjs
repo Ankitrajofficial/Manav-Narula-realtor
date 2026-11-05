@@ -3,8 +3,19 @@
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }, { protocol: "https", hostname: "i.ytimg.com" }],
+  },
+  async headers() {
+    return [{ source: "/:path*", headers: [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Content-Security-Policy", value: "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'" },
+      { key: "Strict-Transport-Security", value: "max-age=15552000" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+    ] }];
   },
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
   // Forms with an upload (sale documents, images, brochures) post through server actions, which Next caps at 1 MB.

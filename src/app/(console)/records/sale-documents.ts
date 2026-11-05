@@ -1,9 +1,9 @@
 "use server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/nav";
 import { requireUser, type SessionUser } from "@/lib/auth";
 import { one, q } from "@/lib/db";
 import { audit } from "@/lib/records";
-import { checkUpload } from "@/lib/upload";
+import { checkUpload, checkUploadContent } from "@/lib/upload";
 import { addSaleDocuments, syncFirstDocument, uploadedFiles } from "@/lib/queries/sales";
 
 const page = (u: SessionUser, saleId: number) => `${u.role === "admin" ? "/admin" : "/employee"}/sales/${saleId}`;
@@ -22,7 +22,7 @@ export async function addSaleDocumentsAction(saleId: number, fd: FormData) {
   const files = uploadedFiles(fd);
   if (!files.length) redirect(to(page(user, saleId), "Choose at least one file", "error"));
   let problem = "";
-  try { files.forEach(checkUpload); } catch (e) { problem = (e as Error).message; }
+  try { files.forEach(checkUpload); await Promise.all(files.map(checkUploadContent)); } catch (e) { problem = (e as Error).message; }
   if (!problem && files.reduce((n, f) => n + f.size, 0) > 16 * 1024 * 1024) problem = "The files add up to more than 16 MB. Add fewer at once.";
   if (problem) redirect(to(page(user, saleId), problem, "error"));
   await addSaleDocuments(saleId, files, user.id);
@@ -33,12 +33,14 @@ export async function addSaleDocumentsAction(saleId: number, fd: FormData) {
 /** Admins remove any document. Employees remove only files they uploaded, while the sale still awaits approval. */
 export async function removeSaleDocumentAction(docId: number) {
   const user = await requireUser();
-  const doc = await one<{ sale_id: number; uploaded_by: number | null; name: string }>("SELECT sale_id, uploaded_by, name FROM sale_documents WHERE id = $1", [docId]);
+  const doc = await one<{ sale_id: number; uploaded_by: number | null; name: string; url: string }>("SELECT sale_id, uploaded_by, name, url FROM sale_documents WHERE id = $1", [docId]);
   if (!doc) redirect(`${user.role === "admin" ? "/admin" : "/employee"}/sales?error=Document+not+found`);
   const sale = await ownSale(user, doc.sale_id);
   if (user.role !== "admin" && (doc.uploaded_by !== user.id || sale.status !== "Pending approval")) redirect(to(page(user, doc.sale_id), "Only the admin can remove documents from an approved sale", "error"));
   await q("DELETE FROM sale_documents WHERE id = $1", [docId]);
   await syncFirstDocument(doc.sale_id);
+  // Removing a document removes the file too, unless another record still points at it.
+  if (doc.url.startsWith("/media/sales-") && !(await one("SELECT 1 AS used FROM sale_documents WHERE url = $1 UNION ALL SELECT 1 FROM sales WHERE document_url = $1 LIMIT 1", [doc.url]))) await q("DELETE FROM media WHERE name = $1", [doc.url.slice("/media/".length)]);
   await audit(user.id, "remove_document", "sale", doc.sale_id, { name: doc.name });
   redirect(to(page(user, doc.sale_id), `Removed ${doc.name}`));
 }

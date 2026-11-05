@@ -10,7 +10,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const hits = await globalSearch(q, user.id, user.role);
   return (
     <>
-      <PageHeader title={q ? `Results for "${q}"` : "Search"} description="Leads, prospects, properties and projects by name or phone." />
+      <PageHeader title={q ? `Results for "${q}"` : "Search"} description="Your leads by name or phone." />
       {hits.length === 0 ? <EmptyState text={q ? "Nothing matches." : "Type a name or phone number in the search box above."} /> : (
         <ul className="divide-y divide-line rounded-brand border border-line bg-white">
           {hits.map((h) => (

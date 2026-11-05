@@ -1,4 +1,5 @@
 "use client";
+import SpamTrap from "./SpamTrap";
 import { useState } from "react";
 import Icon from "./Icon";
 import { Button, Field, inputCls } from "./ui";
@@ -26,7 +27,7 @@ export default function LoanEnquiryForm({ banks }: { banks: string[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: data.name, phone: data.phone, interest: "Buy", source: "home_loan", subject: "Home loan", page: window.location.pathname,
+          hp_field: data.hp_field, name: data.name, phone: data.phone, interest: "Buy", source: "home_loan", subject: "Home loan", page: window.location.pathname,
           details: { "Loan amount": data.amount, "Property type": data.propertyType, "Employment": employment, "Preferred bank": data.bank || "No preference" },
         }),
       });
@@ -51,6 +52,7 @@ export default function LoanEnquiryForm({ banks }: { banks: string[] }) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <SpamTrap />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Name" htmlFor="loan-name"><input id="loan-name" name="name" required className={inputCls} placeholder="Your name" autoComplete="name" /></Field>
         <Field label="Phone" htmlFor="loan-phone"><input id="loan-phone" name="phone" required inputMode="tel" className={inputCls} placeholder="10-digit mobile number" autoComplete="tel" /></Field>

@@ -11,9 +11,20 @@ export async function adminStats() {
     n(`SELECT count(*)::int AS n FROM leads WHERE status = 'Hot lead'`),
     n(`SELECT count(*)::int AS n FROM leads WHERE ${OPEN} AND next_follow_up_at >= date_trunc('day', now()) AND next_follow_up_at < date_trunc('day', now()) + interval '1 day'`),
     n("SELECT count(DISTINCT lead_id)::int AS n FROM lead_activities WHERE to_status = 'Site visit' AND created_at >= date_trunc('week', now())"),
-    n("SELECT coalesce(sum(deal_value),0)::bigint AS n FROM sales WHERE sale_date >= date_trunc('month', now())::date"),
+    // Approved only: an employee's unapproved sale is a claim until the admin confirms it.
+    n("SELECT coalesce(sum(deal_value),0)::bigint AS n FROM sales WHERE status = 'Approved' AND sale_date >= date_trunc('month', now())::date"),
   ]);
   return { leadsToday, leadsWeek, hot, followUpsToday, siteVisitsWeek, salesMonth };
+}
+
+/** What is waiting on the admin: each of these stays stuck until someone acts. */
+export async function adminAttention() {
+  const [unassigned, overdue, salesToApprove] = await Promise.all([
+    n(`SELECT count(*)::int AS n FROM leads WHERE assigned_to IS NULL AND ${OPEN}`),
+    n(`SELECT (SELECT count(*) FROM leads WHERE ${OPEN} AND next_follow_up_at < now()) + (SELECT count(*) FROM prospects WHERE ${OPEN} AND next_follow_up_at < now()) AS n`),
+    n("SELECT count(*)::int AS n FROM sales WHERE status = 'Pending approval'"),
+  ]);
+  return { unassigned, overdue, salesToApprove };
 }
 
 export async function leadsPerDay(days = 30) {
@@ -41,7 +52,7 @@ export function employeeWorkload() {
   return q<{ id: number; name: string; open_leads: number; open_prospects: number }>(`SELECT u.id, u.name,
     (SELECT count(*)::int FROM leads l WHERE l.assigned_to = u.id AND l.${OPEN}) AS open_leads,
     (SELECT count(*)::int FROM prospects p WHERE p.assigned_to = u.id AND p.${OPEN}) AS open_prospects
-    FROM users u WHERE u.status = 'active' ORDER BY open_leads DESC, u.name`);
+    FROM users u WHERE u.status = 'active' AND u.role = 'employee' ORDER BY open_leads DESC, open_prospects DESC, u.name`);
 }
 
 export interface FollowUpRow { kind: "lead" | "prospect"; id: number; name: string; phone: string; status: string; next_follow_up_at: Date; assigned_name: string | null }

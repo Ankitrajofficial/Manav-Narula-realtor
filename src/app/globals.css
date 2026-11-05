@@ -120,3 +120,27 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 @media (hover: hover) and (min-width: 768px) { .trust-cell:hover .trust-number { color: var(--accent); } }
 .trust-label { margin-top: 10px; font-family: var(--font-body); font-size: 14px; line-height: 1.4; letter-spacing: 0.2px; color: var(--muted); }
+
+/* Home banner: slides move sideways. Used by BannerCarousel. */
+@keyframes banner-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes banner-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes banner-out-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes banner-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+.banner-in-right { animation: banner-in-right 500ms ease-in-out both; }
+.banner-in-left { animation: banner-in-left 500ms ease-in-out both; }
+.banner-out-left { animation: banner-out-left 500ms ease-in-out both; }
+.banner-out-right { animation: banner-out-right 500ms ease-in-out both; }
+
+/* Home service cards: on hover a green circle grows from where the pointer came in and fills the card; the text turns white.
+   Only the scale animates, so the circle's centre is at the pointer from the first frame. 260% of the card's width covers every corner. */
+.service-card { position: relative; isolation: isolate; overflow: hidden; transition: border-color 300ms ease; }
+.service-card::before { content: ""; position: absolute; left: var(--fill-x, 50%); top: var(--fill-y, 50%); z-index: -1; width: 260%; aspect-ratio: 1; border-radius: 50%; background: #087f44; transform: translate(-50%, -50%) scale(0); transition: transform 650ms cubic-bezier(0.4, 0, 0.2, 1); }
+.service-card :is(svg, h3, p) { transition: color 250ms ease; }
+.service-card:focus-visible { border-color: #087f44; }
+.service-card:focus-visible::before { transform: translate(-50%, -50%) scale(1); }
+.service-card:focus-visible :is(svg, h3, p) { color: #fff; }
+@media (hover: hover) {
+  .service-card:hover { border-color: #087f44; }
+  .service-card:hover::before { transform: translate(-50%, -50%) scale(1); }
+  .service-card:hover :is(svg, h3, p) { color: #fff; transition-delay: 150ms; }
+}

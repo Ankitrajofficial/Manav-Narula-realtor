@@ -69,10 +69,10 @@ export default async function WhatsAppSettingsPage() {
       <section className="mt-5 rounded-brand border border-line bg-white p-5 text-sm">
         <h2 className="text-base">How sending works</h2>
         <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-muted">
-          <li>Only prospects with WhatsApp opt-in = Yes are ever included; closed-lost records are excluded.</li>
+          <li>Only leads with WhatsApp opt-in = Yes are ever included; closed-lost records are excluded.</li>
           <li>Text messages are delivered only inside Meta&apos;s 24-hour customer service window. For cold outreach, create a message template in Meta Business Manager, wait for approval, and choose &ldquo;Approved template&rdquo; in the campaign.</li>
           <li>Scheduled campaigns send when someone opens the Campaigns page after the time, or on the minute if a cron calls POST /api/campaigns/run with header x-cron-secret = CRON_SECRET.</li>
-          <li>Every message is logged per person on the campaign and as a WhatsApp activity on the lead or prospect.</li>
+          <li>Every message is logged per person on the campaign and as a WhatsApp activity on the lead.</li>
         </ol>
       </section>
     </div>

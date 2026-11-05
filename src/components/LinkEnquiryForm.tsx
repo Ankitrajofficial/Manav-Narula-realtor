@@ -1,4 +1,5 @@
 "use client";
+import SpamTrap from "./SpamTrap";
 import { useState } from "react";
 import Icon from "./Icon";
 import { Button, Field, inputCls } from "./ui";
@@ -41,6 +42,7 @@ export default function LinkEnquiryForm({ linkId, subject }: { linkId: number; s
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <SpamTrap />
       <Field label="Name" htmlFor="l-name"><input id="l-name" name="name" required className={inputCls} placeholder="Your name" autoComplete="name" /></Field>
       <Field label="Phone" htmlFor="l-phone"><input id="l-phone" name="phone" required inputMode="tel" className={inputCls} placeholder="10-digit mobile number" autoComplete="tel" /></Field>
       <Field label="Budget (optional)" htmlFor="l-budget">

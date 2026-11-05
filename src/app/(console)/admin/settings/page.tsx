@@ -114,7 +114,7 @@ export default async function SettingsPage() {
           <ListCard id="sources" title="Lead sources" hint="Where a lead came from. Used on lead forms and reports." items={sources} kind="sources" />
           <LocalitiesCard rows={localities} />
           <ListCard id="types" title="Property types" hint="Kothi, Apartment, Plot and so on." items={types.map((name) => ({ name }))} kind="types" />
-          <ListCard id="tags" title="Tags" hint="Applied to leads and prospects; Phase 3 campaigns filter on these." items={tags} kind="tags" />
+          <ListCard id="tags" title="Tags" hint="Applied to leads; Phase 3 campaigns filter on these." items={tags} kind="tags" />
         </div>
       </div>
     </>

@@ -1,28 +1,32 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState, Suspense } from "react";
 import Icon from "@/components/Icon";
-import BackButton from "@/components/BackButton";
+import BackButton, { NavTrail } from "@/components/BackButton";
 import { logoutAction } from "@/app/(console)/actions";
 import { fieldCls } from "./Form";
 import Logo from "@/components/Logo";
 import { useBellCount } from "./NotificationCenter";
 
-type NavItem = { href: string; label: string; icon: string; also?: string[] };
+type NavItem = { href: string; label: string; icon: string; also?: string[]; group?: string };
 type Props = { nav: NavItem[]; user: { name: string; role: string }; home: string; quick: { label: string; href: string }[]; notifications: { count: number; href: string } };
 
 function NavLinks({ nav, home, collapsed, onNavigate }: { nav: NavItem[]; home: string; collapsed: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <>
-      {nav.map((n) => {
+      {nav.map((n, i) => {
+        const heading = n.group && n.group !== nav[i - 1]?.group ? n.group : null;
         const active = n.href === home ? pathname === home : [n.href, ...(n.also ?? [])].some((h) => pathname.startsWith(h));
         return (
-          <Link key={n.href} href={n.href} title={n.label} onClick={onNavigate} className={`mx-2 my-0.5 flex items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm md:py-2 ${active ? "bg-accent/10 text-accent-ink" : "text-ink hover:bg-bg"}`}>
+          <Fragment key={n.href}>
+          {heading && (collapsed ? <hr className="mx-3 my-2 border-line" /> : <p className="mx-4 mb-1 mt-4 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">{heading}</p>)}
+          <Link href={n.href} title={n.label} onClick={onNavigate} className={`mx-2 my-0.5 flex items-center gap-3 rounded-brand px-2.5 py-2.5 text-sm md:py-2 ${active ? "bg-accent/10 text-accent-ink" : "text-ink hover:bg-bg"}`}>
             <Icon name={n.icon} size={18} className={active ? "text-accent" : "text-muted"} />
             {!collapsed && <span className="truncate">{n.label}</span>}
           </Link>
+          </Fragment>
         );
       })}
     </>
@@ -49,6 +53,7 @@ export default function Sidebar({ nav, user, home, quick, notifications }: Props
         <div className="flex min-w-0 items-center">
           <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-brand hover:bg-bg"><Icon name="menu" size={22} /></button>
           {pathname !== home && <BackButton />}
+          <Suspense><NavTrail /></Suspense>
           <Link href={home} className="ml-1 flex min-w-0 items-center gap-2">
             <Logo size={32} />
             <span className="truncate font-heading text-sm">Manav Narula Realtor</span>

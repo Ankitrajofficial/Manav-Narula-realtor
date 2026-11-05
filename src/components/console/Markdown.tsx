@@ -8,7 +8,7 @@ function inline(s: string): React.ReactNode[] {
     if (m.index > last) out.push(s.slice(last, m.index));
     const t = m[0];
     if (t.startsWith("**")) out.push(<strong key={k++}>{t.slice(2, -2)}</strong>);
-    else if (t.startsWith("[")) { const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(t)!; out.push(<a key={k++} href={mm[2]} className="text-accent-ink underline">{mm[1]}</a>); }
+    else if (t.startsWith("[")) { const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(t)!; out.push(<a key={k++} href={mm[2]} rel="nofollow noopener noreferrer" className="text-accent-ink underline">{mm[1]}</a>); }
     else out.push(<em key={k++}>{t.slice(1, -1)}</em>);
     last = m.index + t.length;
   }

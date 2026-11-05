@@ -219,11 +219,13 @@ const fmtDue = (d: string, today: string) => {
 /** Finished tasks shown before "Show all". */
 const DONE_SHOWN = 6;
 
-export function TaskList({ tasks, today, employees = [], toggle, update, showAssignee }: {
+export function TaskList({ tasks, today, employees = [], toggle, update, showAssignee, simple }: {
   tasks: TaskItem[]; today: string; employees?: Opt[];
   toggle: (id: number, done: boolean) => Promise<Result>;
   update?: (id: number, patch: { title?: string; assigned_to?: number; due?: string; due_date?: string | null }) => Promise<Result>;
   showAssignee?: boolean;
+  /** Employee view: Overdue and Today only, high priority first, finished tasks folded away. A dated task appears on its due day; one with no date stays in Today. */
+  simple?: boolean;
 }) {
   const [optimistic, setOptimistic] = useState<Record<number, string>>({});
   const [editor, setEditor] = useState<Editor>(null);
@@ -345,6 +347,37 @@ export function TaskList({ tasks, today, employees = [], toggle, update, showAss
       </section>
     );
   };
+
+  if (simple) {
+    const highFirst = (items: TaskItem[]) => [...items].sort((a, b) => Number(b.priority === "high") - Number(a.priority === "high"));
+    const filled = [
+      { key: "overdue", label: "Overdue", items: open.filter((t) => t.due && t.due < today) },
+      { key: "today", label: "Today", items: open.filter((t) => !t.due || t.due === today) },
+    ].filter((g) => g.items.length);
+    return (
+      <div className="space-y-5">
+        {filled.length === 0 && <p className="rounded-brand border border-line bg-white px-5 py-8 text-center text-sm text-muted">{open.length ? "Nothing due today." : done.length ? "All done. Nothing left to do." : "No tasks yet."}</p>}
+        {filled.map((g) => (
+          <section key={g.key} aria-label={g.label}>
+            <h2 style={{ fontFamily: "var(--font-body)" }} className={`mb-2 text-sm font-medium ${g.key === "overdue" ? "text-red-700" : "text-ink"}`}>{g.label} ({g.items.length})</h2>
+            <ul className="space-y-2">{highFirst(g.items).map(row)}</ul>
+          </section>
+        ))}
+        {done.length > 0 && (
+          <details className="group rounded-brand border border-line bg-white">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 text-sm text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+              Done ({done.length})<span aria-hidden="true" className="transition-transform group-open:rotate-90">▸</span>
+            </summary>
+            <div className="border-t border-line p-2">
+              <ul className="space-y-2">{(showAllDone ? done : done.slice(0, DONE_SHOWN)).map(row)}</ul>
+              {done.length > DONE_SHOWN && !showAllDone && <button type="button" onClick={() => setShowAllDone(true)} className="mt-2 min-h-11 w-full rounded-brand border border-line text-sm text-muted hover:border-ink hover:text-ink">Show all {done.length}</button>}
+            </div>
+          </details>
+        )}
+        {toast.node}
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -5,7 +5,7 @@ import { setStatusAction } from "@/app/(console)/records/actions";
 import { formatShortDate, maskPhone } from "@/lib/format";
 import type { SheetRecord } from "@/lib/queries/tasks";
 
-const CONTACTED = ["Called", "Follow up", "Hot lead", "Site visit", "Closed won", "Closed lost"];
+const CONTACTED = ["First time contact", "Second time contact", "Warm lead", "Called", "Follow up", "Hot lead", "Site visit", "Closed won", "Closed lost"];
 
 /**
  * The people attached to a task, with one-tap Call and WhatsApp and an inline status change per row.

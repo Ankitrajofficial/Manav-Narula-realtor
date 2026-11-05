@@ -19,9 +19,26 @@ export function checkUpload(file: File): string {
   return ext;
 }
 
+const text = (b: Uint8Array, from: number, to: number) => String.fromCharCode(...b.slice(from, to));
+const SIGNATURES: Record<string, (b: Uint8Array) => boolean> = {
+  "image/jpeg": (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  "image/png": (b) => b[0] === 0x89 && text(b, 1, 4) === "PNG",
+  "image/webp": (b) => text(b, 0, 4) === "RIFF" && text(b, 8, 12) === "WEBP",
+  "application/pdf": (b) => text(b, 0, 5) === "%PDF-",
+  "video/mp4": (b) => text(b, 4, 8) === "ftyp",
+  "video/3gpp": (b) => text(b, 4, 8) === "ftyp",
+};
+
+/** The browser only reports what a file claims to be; this checks its first bytes really are that type. */
+export async function checkUploadContent(file: File): Promise<void> {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (!SIGNATURES[file.type]?.(head)) throw new Error(`${file.name} does not look like a real ${file.type.split("/")[1].toUpperCase()} file.`);
+}
+
 export async function saveUpload(file: File | null | undefined, folder: string): Promise<string | null> {
   if (!file || typeof file === "string" || file.size === 0) return null;
   const ext = checkUpload(file);
+  await checkUploadContent(file);
   const safeFolder = folder.replace(/[^a-z0-9-]/gi, "").toLowerCase() || "file";
   const name = `${safeFolder}-${Date.now()}-${randomBytes(4).toString("hex")}${ext}`;
   await q("INSERT INTO media (name, content_type, size, data) VALUES ($1, $2, $3, $4)", [name, file.type, file.size, Buffer.from(await file.arrayBuffer())]);

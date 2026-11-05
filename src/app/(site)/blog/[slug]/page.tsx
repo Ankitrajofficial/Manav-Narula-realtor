@@ -1,3 +1,4 @@
+import { jsonLd } from "@/lib/json-ld";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -25,7 +26,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const schema = { "@context": "https://schema.org", "@type": "Article", headline: a.title, datePublished: a.date, author: { "@type": "Person", name: a.author, ...(a.authorTitle ? { jobTitle: a.authorTitle } : {}) }, publisher: { "@type": "Organization", name: site.name }, image: unsplash(a.cover) };
   return (
     <Container className="py-8 md:py-12">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       <Breadcrumbs items={[{ label: "Blog", href: "/blog" }, { label: a.category, href: `/blog?category=${encodeURIComponent(a.category)}` }, { label: a.title }]} />
       <article className="mt-8 max-w-3xl">
         <span className="text-xs text-accent-ink">{a.category}</span>

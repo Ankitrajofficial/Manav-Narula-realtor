@@ -1,4 +1,5 @@
 "use client";
+import SpamTrap from "./SpamTrap";
 import { useState } from "react";
 import { localities } from "@/data/site";
 import Icon from "./Icon";
@@ -63,6 +64,7 @@ export default function EnquiryForm({
   const label = submitLabel ?? (variant === "visit" ? "Schedule a visit" : "Send enquiry");
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <SpamTrap />
       {subject && <p className="text-sm text-muted">Regarding: <span className="text-ink">{subject}</span></p>}
       <div className={variant === "short" || variant === "full" ? "grid gap-4 sm:grid-cols-2" : "space-y-4"}>
         <Field label="Name" htmlFor={id("name")}>

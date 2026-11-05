@@ -3,7 +3,7 @@ import { one, q } from "@/lib/db";
 import { dateRange, pageOf, sortOf } from "@/lib/console";
 import type { SessionUser } from "@/lib/auth";
 import { audit, logActivity } from "@/lib/records";
-import { checkUpload, saveUpload } from "@/lib/upload";
+import { checkUpload, checkUploadContent, saveUpload } from "@/lib/upload";
 
 export interface SaleFormState { errors?: Record<string, string>; error?: string }
 
@@ -74,9 +74,14 @@ function parseSale(fd: FormData, user: SessionUser) {
 export async function saveSaleRecord(user: SessionUser, fd: FormData, existingId?: number): Promise<{ id: number } | SaleFormState> {
   const s = parseSale(fd, user);
   if (Object.keys(s.errors).length) return { errors: s.errors };
+  // The dropdown only lists the employee's own records; this is what enforces it, and it runs before the name is copied below.
+  if (user.role !== "admin") {
+    if (s.lead_id && !(await one("SELECT id FROM leads WHERE id = $1 AND (assigned_to = $2 OR created_by = $2)", [s.lead_id, user.id]))) return { errors: { lead_id: "Choose one of your own leads." } };
+    if (s.prospect_id && !(await one("SELECT id FROM prospects WHERE id = $1 AND (assigned_to = $2 OR added_by = $2)", [s.prospect_id, user.id]))) return { errors: { prospect_id: "Choose one of your own prospects." } };
+  }
   // Check every file before saving any, so a bad one does not leave the others half-saved.
   const files = uploadedFiles(fd);
-  try { files.forEach(checkUpload); } catch (e) { return { errors: { documents: (e as Error).message } }; }
+  try { files.forEach(checkUpload); await Promise.all(files.map(checkUploadContent)); } catch (e) { return { errors: { documents: (e as Error).message } }; }
   if (files.reduce((n, f) => n + f.size, 0) > MAX_TOTAL) return { errors: { documents: "The files add up to more than 16 MB. Save fewer at once, then add the rest from the sale page." } };
   if (!s.client_name) {
     const src = s.lead_id ? await one<{ name: string }>("SELECT name FROM leads WHERE id=$1", [s.lead_id]) : await one<{ name: string }>("SELECT name FROM prospects WHERE id=$1", [s.prospect_id]);

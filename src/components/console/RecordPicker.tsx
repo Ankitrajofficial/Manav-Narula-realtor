@@ -40,7 +40,7 @@ export default function RecordPicker({ leads, prospects, initialLeads = [], init
       {Array.from(selProspects).map((id) => <input key={`p${id}`} type="hidden" name="prospect_ids" value={id} />)}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
         <div className="flex gap-1">
-          {(["lead", "prospect"] as const).map((k) => (
+          {(prospects.length || selProspects.size ? (["lead", "prospect"] as const) : (["lead"] as const)).map((k) => (
             <button key={k} type="button" onClick={() => { setTab(k); setStatus(""); setLocality(""); }} className={`rounded-brand px-3 py-1.5 text-sm ${tab === k ? "bg-accent text-white" : "hover:bg-bg"}`}>
               {k === "lead" ? "Leads" : "Prospects"} <span className="tabular opacity-80">({k === "lead" ? selLeads.size : selProspects.size})</span>
             </button>

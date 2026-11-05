@@ -1,13 +1,6 @@
-import PageHeader from "@/components/console/PageHeader";
-import CsvImporter from "@/components/console/CsvImporter";
-import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default async function ImportprospectsPage() {
-  await requireUser("admin");
-  return (
-    <>
-      <PageHeader title="Import prospects from CSV" description="Map your columns, check the preview, then import. Rows with a missing name, an invalid phone or a number already in the system are skipped." />
-      <div className="max-w-4xl"><CsvImporter kind="prospect" /></div>
-    </>
-  );
+/** Imports create leads. Kept so old bookmarks land in the right place. */
+export default function ImportProspectsPage() {
+  redirect("/admin/leads/import");
 }

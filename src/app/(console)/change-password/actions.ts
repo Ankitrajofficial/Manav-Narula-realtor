@@ -1,6 +1,7 @@
 "use server";
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { tooMany } from "@/lib/rate-limit";
+import { redirect } from "@/lib/nav";
+import { getSession, startSession } from "@/lib/auth";
 import { one, q } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { audit } from "@/lib/records";
@@ -11,6 +12,7 @@ export interface ChangePasswordState { errors?: Record<string, string>; message?
 export async function changePasswordAction(_p: ChangePasswordState, fd: FormData): Promise<ChangePasswordState> {
   const user = await getSession();
   if (!user) redirect("/login");
+  if (tooMany(`pin-change:${user.id}`, 10, 15 * 60_000)) return { message: "Too many tries. Wait a few minutes and try again." };
   const current = String(fd.get("current") ?? "");
   const next = String(fd.get("password") ?? "");
   const confirm = String(fd.get("confirm") ?? "");
@@ -22,7 +24,9 @@ export async function changePasswordAction(_p: ChangePasswordState, fd: FormData
   else if (next === current) errors.password = "Choose a PIN different from the temporary one.";
   if (!errors.password && next !== confirm) errors.confirm = "The two PINs do not match.";
   if (Object.keys(errors).length) return { errors, message: "Fix the highlighted fields." };
-  await q("UPDATE users SET password_hash = $1, must_reset = false, pin_set = true WHERE id = $2", [hashPassword(next), user.id]);
+  await q("UPDATE users SET password_hash = $1, must_reset = false, pin_set = true, sessions_valid_from = now() WHERE id = $2", [hashPassword(next), user.id]);
+  // Other devices are signed out; this one carries on with a fresh cookie.
+  await startSession(user.id, user.via ?? "pin");
   await audit(user.id, "change_pin", "user", user.id, { forced: !!user.must_reset, first_pin: !user.pin_set });
   redirect(`${user.role === "admin" ? "/admin" : "/employee"}?toast=${encodeURIComponent("PIN saved")}`);
 }

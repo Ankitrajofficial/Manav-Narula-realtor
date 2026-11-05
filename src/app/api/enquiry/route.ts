@@ -1,3 +1,4 @@
+import { clientIp, tooMany } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
 import { toE164 } from "@/lib/records";
@@ -14,17 +15,29 @@ const SOURCES = ["home_loan", "popup_consultation", "popup_enquiry", "project_pa
  * with a "created" activity row. If CRM_WEBHOOK_URL is set the lead is also forwarded as JSON.
  */
 export async function POST(req: Request) {
+  // Enough for any real visitor; these stop a script filling the lead list, staff batches and the WhatsApp bill.
+  if (tooMany(`enquiry:ip:${clientIp(req.headers)}`, 10, 10 * 60_000) || tooMany("enquiry:all", 200, 10 * 60_000)) {
+    return NextResponse.json({ ok: false, error: "Too many enquiries just now. Please call or WhatsApp us, or try again in a few minutes." }, { status: 429 });
+  }
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
+  // The hidden field only bots fill in: they get a normal-looking answer and nothing is saved.
+  if (body.hp_field) return NextResponse.json({ ok: true });
+  // Nothing from the public form is stored longer than this.
+  for (const [k, cap] of Object.entries({ name: 120, email: 200, budget: 80, locality: 120, subject: 300, message: 2000, visitDate: 40, page: 300 })) {
+    if (typeof body[k] === "string") body[k] = (body[k] as string).slice(0, cap);
+    else if (body[k] != null && typeof body[k] !== "number") body[k] = undefined;
+  }
   const name = String(body.name ?? "").trim();
   const phone = toE164(String(body.phone ?? ""));
   if (name.length < 2 || !phone) {
     return NextResponse.json({ ok: false, error: "Name and a 10-digit Indian mobile number are required" }, { status: 422 });
   }
+  if (tooMany(`enquiry:phone:${phone}`, 3, 10 * 60_000)) return NextResponse.json({ ok: false, error: "We already have this enquiry. An advisor will contact you soon." }, { status: 429 });
   // An ad link (/l/<slug>): the lead takes the link's channel as its source, and its project.
   const link = Number(body.linkId) ? await one<{ id: number; name: string; slug: string; channel: string; project_id: number | null }>("SELECT id, name, slug, channel, project_id FROM lead_links WHERE id = $1 AND active", [Number(body.linkId)]) : null;
   const propertyId = Number(body.propertyId) || null;

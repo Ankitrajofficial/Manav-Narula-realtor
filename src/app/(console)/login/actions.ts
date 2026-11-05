@@ -1,5 +1,7 @@
 "use server";
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { clientIp, tooMany } from "@/lib/rate-limit";
+import { redirect } from "@/lib/nav";
 import { login, needsNewPin } from "@/lib/auth";
 import { audit } from "@/lib/records";
 
@@ -9,6 +11,7 @@ export async function loginAction(_prev: LoginState, fd: FormData): Promise<Logi
   const email = String(fd.get("email") ?? "");
   const pin = String(fd.get("pin") ?? "");
   if (!email || !pin) return { error: "Enter your email and PIN." };
+  if (tooMany(`login:${clientIp(await headers())}`, 30, 15 * 60_000)) return { error: "Too many sign-in tries. Wait a few minutes and try again." };
   const res = await login(email, pin);
   if (!res.ok) {
     // Recorded so sign-in problems can be diagnosed from the audit log (the PIN itself is never stored).

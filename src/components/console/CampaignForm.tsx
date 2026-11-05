@@ -225,7 +225,7 @@ export default function CampaignForm({ action, values = {}, localities, tags, co
                 <input type="hidden" name="kinds" value="lead" />
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="inline-flex items-center gap-1.5 rounded-brand border border-accent bg-accent/10 px-2.5 py-1 text-xs text-accent-ink"><Icon name="users" size={12} />Leads</span>
-                  <label className="inline-flex items-center gap-1.5 text-xs"><input type="checkbox" name="optInOnly" value="1" defaultChecked={a.optInOnly} onChange={refreshCount} className="accent-[#00BF63]" />Only leads who agreed to WhatsApp (opt-in)</label>
+                  <input type="hidden" name="optInOnly" value="1" /><p className="text-xs text-muted">Only people with WhatsApp opt-in = Yes receive campaigns.</p>
                 </div>
                 {e.kinds && <p className="mt-1 text-xs text-red-700">{e.kinds}</p>}
               </div>

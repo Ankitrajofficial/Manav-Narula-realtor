@@ -1,11 +1,14 @@
 "use client";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { TRAIL_KEY } from "@/components/BackButton";
 import { Field, FormError, Input, SubmitButton } from "@/components/console/Form";
 import { loginAction, type LoginState } from "./actions";
 
 export default function LoginForm() {
   const [state, action] = useActionState<LoginState, FormData>(loginAction, {});
+  // A new sign-in starts a new trail, so the back arrow never returns to the last person's pages.
+  useEffect(() => { try { sessionStorage.removeItem(TRAIL_KEY); } catch {} }, []);
   return (
     <form action={action} className="mt-5 space-y-4">
       <Field label="Email" htmlFor="email"><Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@manavnarularealtor.com" /></Field>

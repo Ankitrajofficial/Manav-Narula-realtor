@@ -1,3 +1,4 @@
+import { jsonLd } from "@/lib/json-ld";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import Gallery from "@/components/Gallery";
@@ -62,7 +63,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       <Container className="py-8 md:py-12">
         <Breadcrumbs items={[{ label: "Properties", href: "/properties" }, { label: p.locality, href: `/properties?locality=${encodeURIComponent(p.locality)}&purpose=${p.purpose}` }, { label: p.title }]} />
         <div className="mt-8 grid gap-10 lg:grid-cols-12">

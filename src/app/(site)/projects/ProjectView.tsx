@@ -1,3 +1,4 @@
+import { jsonLd } from "@/lib/json-ld";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -98,7 +99,7 @@ export default function ProjectView({ p, business, unit }: { p: Project; busines
   return (
     <>
       {p.published === false && <p role="status" className="bg-[#fff4d6] px-4 py-2 text-center text-sm text-ink">Draft preview: only admins can see this page until the project is published.</p>}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
       {/* Hero */}
       <div className="relative h-[420px] border-b border-line bg-line md:h-[520px]">
         <ProjectImage src={heroSrc} alt={cover?.alt} name={p.name} developer={p.developer} sizes="100vw" priority bare position={launch ? "object-[center_15%]" : ""} />
